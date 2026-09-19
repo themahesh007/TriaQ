@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --color-primary: #2B6E64;
+  --color-primary-light: #E4EEEC;
+  --color-ink: #16302B;
+  --color-ink-soft: #54655F;
+  --color-line: #DAD6CC;
+  --color-paper: #F6F5F1;
+  --color-red-tag: #B23A2E;
+  --color-red-light: #FBEBE8;
+  --color-amber-tag: #B4791F;
+  --color-amber-light: #FBF1DF;
+  --color-yellow-tag: #EAB308;
+  --color-yellow-light: #FEF9C3;
+  --color-green-tag: #3F7D52;
+  --color-green-light: #EAF3EC;
+}
+
+:root {
+  font-family: "Plus Jakarta Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  color: #0F172A;
+  background-color: #F8FAFC;
+  letter-spacing: -0.012em;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(100% 60% at 50% 0%, #ECFDF5 0%, #F8FAFC 45%, #F1F5F9 100%);
+  background-attachment: fixed;
+  color: #0F172A;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F6F5F1;
+}
+::-webkit-scrollbar-thumb {
+  background: #DAD6CC;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #54655F;
+}
+
+/* Medical Triage Slip Print Styling */
+@media print {
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+  }
+  header, nav, footer, .no-print, button:not(.slip-keep) {
+    display: none !important;
+  }
+  .print-area-wrapper {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: #FFFFFF !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    z-index: 99999 !important;
+    box-shadow: none !important;
+  }
+}
+
