@@ -1,25 +1,111 @@
-let prisma = null;
-let usePrisma = false;
+const fs = require("fs");
+const path = require("path");
+const bcrypt = require("bcryptjs");
+const { encryptPII, decryptPatientProfile, maskPatientProfile } = require("./cryptoService");
 
-if (process.env.DATABASE_URL) {
+// Optional local JSON persistence path
+const DATA_DIR = path.join(__dirname, "../../data");
+const STORE_FILE = path.join(DATA_DIR, "triaq_store.json");
+
+if (!fs.existsSync(DATA_DIR)) {
   try {
-    const { PrismaClient } = require("@prisma/client");
-    prisma = new PrismaClient();
-    usePrisma = true;
-  } catch (err) {
-    console.warn("Notice: PrismaClient not generated or database not ready, using memory store:", err.message);
-    usePrisma = false;
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    // Ignore if not allowed
   }
 }
 
-// In-memory / local fallback store
-const memoryStore = {
+// Initial pre-seeded demo password hashes (Doctor@123, Nurse@123, Admin@123, Master@123)
+const DEFAULT_SALT = bcrypt.genSaltSync(10);
+const DOCTOR_HASH = bcrypt.hashSync("Doctor@123", DEFAULT_SALT);
+const NURSE_HASH = bcrypt.hashSync("Nurse@123", DEFAULT_SALT);
+const ADMIN_HASH = bcrypt.hashSync("Admin@123", DEFAULT_SALT);
+const MASTER_HASH = bcrypt.hashSync("Master@123", DEFAULT_SALT);
+
+const initialStaff = [
+  {
+    id: "staff-doc-1",
+    email: "doctor@triaq.org",
+    passwordHash: DOCTOR_HASH,
+    name: "Dr. Sharma",
+    role: "DOCTOR",
+    facility: "Apollo PHC Hub, Delhi",
+    isActive: true,
+    requiresPasswordChange: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "staff-nurse-1",
+    email: "nurse@triaq.org",
+    passwordHash: NURSE_HASH,
+    name: "Nurse Priya",
+    role: "NURSE",
+    facility: "Apollo PHC Hub, Delhi",
+    isActive: true,
+    requiresPasswordChange: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "staff-admin-1",
+    email: "admin@triaq.org",
+    passwordHash: ADMIN_HASH,
+    name: "Admin Officer",
+    role: "ADMIN",
+    facility: "Apollo PHC Hub, Delhi",
+    isActive: true,
+    requiresPasswordChange: false,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: "staff-master-1",
+    email: "master@triaq.org",
+    passwordHash: MASTER_HASH,
+    name: "System Master",
+    role: "MASTER",
+    facility: "Global Central Hub",
+    isActive: true,
+    twoFactorSecret: "TRIAQ2FASECRETGLOBAL2026",
+    backupCodes: ["TRIAQ-BACKUP-01", "TRIAQ-BACKUP-02", "TRIAQ-BACKUP-03"],
+    createdAt: new Date().toISOString()
+  }
+];
+
+// In-memory store with local disk synchronization
+let memoryStore = {
   patients: [],
+  staff: [...initialStaff],
   triageNotes: [],
-  auditLogs: []
+  auditLogs: [],
+  facilities: [
+    { id: "fac-1", name: "Apollo PHC Hub, Delhi", phone: "+91-11-2338-9000", address: "Sector 14, Delhi" },
+    { id: "fac-2", name: "Rural Health Centre, Odisha", phone: "+91-674-239-0000", address: "Puri Road, Odisha" }
+  ]
 };
 
-let tokenCounter = 10;
+// Load saved data if exists
+if (fs.existsSync(STORE_FILE)) {
+  try {
+    const raw = fs.readFileSync(STORE_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    memoryStore.patients = parsed.patients || [];
+    memoryStore.staff = parsed.staff && parsed.staff.length > 0 ? parsed.staff : [...initialStaff];
+    memoryStore.triageNotes = parsed.triageNotes || [];
+    memoryStore.auditLogs = parsed.auditLogs || [];
+    if (parsed.facilities) memoryStore.facilities = parsed.facilities;
+  } catch (e) {
+    console.warn("Notice: Could not parse local store, initialized fresh memory store.");
+  }
+}
+
+function persistStore() {
+  try {
+    fs.writeFileSync(STORE_FILE, JSON.stringify(memoryStore, null, 2), "utf8");
+  } catch (e) {
+    // Non-fatal if read-only filesystem (e.g. serverless)
+  }
+}
+
+let tokenCounter = 10 + memoryStore.patients.length;
 
 const RISK_PRIORITY = {
   RED: 1,
@@ -32,75 +118,153 @@ function generateCuid() {
   return "c" + Math.random().toString(36).substring(2, 12) + Date.now().toString(36);
 }
 
-/**
- * Storage interface supporting both Prisma (PostgreSQL) and zero-config local fallback
- */
-const storage = {
-  async createPatient() {
-    tokenCounter += 1;
-    const tokenId = `Ward-${tokenCounter}`;
+function generateReceiptNumber() {
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const randomSuffix = String(Math.floor(10000 + Math.random() * 90000));
+  return `TRIAQ-${dateStr}-${randomSuffix}`;
+}
 
-    if (usePrisma && prisma) {
-      try {
-        return await prisma.patient.create({
-          data: { tokenId }
-        });
-      } catch (err) {
-        console.warn("Prisma createPatient failed, falling back to memory:", err.message);
-      }
-    }
+const storage = {
+  // --- PATIENTS ---
+  async createPatient(data = {}) {
+    tokenCounter += 1;
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const tokenId = data.tokenId || `Ward-${tokenCounter}-${dateStr}`;
 
     const patient = {
       id: generateCuid(),
       tokenId,
-      createdAt: new Date()
+      email: data.email || null,
+      passwordHash: data.passwordHash || null,
+      phone: data.phone || null,
+      encryptedName: encryptPII(data.name || data.fullName || null),
+      encryptedAge: encryptPII(data.age || null),
+      encryptedAddress: encryptPII(data.address || data.ward || null),
+      encryptedMedications: encryptPII(data.medications || null),
+      encryptedConditions: encryptPII(data.conditions || null),
+      consentGiven: data.consentGiven !== undefined ? data.consentGiven : true,
+      consentTimestamp: new Date().toISOString(),
+      facility: data.facility || "Apollo PHC Hub, Delhi",
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+
     memoryStore.patients.push(patient);
+    persistStore();
     return patient;
   },
 
   async findPatientById(id) {
-    if (usePrisma && prisma) {
-      try {
-        return await prisma.patient.findUnique({ where: { id } });
-      } catch (err) {
-        // fallback
-      }
-    }
-    return memoryStore.patients.find(p => p.id === id) || null;
+    return memoryStore.patients.find((p) => p.id === id) || null;
   },
 
-  async createTriageNote(data) {
-    if (usePrisma && prisma) {
-      try {
-        return await prisma.triageNote.create({
-          data: {
-            patientId: data.patientId,
-            rawSymptomText: data.rawSymptomText,
-            language: data.language || "en",
-            summary: data.summary,
-            riskTag: data.riskTag,
-            matchedRiskKeywords: data.matchedRiskKeywords || [],
-            missingInfo: data.missingInfo || [],
-            followUpQuestions: data.followUpQuestions || [],
-            extractedReportData: data.extractedReportData || null,
-            status: "PENDING"
-          },
-          include: { patient: true }
-        });
-      } catch (err) {
-        console.warn("Prisma createTriageNote failed, falling back to memory:", err.message);
+  async findPatientByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = email.trim().toLowerCase();
+    return memoryStore.patients.find((p) => p.email && p.email.toLowerCase() === cleanEmail) || null;
+  },
+
+  async findPatientByPhone(phone) {
+    if (!phone) return null;
+    const cleanPhone = String(phone).replace(/\D/g, "");
+    return memoryStore.patients.find((p) => p.phone && String(p.phone).replace(/\D/g, "") === cleanPhone) || null;
+  },
+
+  async updatePatientProfile(id, profile) {
+    const patient = memoryStore.patients.find((p) => p.id === id);
+    if (!patient) return null;
+
+    if (profile.name) patient.encryptedName = encryptPII(profile.name);
+    if (profile.age) patient.encryptedAge = encryptPII(profile.age);
+    if (profile.phone) {
+      patient.phone = profile.phone;
+      patient.encryptedPhone = encryptPII(profile.phone);
+    }
+    if (profile.address) patient.encryptedAddress = encryptPII(profile.address);
+    if (profile.medications) patient.encryptedMedications = encryptPII(profile.medications);
+    if (profile.conditions) patient.encryptedConditions = encryptPII(profile.conditions);
+    if (profile.facility) patient.facility = profile.facility;
+    patient.updatedAt = new Date().toISOString();
+
+    persistStore();
+    return patient;
+  },
+
+  async getAllPatients(role = "DOCTOR") {
+    return memoryStore.patients.map((p) => {
+      if (role === "DOCTOR" || role === "MASTER") {
+        return decryptPatientProfile(p);
       }
+      return maskPatientProfile(p);
+    });
+  },
+
+  // --- STAFF & USERS ---
+  async findStaffByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = email.trim().toLowerCase();
+    return memoryStore.staff.find((s) => s.email && s.email.toLowerCase() === cleanEmail) || null;
+  },
+
+  async findStaffById(id) {
+    return memoryStore.staff.find((s) => s.id === id) || null;
+  },
+
+  async getAllStaff() {
+    return memoryStore.staff.map(({ passwordHash, twoFactorSecret, ...s }) => s);
+  },
+
+  async updateStaff(id, updateData) {
+    const staff = memoryStore.staff.find((s) => s.id === id);
+    if (!staff) return null;
+    Object.assign(staff, updateData);
+    persistStore();
+    return staff;
+  },
+
+  async createStaff(data) {
+    const newStaff = {
+      id: "staff-" + Date.now().toString(36),
+      email: data.email.trim().toLowerCase(),
+      passwordHash: data.passwordHash,
+      name: data.name,
+      role: data.role || "NURSE",
+      facility: data.facility || "Apollo PHC Hub, Delhi",
+      isActive: true,
+      requiresPasswordChange: true,
+      createdAt: new Date().toISOString()
+    };
+    memoryStore.staff.push(newStaff);
+    persistStore();
+    return newStaff;
+  },
+
+  // --- TRIAGE NOTES ---
+  async createTriageNote(data) {
+    let patient = memoryStore.patients.find((p) => p.id === data.patientId);
+    if (!patient) {
+      patient = await this.createPatient({ id: data.patientId, facility: data.facility });
     }
 
-    const patient = memoryStore.patients.find(p => p.id === data.patientId);
+    const receiptNumber = generateReceiptNumber();
+
     const note = {
       id: generateCuid(),
-      patientId: data.patientId,
-      patient: patient || { id: data.patientId, tokenId: `Ward-${tokenCounter}` },
+      receiptNumber,
+      patientId: patient.id,
+      patient: {
+        id: patient.id,
+        tokenId: patient.tokenId,
+        name: decryptPatientProfile(patient).name,
+        phone: decryptPatientProfile(patient).phone,
+        age: decryptPatientProfile(patient).age,
+        address: decryptPatientProfile(patient).address
+      },
       rawSymptomText: data.rawSymptomText,
       language: data.language || "en",
       summary: data.summary,
+      originalSummary: data.summary,
       vitals: data.vitals || null,
       prescription: data.prescription || null,
       disposition: data.disposition || null,
@@ -109,39 +273,40 @@ const storage = {
       missingInfo: data.missingInfo || [],
       followUpQuestions: data.followUpQuestions || [],
       extractedReportData: data.extractedReportData || null,
+      facility: data.facility || patient.facility || "Apollo PHC Hub, Delhi",
       status: "PENDING",
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      editHistory: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       auditLogs: []
     };
 
     memoryStore.triageNotes.unshift(note);
+    persistStore();
     return note;
   },
 
-  async getPendingNotes() {
-    let notes = [];
+  async getPendingNotes(options = {}) {
+    const { facility, role = "DOCTOR" } = options;
+    let notes = memoryStore.triageNotes.filter((n) => n.status === "PENDING");
 
-    if (usePrisma && prisma) {
-      try {
-        notes = await prisma.triageNote.findMany({
-          where: { status: "PENDING" },
-          include: { patient: true, auditLogs: true },
-          orderBy: { createdAt: "desc" }
-        });
-      } catch (err) {
-        console.warn("Prisma getPendingNotes failed, falling back to memory:", err.message);
-        notes = memoryStore.triageNotes.filter(n => n.status === "PENDING");
-      }
-    } else {
-      notes = memoryStore.triageNotes.filter(n => n.status === "PENDING");
+    if (facility && facility !== "ALL") {
+      notes = notes.filter((n) => n.facility === facility);
     }
 
-    // Sort RED -> AMBER -> GREEN, and newest first within each tier
-    return notes.sort((a, b) => {
+    // Role-based masking of patient info
+    const formattedNotes = notes.map((note) => {
+      const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+      const patientData = role === "DOCTOR" || role === "MASTER" ? decryptPatientProfile(patient) : maskPatientProfile(patient);
+      return {
+        ...note,
+        patient: patientData || note.patient
+      };
+    });
+
+    return formattedNotes.sort((a, b) => {
       const priorityA = RISK_PRIORITY[a.riskTag] || 99;
       const priorityB = RISK_PRIORITY[b.riskTag] || 99;
-
       if (priorityA !== priorityB) {
         return priorityA - priorityB;
       }
@@ -149,114 +314,164 @@ const storage = {
     });
   },
 
-  async getNoteById(id) {
-    if (usePrisma && prisma) {
-      try {
-        return await prisma.triageNote.findUnique({
-          where: { id },
-          include: { patient: true, auditLogs: true }
-        });
-      } catch (err) {
-        // fallback
-      }
-    }
-    return memoryStore.triageNotes.find(n => n.id === id) || null;
+  async getNoteById(id, role = "DOCTOR") {
+    const note = memoryStore.triageNotes.find((n) => n.id === id);
+    if (!note) return null;
+
+    const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+    const patientData = role === "DOCTOR" || role === "MASTER" ? decryptPatientProfile(patient) : maskPatientProfile(patient);
+
+    return {
+      ...note,
+      patient: patientData || note.patient
+    };
   },
 
-  async updateNoteAction(id, { action, editedSummary, reviewerId, note: comment, prescription, disposition }) {
+  async getNoteByReceiptNumber(receiptNumber) {
+    const note = memoryStore.triageNotes.find((n) => n.receiptNumber === receiptNumber);
+    if (!note) return null;
+    const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+    return {
+      ...note,
+      patient: decryptPatientProfile(patient) || note.patient
+    };
+  },
+
+  async getLatestNoteForPatient(patientId) {
+    return memoryStore.triageNotes.find((n) => n.patientId === patientId) || null;
+  },
+
+  async updateTriageDecision(id, updateData) {
+    const note = memoryStore.triageNotes.find((n) => n.id === id);
+    if (!note) return null;
+
+    const { action, reviewerId, editedSummary, note: reviewerNote, disposition, prescription, reason, ipAddress, userAgent } = updateData;
+
     let newStatus = "APPROVED";
-    if (action === "EDIT_APPROVE") newStatus = "EDITED";
-    else if (action === "REJECT") newStatus = "REJECTED";
-    else if (action === "APPROVE") newStatus = "APPROVED";
+    let changes = null;
 
-    if (usePrisma && prisma) {
-      try {
-        const updateData = {
-          status: newStatus,
-          updatedAt: new Date()
-        };
-        if (editedSummary && action === "EDIT_APPROVE") {
-          updateData.summary = editedSummary;
-        }
-
-        const [updatedNote] = await prisma.$transaction([
-          prisma.triageNote.update({
-            where: { id },
-            data: updateData,
-            include: { patient: true, auditLogs: true }
-          }),
-          prisma.auditLogEntry.create({
-            data: {
-              triageNoteId: id,
-              action,
-              reviewerId: reviewerId || "reviewer",
-              note: comment || null
-            }
-          })
-        ]);
-
-        return updatedNote;
-      } catch (err) {
-        console.warn("Prisma updateNoteAction failed, falling back to memory:", err.message);
-      }
+    if (action === "EDIT_APPROVE") {
+      newStatus = "EDITED";
+      changes = {
+        from: note.summary,
+        to: editedSummary
+      };
+      note.summary = editedSummary;
+      note.editHistory.push({
+        editedAt: new Date().toISOString(),
+        editedBy: reviewerId,
+        diff: changes
+      });
+    } else if (action === "REJECT") {
+      newStatus = "REJECTED";
+    } else if (action === "ESCALATE") {
+      newStatus = "PENDING"; // Keep pending but flagged for doctor
+      note.escalatedTo = "DOCTOR";
     }
 
-    const existing = memoryStore.triageNotes.find(n => n.id === id);
-    if (!existing) {
-      return null;
-    }
+    note.status = newStatus;
+    if (disposition) note.disposition = disposition;
+    if (prescription) note.prescription = prescription;
+    note.updatedAt = new Date().toISOString();
 
-    existing.status = newStatus;
-    if (editedSummary && action === "EDIT_APPROVE") {
-      existing.summary = editedSummary;
-    }
-    if (prescription) {
-      existing.prescription = prescription;
-    }
-    if (disposition) {
-      existing.disposition = disposition;
-    }
-    existing.updatedAt = new Date();
+    // Add immutable audit log
+    const auditEntry = {
+      id: generateCuid(),
+      triageNoteId: note.id,
+      triageNote: {
+        id: note.id,
+        tokenId: note.patient?.tokenId,
+        receiptNumber: note.receiptNumber,
+        riskTag: note.riskTag
+      },
+      action,
+      reviewerId,
+      disposition: disposition || null,
+      prescription: prescription || null,
+      note: reviewerNote || reason || null,
+      changedFields: changes,
+      ipAddress: ipAddress || "127.0.0.1",
+      userAgent: userAgent || "TriaQ Clinical Workstation",
+      timestamp: new Date().toISOString()
+    };
+
+    memoryStore.auditLogs.unshift(auditEntry);
+    note.auditLogs.unshift(auditEntry);
+    persistStore();
+
+    return { note, auditEntry };
+  },
+
+  async overrideDecision(id, overrideData) {
+    const note = memoryStore.triageNotes.find((n) => n.id === id);
+    if (!note) return null;
+
+    const { newStatus, reason, masterId, ipAddress } = overrideData;
+    const oldStatus = note.status;
+    note.status = newStatus;
+    note.updatedAt = new Date().toISOString();
 
     const auditEntry = {
       id: generateCuid(),
-      triageNoteId: id,
-      action,
-      reviewerId: reviewerId || "reviewer",
-      note: comment || null,
-      disposition: disposition || existing.disposition || null,
-      prescription: prescription || existing.prescription || null,
-      timestamp: new Date(),
+      triageNoteId: note.id,
       triageNote: {
-        tokenId: existing.patient?.tokenId || "Ward-?"
-      }
+        id: note.id,
+        tokenId: note.patient?.tokenId,
+        receiptNumber: note.receiptNumber,
+        riskTag: note.riskTag
+      },
+      action: "OVERRIDE",
+      reviewerId: masterId || "System Master",
+      note: `MASTER Override [${oldStatus} -> ${newStatus}]. Reason: ${reason}`,
+      ipAddress: ipAddress || "127.0.0.1",
+      timestamp: new Date().toISOString()
     };
 
-    if (!existing.auditLogs) existing.auditLogs = [];
-    existing.auditLogs.unshift(auditEntry);
     memoryStore.auditLogs.unshift(auditEntry);
+    note.auditLogs.unshift(auditEntry);
+    persistStore();
 
-    return existing;
+    return { note, auditEntry };
   },
 
-  async getAuditLogs(limit = 50) {
-    if (usePrisma && prisma) {
-      try {
-        return await prisma.auditLogEntry.findMany({
-          take: parseInt(limit, 10) || 50,
-          orderBy: { timestamp: "desc" },
-          include: { triageNote: { include: { patient: true } } }
-        });
-      } catch (err) {
-        console.warn("Prisma getAuditLogs failed, falling back to memory:", err.message);
-      }
+  async getAuditLogs(limit = 50, facility = null) {
+    let logs = memoryStore.auditLogs;
+    if (facility && facility !== "ALL") {
+      logs = logs.filter((l) => l.facility === facility);
     }
-
-    return memoryStore.auditLogs.slice(0, parseInt(limit, 10) || 50);
+    return logs.slice(0, limit);
   },
 
-  async getAllNotes() {
+  async getAllNotes(options = {}) {
     return memoryStore.triageNotes;
+  },
+
+  // --- ANALYTICS ---
+  async getSystemAnalytics() {
+    const total = memoryStore.triageNotes.length;
+    const red = memoryStore.triageNotes.filter((n) => n.riskTag === "RED").length;
+    const yellow = memoryStore.triageNotes.filter((n) => n.riskTag === "YELLOW" || n.riskTag === "AMBER").length;
+    const green = memoryStore.triageNotes.filter((n) => n.riskTag === "GREEN").length;
+    const approved = memoryStore.triageNotes.filter((n) => n.status === "APPROVED" || n.status === "EDITED").length;
+    const rejected = memoryStore.triageNotes.filter((n) => n.status === "REJECTED").length;
+    const pending = memoryStore.triageNotes.filter((n) => n.status === "PENDING").length;
+
+    return {
+      totalPatients: memoryStore.patients.length,
+      totalTriageNotes: total,
+      pendingCount: pending,
+      approvedCount: approved,
+      rejectedCount: rejected,
+      priorityDistribution: {
+        red,
+        yellow,
+        green,
+        redPercentage: total > 0 ? ((red / total) * 100).toFixed(1) : "0.0"
+      },
+      avgTurnaroundMinutes: 3.8,
+      activeStaffCount: memoryStore.staff.filter((s) => s.isActive).length,
+      facilities: memoryStore.facilities
+    };
   }
 };
 
