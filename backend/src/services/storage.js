@@ -339,8 +339,9 @@ const storage = {
       name: data.name,
       role: data.role || "NURSE",
       facility: data.facility || "Apollo PHC Hub, Delhi",
+      phone: data.phone ? String(data.phone).replace(/\D/g, "") : null,
       isActive: true,
-      requiresPasswordChange: true,
+      requiresPasswordChange: data.requiresPasswordChange !== undefined ? data.requiresPasswordChange : false,
       createdAt: new Date().toISOString()
     };
     memoryStore.staff.push(newStaff);

@@ -320,19 +320,36 @@ export default function PatientPortal({ onNavigateHome }) {
     }
   }, [patientSession]);
 
+  // Helpers for Indian 10-digit Contact Number validation
+  const cleanIndianPhone = (raw) => {
+    let digits = String(raw || "").replace(/\D/g, "");
+    if (digits.length === 12 && digits.startsWith("91")) {
+      digits = digits.slice(2);
+    } else if (digits.length === 11 && digits.startsWith("0")) {
+      digits = digits.slice(1);
+    }
+    return digits;
+  };
+
+  const isValidIndianPhone = (raw) => {
+    const digits = cleanIndianPhone(raw);
+    return /^[6-9]\d{9}$/.test(digits);
+  };
+
   // --- AUTH HANDLERS ---
   const handleSendOTP = async () => {
     setAuthError("");
-    if (!phone || phone.replace(/\D/g, "").length < 10) {
-      setAuthError("Please enter a valid 10-digit mobile number.");
+    if (!isValidIndianPhone(phone)) {
+      setAuthError("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
       return;
     }
+    const cleanNumber = cleanIndianPhone(phone);
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/patients/login/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: cleanNumber })
       });
       const data = await res.json();
       if (res.ok) {
@@ -355,19 +372,24 @@ export default function PatientPortal({ onNavigateHome }) {
   const handleLoginOTP = async (e) => {
     e.preventDefault();
     setAuthError("");
+    if (!isValidIndianPhone(phone)) {
+      setAuthError("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
+      return;
+    }
+    const cleanNumber = cleanIndianPhone(phone);
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE}/api/patients/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, otp })
+        body: JSON.stringify({ phone: cleanNumber, otp })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
       localStorage.setItem("triaq_patient_session", JSON.stringify(data));
       setPatientSession(data);
-      if (!contactPhone) setContactPhone(phone);
+      if (!contactPhone) setContactPhone(cleanNumber);
       setCurrentStep("intake");
     } catch (err) {
       setAuthError(err.message);
@@ -379,13 +401,23 @@ export default function PatientPortal({ onNavigateHome }) {
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     setAuthError("");
+
+    let cleanPhone = null;
+    if (isSignup && phone) {
+      if (!isValidIndianPhone(phone)) {
+        setAuthError("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
+        return;
+      }
+      cleanPhone = cleanIndianPhone(phone);
+    }
+
     setLoading(true);
     const endpoint = isSignup ? "/api/patients/register" : "/api/patients/login";
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, phone, name: fullName })
+        body: JSON.stringify({ email, password, phone: cleanPhone, name: fullName })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Authentication failed");
@@ -416,6 +448,13 @@ export default function PatientPortal({ onNavigateHome }) {
       return;
     }
 
+    const activePhone = contactPhone.trim() || phone;
+    if (activePhone && !isValidIndianPhone(activePhone)) {
+      setIntakeSavedNotice("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
+      return;
+    }
+    const cleanedContact = activePhone ? cleanIndianPhone(activePhone) : "";
+
     setLoading(true);
     setIntakeSavedNotice("");
 
@@ -430,7 +469,7 @@ export default function PatientPortal({ onNavigateHome }) {
           body: JSON.stringify({
             name: fullName.trim(),
             age: age.trim(),
-            phone: contactPhone.trim() || phone,
+            phone: cleanedContact,
             address: address.trim(),
             conditions: conditions.trim(),
             medications: medications.trim()
@@ -662,132 +701,247 @@ export default function PatientPortal({ onNavigateHome }) {
 
           {/* Tab 1: Phone + OTP */}
           {authTab === "otp" && (
-            <form onSubmit={handleLoginOTP} className="space-y-4 max-w-sm mx-auto">
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Mobile Number (India)
-                </label>
-                <div className="flex gap-2">
-                  <span className="px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-bold text-slate-600 flex items-center">
-                    +91
-                  </span>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                    placeholder="9876543210"
-                    className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendOTP}
-                    disabled={loading}
-                    className="px-3.5 py-2.5 rounded-xl text-[12px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
-                  >
-                    {otpSent ? "Resend" : "Send OTP"}
-                  </button>
-                </div>
-              </div>
-
-              {otpSent && (
-                <div className="space-y-2 pt-1 animate-fadeIn">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[12px] font-bold text-slate-700">
-                      Enter 6-Digit OTP Code
-                    </label>
-                    {demoOtpCode && (
-                      <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                        Demo Code: <strong>{demoOtpCode}</strong>
-                      </span>
-                    )}
+            <div className="space-y-4 max-w-sm mx-auto">
+              <form onSubmit={handleLoginOTP} className="space-y-4">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Contact Number (India)</span>
+                    <span className="text-[11px] font-bold text-emerald-700">
+                      {phone.length}/10 digits
+                    </span>
+                  </label>
+                  <div className="flex gap-2">
+                    <span className="px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
+                      <span>🇮🇳</span>
+                      <span>+91</span>
+                    </span>
+                    <input
+                      type="tel"
+                      maxLength={10}
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                      placeholder="9876543210"
+                      className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendOTP}
+                      disabled={loading}
+                      className="px-3.5 py-2.5 rounded-xl text-[12px] font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-600 hover:text-white transition cursor-pointer shrink-0"
+                    >
+                      {otpSent ? "Resend OTP" : "Send OTP"}
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                    placeholder="123456"
-                    className="w-full p-3 rounded-xl border border-slate-200 text-center font-mono text-xl tracking-widest text-slate-900 font-black outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/50"
-                  />
-                  <p className="text-[11px] text-slate-400 text-center font-medium">
-                    (In demo mode, code is automatically pre-filled above)
+                  <p className="text-[10.5px] text-slate-400 mt-1 font-medium">
+                    Enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9)
                   </p>
                 </div>
-              )}
 
-              <button
-                type="submit"
-                disabled={loading || !otpSent}
-                className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs"
-              >
-                {loading ? "Verifying..." : "Verify & Continue →"}
-              </button>
-            </form>
+                {otpSent && (
+                  <div className="space-y-2.5 pt-1 animate-fadeIn">
+                    {/* Simulated SMS Dispatch Card */}
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-1 shadow-2xs">
+                      <div className="flex items-center justify-between font-black text-emerald-900 text-[12px]">
+                        <span className="flex items-center gap-1.5">
+                          <span>📩</span> SMS Delivered to Contact Number
+                        </span>
+                        <span className="text-[10.5px] bg-white font-mono px-2 py-0.5 rounded border border-emerald-200">
+                          +91-{phone}
+                        </span>
+                      </div>
+                      <p className="text-[12.5px] font-bold text-emerald-800">
+                        Your TriaQ OTP Code is:{" "}
+                        <span className="font-mono text-base font-black text-emerald-950 bg-white px-2 py-0.5 rounded border border-emerald-300 inline-block shadow-2xs">
+                          {demoOtpCode}
+                        </span>
+                      </p>
+                      <p className="text-[10.5px] text-emerald-700 font-medium">
+                        Valid for 5 minutes. Enter code below or click verify to proceed.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[12px] font-bold text-slate-700 block">
+                        Enter 6-Digit OTP Code
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                        placeholder="123456"
+                        className="w-full p-3 rounded-xl border border-slate-200 text-center font-mono text-xl tracking-widest text-slate-900 font-black outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/50"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !otpSent}
+                  className="w-full py-3.5 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs"
+                >
+                  {loading ? "Verifying..." : "Verify & Continue →"}
+                </button>
+              </form>
+
+              {/* REGISTER NOW PLACED DIRECTLY UNDER LOGIN */}
+              <div className="text-center pt-3 border-t border-slate-100 space-y-1">
+                <p className="text-[12.5px] text-slate-600 font-medium">
+                  Don't have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthTab("password");
+                      setIsSignup(true);
+                      setAuthError("");
+                    }}
+                    className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                  >
+                    Register Now →
+                  </button>
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  (Or simply verify OTP above for instant mobile sign-in)
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Tab 2: Email + Password */}
           {authTab === "password" && (
-            <form onSubmit={handleEmailAuth} className="space-y-4 max-w-sm mx-auto">
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="patient@example.com"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Password (min 8 chars)
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
-              </div>
-
+            <div className="space-y-4 max-w-sm mx-auto">
               {isSignup && (
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Contact Phone (Optional)
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="9876543210"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  />
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-[12px] font-bold text-center">
+                  ✨ Register New Patient Account
                 </div>
               )}
 
-              <div className="flex items-center justify-between pt-1">
-                <button
-                  type="button"
-                  onClick={() => setIsSignup(!isSignup)}
-                  className="text-[12px] font-bold text-emerald-700 hover:underline cursor-pointer"
-                >
-                  {isSignup ? "Already have an account? Login" : "Don't have account? Sign up"}
-                </button>
-              </div>
+              <form onSubmit={handleEmailAuth} className="space-y-4">
+                {isSignup && (
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                      Full Name <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="e.g. Ramesh Kumar"
+                      className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                  </div>
+                )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs"
-              >
-                {loading ? "Please wait..." : isSignup ? "Create Account & Check In →" : "Login & Continue →"}
-              </button>
-            </form>
+                {isSignup && (
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                      <span>Contact Number (India) <span className="text-rose-600">*</span></span>
+                      <span className="text-[11px] font-bold text-emerald-700">{phone.length}/10</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
+                        <span>🇮🇳</span>
+                        <span>+91</span>
+                      </span>
+                      <input
+                        type="tel"
+                        required
+                        maxLength={10}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                        placeholder="9876543210"
+                        className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Email Address <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="patient@example.com"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Password (min 8 characters) <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3.5 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs active:scale-98"
+                >
+                  {loading ? "Please wait..." : isSignup ? "Register & Check In →" : "Sign In & Continue →"}
+                </button>
+              </form>
+
+              {/* REGISTER NOW / SIGN IN PLACED DIRECTLY UNDER BUTTON */}
+              <div className="text-center pt-3 border-t border-slate-100 space-y-1">
+                {isSignup ? (
+                  <p className="text-[12.5px] text-slate-600 font-medium">
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignup(false);
+                        setAuthError("");
+                      }}
+                      className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    >
+                      Sign In here →
+                    </button>
+                  </p>
+                ) : (
+                  <p className="text-[12.5px] text-slate-600 font-medium">
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSignup(true);
+                        setAuthError("");
+                      }}
+                      className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                    >
+                      Register Now →
+                    </button>
+                  </p>
+                )}
+                <p className="text-[11.5px] text-slate-400">
+                  Or switch to{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthTab("otp");
+                      setIsSignup(false);
+                      setAuthError("");
+                    }}
+                    className="font-bold text-slate-700 hover:underline cursor-pointer"
+                  >
+                    Mobile OTP Login
+                  </button>
+                </p>
+              </div>
+            </div>
           )}
         </div>
       )}
@@ -852,16 +1006,24 @@ export default function PatientPortal({ onNavigateHome }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Contact Phone Number
+                <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Contact Number</span>
+                  <span className="text-[11px] font-bold text-emerald-700">10-digit India</span>
                 </label>
-                <input
-                  type="tel"
-                  value={contactPhone || phone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  placeholder="e.g. 9876543210"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
+                <div className="flex gap-2">
+                  <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
+                    <span>🇮🇳</span>
+                    <span>+91</span>
+                  </span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={contactPhone || phone}
+                    onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ""))}
+                    placeholder="e.g. 9876543210"
+                    className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
               </div>
 
               <div>

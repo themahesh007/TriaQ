@@ -3,6 +3,22 @@ import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
+// Helpers for Indian 10-digit Contact Number validation
+const cleanIndianPhone = (raw) => {
+  if (!raw) return "";
+  let digits = String(raw).replace(/\D/g, "");
+  if (digits.startsWith("91") && digits.length > 10) {
+    digits = digits.slice(2);
+  } else if (digits.startsWith("0") && digits.length > 10) {
+    digits = digits.slice(1);
+  }
+  return digits.slice(0, 10);
+};
+
+const isValidIndianPhone = (clean) => {
+  return /^[6-9]\d{9}$/.test(clean);
+};
+
 export default function StaffPortal({ onNavigateHome }) {
   const [staffSession, setStaffSession] = useState(() => {
     try {
@@ -18,6 +34,16 @@ export default function StaffPortal({ onNavigateHome }) {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Staff Self-Registration inputs
+  const [isStaffRegister, setIsStaffRegister] = useState(false);
+  const [regRole, setRegRole] = useState("DOCTOR"); // DOCTOR | NURSE | ADMIN
+  const [regName, setRegName] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regFacility, setRegFacility] = useState("Apollo PHC Hub, Delhi");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regError, setRegError] = useState("");
 
   // Forced password change state
   const [requiresPwChange, setRequiresPwChange] = useState(false);
@@ -154,6 +180,48 @@ export default function StaffPortal({ onNavigateHome }) {
       }
     } catch (err) {
       setLoginError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Staff Registration
+  const handleStaffRegister = async (e) => {
+    e.preventDefault();
+    setRegError("");
+
+    const cleanedPhone = cleanIndianPhone(regPhone);
+    if (!isValidIndianPhone(cleanedPhone)) {
+      setRegError("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
+      return;
+    }
+    if (!regPassword || regPassword.length < 8) {
+      setRegError("Password must be at least 8 characters long.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/staff/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName.trim(),
+          email: regEmail.trim(),
+          password: regPassword,
+          role: regRole,
+          facility: regFacility.trim() || "Apollo PHC Hub, Delhi",
+          phone: cleanedPhone
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Staff registration failed");
+
+      localStorage.setItem("triaq_staff_session", JSON.stringify(data));
+      setStaffSession(data);
+      setNotification(`✓ Welcome, ${data.staff?.name || "Colleague"}! Staff account successfully registered and activated.`);
+    } catch (err) {
+      setRegError(err.message);
     } finally {
       setLoading(false);
     }
@@ -318,95 +386,284 @@ export default function StaffPortal({ onNavigateHome }) {
         )}
       </div>
 
-      {/* LOGIN SCREEN IF NOT AUTHENTICATED */}
+      {/* LOGIN OR REGISTRATION SCREEN IF NOT AUTHENTICATED */}
       {!staffSession ? (
-        <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="text-center space-y-1">
-            <span className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center text-xl mx-auto mb-2">
-              👨‍⚕️
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Hospital Staff Login
-            </h2>
-            <p className="text-[13px] text-slate-500 font-medium">
-              Authorized clinical login for Doctors, Nurses, and Facility Administrators.
-            </p>
+        isStaffRegister ? (
+          /* STAFF REGISTRATION VIEW */
+          <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+            <div className="text-center space-y-1">
+              <span className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl mx-auto mb-2">
+                📋
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                Register Staff Account
+              </h2>
+              <p className="text-[13px] text-slate-500 font-medium">
+                Create clinical workstation credentials for Doctors, Nurses, and Facility Administrators.
+              </p>
+            </div>
+
+            {regError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                {regError}
+              </div>
+            )}
+
+            <form onSubmit={handleStaffRegister} className="space-y-4">
+              {/* Clinical Role Selector */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1.5">
+                  Clinical Role <span className="text-rose-600">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: "DOCTOR", label: "🩺 Doctor", desc: "MD/MBBS" },
+                    { id: "NURSE", label: "👩‍⚕️ Nurse", desc: "Staff RN" },
+                    { id: "ADMIN", label: "🏢 Admin", desc: "Hospital Ops" }
+                  ].map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setRegRole(r.id)}
+                      className={`p-2 rounded-xl text-center border transition cursor-pointer ${
+                        regRole === r.id
+                          ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                      }`}
+                    >
+                      <span className="block text-[12px] font-black">{r.label}</span>
+                      <span className={`block text-[10px] ${regRole === r.id ? "text-slate-300" : "text-slate-400"}`}>
+                        {r.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Full Name (with Title) <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  placeholder={regRole === "DOCTOR" ? "Dr. Rajesh Sharma" : regRole === "NURSE" ? "Nurse Sunita Rao" : "Vikram Mehta"}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              {/* Contact Number (Strict 10-digit Indian Mobile) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[12px] font-bold text-slate-700">
+                    Contact Number (India) <span className="text-rose-600">*</span>
+                  </label>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    {cleanIndianPhone(regPhone).length}/10 digits
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-[12px] font-black text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                    🇮🇳 +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    value={regPhone}
+                    onChange={(e) => setRegPhone(cleanIndianPhone(e.target.value))}
+                    placeholder="9876543210"
+                    className="w-full pl-18 pr-3 py-2.5 rounded-xl border border-slate-200 text-[13.5px] font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 tracking-wider"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Strictly 10-digit Indian mobile number for critical alerts and roster verification.
+                </p>
+              </div>
+
+              {/* Facility */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Hospital / PHC Facility <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={regFacility}
+                  onChange={(e) => setRegFacility(e.target.value)}
+                  placeholder="Apollo PHC Hub, Delhi"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              {/* Official Staff Email */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Official Staff Email <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  placeholder="doctor.sharma@hospital.org"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Password (min 8 characters) <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={regPassword}
+                  onChange={(e) => setRegPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-emerald-600 hover:bg-emerald-700 transition cursor-pointer shadow-xs active:scale-98"
+              >
+                {loading ? "Registering Staff..." : "Register Staff Account →"}
+              </button>
+
+              {/* SIGN IN OPTION PLACED DIRECTLY UNDER REGISTER BUTTON */}
+              <div className="pt-3 border-t border-slate-100 text-center space-y-1">
+                <p className="text-[12.5px] text-slate-500 font-medium">
+                  Already have an authorized staff account?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsStaffRegister(false);
+                    setRegError("");
+                  }}
+                  className="text-[13px] font-bold text-slate-800 hover:text-slate-950 hover:underline cursor-pointer"
+                >
+                  ← Sign In with Email & Password
+                </button>
+              </div>
+            </form>
           </div>
-
-          {/* Quick Fill Demo Credentials */}
-          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
-            <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
-              Quick Demo Login Pills (Click to test role):
-            </span>
-            <div className="grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("doctor@triaq.org", "Doctor@123")}
-                className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs text-center"
-              >
-                🩺 Doctor
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("nurse@triaq.org", "Nurse@123")}
-                className="py-1.5 px-2 rounded-lg bg-white hover:bg-teal-50 text-[11px] font-bold text-teal-800 border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-2xs text-center"
-              >
-                👩‍⚕️ Nurse
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin("admin@triaq.org", "Admin@123")}
-                className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-800 border border-slate-200 hover:border-slate-400 transition cursor-pointer shadow-2xs text-center"
-              >
-                🏢 Admin
-              </button>
+        ) : (
+          /* STAFF LOGIN VIEW */
+          <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+            <div className="text-center space-y-1">
+              <span className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center text-xl mx-auto mb-2">
+                👨‍⚕️
+              </span>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                Hospital Staff Login
+              </h2>
+              <p className="text-[13px] text-slate-500 font-medium">
+                Authorized clinical login for Doctors, Nurses, and Facility Administrators.
+              </p>
             </div>
+
+            {/* Quick Fill Demo Credentials */}
+            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
+              <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
+                Quick Demo Login Pills (Click to test role):
+              </span>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin("doctor@triaq.org", "Doctor@123")}
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs text-center"
+                >
+                  🩺 Doctor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin("nurse@triaq.org", "Nurse@123")}
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-teal-50 text-[11px] font-bold text-teal-800 border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-2xs text-center"
+                >
+                  👩‍⚕️ Nurse
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickLogin("admin@triaq.org", "Admin@123")}
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-800 border border-slate-200 hover:border-slate-400 transition cursor-pointer shadow-2xs text-center"
+                >
+                  🏢 Admin
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                {loginError}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Hospital Staff Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="doctor@triaq.org"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
+              >
+                {loading ? "Verifying..." : "Sign In to Workstation →"}
+              </button>
+
+              {/* REGISTER OPTION PLACED DIRECTLY UNDER LOGIN BUTTON */}
+              <div className="pt-3 border-t border-slate-100 text-center space-y-1">
+                <p className="text-[12.5px] text-slate-500 font-medium">
+                  Don't have a staff workstation account?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsStaffRegister(true);
+                    setLoginError("");
+                  }}
+                  className="text-[13px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
+                >
+                  Register Staff Account / Join Hospital Team →
+                </button>
+              </div>
+            </form>
           </div>
-
-          {loginError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-              {loginError}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Hospital Staff Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="doctor@triaq.org"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
-            >
-              {loading ? "Verifying..." : "Sign In to Workstation →"}
-            </button>
-          </form>
-        </div>
+        )
       ) : (
         /* STAFF DASHBOARD VIEW */
         <div className="space-y-6">

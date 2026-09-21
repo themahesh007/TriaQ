@@ -43,6 +43,22 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "TriaQ Backend API", timestamp: new Date() });
 });
 
+// Helper functions for strict 10-digit Indian Contact Number validation
+function cleanIndianPhone(raw) {
+  let digits = String(raw || "").replace(/\D/g, "");
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  } else if (digits.length === 11 && digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
+function isValidIndianPhone(raw) {
+  const digits = cleanIndianPhone(raw);
+  return /^[6-9]\d{9}$/.test(digits);
+}
+
 // ==========================================
 // 1. PATIENT PORTAL ROUTES
 // ==========================================
@@ -60,7 +76,7 @@ app.post("/api/patients/register", async (req, res) => {
     }
 
     if (!email && !phone) {
-      return res.status(400).json({ error: "Either email or phone number is required." });
+      return res.status(400).json({ error: "Either email or Contact Number is required." });
     }
 
     if (email) {
@@ -70,17 +86,22 @@ app.post("/api/patients/register", async (req, res) => {
       }
     }
 
+    let cleanedPhone = null;
     if (phone) {
-      const existing = await storage.findPatientByPhone(phone);
+      if (!isValidIndianPhone(phone)) {
+        return res.status(400).json({ error: "Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9)." });
+      }
+      cleanedPhone = cleanIndianPhone(phone);
+      const existing = await storage.findPatientByPhone(cleanedPhone);
       if (existing) {
-        return res.status(400).json({ error: "An account with this phone already exists. Please login." });
+        return res.status(400).json({ error: "An account with this Contact Number already exists. Please login." });
       }
     }
 
     const passwordHash = await hashPassword(password);
     const patient = await storage.createPatient({
       email,
-      phone,
+      phone: cleanedPhone,
       name,
       passwordHash,
       consentGiven: true
@@ -121,15 +142,19 @@ app.post("/api/patients/login", async (req, res) => {
 
     // A. Phone + OTP flow
     if (phone && otp) {
-      const otpCheck = verifyOTP(phone, otp);
+      if (!isValidIndianPhone(phone)) {
+        return res.status(400).json({ error: "Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9)." });
+      }
+      const cleanPhone = cleanIndianPhone(phone);
+      const otpCheck = verifyOTP(cleanPhone, otp);
       if (!otpCheck.success) {
         return res.status(400).json({ error: otpCheck.error });
       }
 
-      let patient = await storage.findPatientByPhone(phone);
+      let patient = await storage.findPatientByPhone(cleanPhone);
       if (!patient) {
         // Auto-create patient profile on first valid phone OTP
-        patient = await storage.createPatient({ phone });
+        patient = await storage.createPatient({ phone: cleanPhone });
       }
 
       const token = createToken({
@@ -193,22 +218,26 @@ app.post("/api/patients/login", async (req, res) => {
 
 /**
  * POST /api/patients/login/send-otp
- * Generates and returns a 6-digit OTP (with demo code returned for zero-friction hackathon testing)
+ * Generates and returns a 6-digit OTP for 10-digit Indian contact number
  */
 app.post("/api/patients/login/send-otp", (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone || String(phone).replace(/\D/g, "").length < 10) {
-      return res.status(400).json({ error: "Please enter a valid 10-digit phone number." });
+    if (!phone || !isValidIndianPhone(phone)) {
+      return res.status(400).json({ error: "Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9)." });
     }
 
-    const { otp, expiresAt } = generateOTP(phone);
+    const cleanPhone = cleanIndianPhone(phone);
+    const { otp, expiresAt } = generateOTP(cleanPhone);
+
+    console.log(`[SMS GATEWAY] Delivered 6-digit OTP [${otp}] to Indian Contact Number +91-${cleanPhone}`);
 
     return res.json({
       success: true,
       otpSent: true,
-      message: "6-digit OTP sent successfully. (Valid for 5 minutes)",
-      demoOtp: otp, // Displayed in development/hackathon demo so SMS gateway isn't required
+      message: `6-digit OTP sent to +91-${cleanPhone}. (Valid for 5 minutes)`,
+      demoOtp: otp,
+      phone: cleanPhone,
       expiresAt
     });
   } catch (err) {
@@ -331,6 +360,83 @@ app.post("/api/patients/logout", (req, res) => {
 // ==========================================
 
 /**
+ * POST /api/staff/register
+ * Self-registration for Doctors, Nurses, and Hospital Facility Admins
+ */
+app.post("/api/staff/register", async (req, res) => {
+  try {
+    const { name, email, password, role, facility, phone } = req.body;
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: "Please enter your full name." });
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return res.status(400).json({ error: "Please enter a valid staff email address." });
+    }
+
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    }
+
+    const normalizedRole = (role || "NURSE").toUpperCase().trim();
+    if (!["DOCTOR", "NURSE", "ADMIN"].includes(normalizedRole)) {
+      return res.status(400).json({ error: "Role must be DOCTOR, NURSE, or ADMIN." });
+    }
+
+    let cleanedPhone = null;
+    if (phone) {
+      if (!isValidIndianPhone(phone)) {
+        return res.status(400).json({ error: "Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9)." });
+      }
+      cleanedPhone = cleanIndianPhone(phone);
+    }
+
+    const existing = await storage.findStaffByEmail(email);
+    if (existing) {
+      return res.status(400).json({ error: "A staff account with this email already exists. Please login." });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const staff = await storage.createStaff({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      passwordHash,
+      role: normalizedRole,
+      facility: (facility && facility.trim()) || "Apollo PHC Hub, Delhi",
+      phone: cleanedPhone,
+      requiresPasswordChange: false
+    });
+
+    const token = createToken({
+      id: staff.id,
+      name: staff.name,
+      email: staff.email,
+      role: staff.role,
+      facility: staff.facility
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `Staff account registered successfully as ${staff.role}!`,
+      token,
+      staff: {
+        id: staff.id,
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+        facility: staff.facility,
+        phone: staff.phone,
+        requiresPasswordChange: false
+      }
+    });
+  } catch (err) {
+    console.error("Staff register error:", err);
+    return res.status(500).json({ error: "Staff registration failed." });
+  }
+});
+
+/**
  * POST /api/staff/login
  * Doctor / Nurse / Admin Login
  */
@@ -368,6 +474,7 @@ app.post("/api/staff/login", async (req, res) => {
         email: staff.email,
         role: staff.role,
         facility: staff.facility,
+        phone: staff.phone || null,
         requiresPasswordChange: staff.requiresPasswordChange || false
       }
     });
