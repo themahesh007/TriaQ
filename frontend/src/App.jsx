@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Banner from "./components/Banner";
 import Navbar from "./components/Navbar";
 import HomePage from "./pages/HomePage";
+import IntakePage from "./pages/IntakePage";
 import PatientPortal from "./pages/PatientPortal";
 import StaffPortal from "./pages/StaffPortal";
 import MasterPortal from "./pages/MasterPortal";
@@ -12,6 +13,7 @@ export default function App() {
   // Sync portal with URL hash for browser history / direct links
   const getInitialPortal = () => {
     const hash = window.location.hash.replace("#", "").toLowerCase();
+    if (["intake", "patient-intake"].includes(hash)) return "intake";
     if (["patient", "patient-portal"].includes(hash)) return "patient-portal";
     if (["staff", "staff-portal", "dashboard"].includes(hash)) return "staff-portal";
     if (["master", "master-portal", "admin"].includes(hash)) return "master-portal";
@@ -69,8 +71,14 @@ export default function App() {
       {/* 3. Main Multi-Portal Content */}
       <main className="flex-1 w-full pb-14">
         {activePortal === "home" && <HomePage onNavigate={setActivePortal} />}
+        {activePortal === "intake" && (
+          <IntakePage onNavigateHome={() => setActivePortal("home")} />
+        )}
         {activePortal === "patient-portal" && (
-          <PatientPortal onNavigateHome={() => setActivePortal("home")} />
+          <PatientPortal
+            onNavigateHome={() => setActivePortal("home")}
+            onNavigateToIntake={() => setActivePortal("intake")}
+          />
         )}
         {activePortal === "staff-portal" && (
           <StaffPortal onNavigateHome={() => setActivePortal("home")} />

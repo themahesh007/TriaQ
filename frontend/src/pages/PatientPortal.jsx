@@ -1,6 +1,67 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import TriageSlipModal from "../components/TriageSlipModal";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+const LANGUAGES = [
+  { code: "en", label: "English" },
+  { code: "hi", label: "हिन्दी (Hindi)" },
+  { code: "or", label: "ଓଡ଼ିଆ (Odia)" }
+];
+
+const UI_TEXT = {
+  en: {
+    quickLabel: "Quick templates:",
+    templates: [
+      { label: "🔴 Urgent: Chest Pain", text: "Sudden severe chest pain and breathlessness since morning, no medicine taken." },
+      { label: "🟡 Moderate: Fever (Yellow)", text: "High fever and vomiting for 2 days, taking paracetamol tablet." },
+      { label: "🟢 Normal: Headache (Green)", text: "Mild headache and slight tiredness today, no previous medical history." }
+    ],
+    additionalBoxTitle: "Some Additional Questions",
+    additionalBoxHelp: "Answer the relevant questions below. Answered questions will disappear and save into the summary.",
+    noQuestionsNeeded: "✓ All additional questions answered!",
+    answeredBadge: "Recorded Details:",
+    saveBtn: "✓ Save",
+    typeAnswerPlaceholder: "Type your answer here...",
+    consentText: "I agree that this information can be used to prepare a triage summary for facility staff. My data will be stored with minimal identifying details and can be deleted on request.",
+    submitBtn: "Submit Case & Generate PDF Receipt →",
+    submittingBtn: "Evaluating & Generating Token..."
+  },
+  hi: {
+    quickLabel: "त्वरित उदाहरण (Quick templates):",
+    templates: [
+      { label: "🔴 गंभीर: छाती में दर्द (Urgent)", text: "सुबह से अचानक छाती में तेज दर्द और सांस फूलने की समस्या है, कोई दवा नहीं ली।" },
+      { label: "🟡 मध्यम: बुखार (Yellow)", text: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।" },
+      { label: "🟢 सामान्य: सिरदर्द (Green)", text: "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।" }
+    ],
+    additionalBoxTitle: "कुछ अतिरिक्त प्रश्न (Some Additional Questions)",
+    additionalBoxHelp: "नीचे दिए गए प्रश्नों के उत्तर दें। उत्तर देने पर प्रश्न हट जाएगा और सारांश में जुड़ जाएगा।",
+    noQuestionsNeeded: "✓ सभी अतिरिक्त प्रश्नों के उत्तर दर्ज हो चुके हैं!",
+    answeredBadge: "दर्ज की गई जानकारी:",
+    saveBtn: "✓ सहेजें",
+    typeAnswerPlaceholder: "यहाँ अपना उत्तर लिखें...",
+    consentText: "मैं सहमत हूँ कि इस जानकारी का उपयोग स्वास्थ्य कर्मचारियों के लिए ट्राइएज सारांश तैयार करने में किया जा सकता है। मेरा डेटा न्यूनतम पहचान के साथ सुरक्षित रहेगा।",
+    submitBtn: "केस सबमिट करें और टोकन रसीद प्राप्त करें →",
+    submittingBtn: "मूल्यांकन एवं टोकन तैयार हो रहा है..."
+  },
+  or: {
+    quickLabel: "ଉଦାହରଣ ଟେମ୍ପଲେଟ୍ (Quick templates):",
+    templates: [
+      { label: "🔴 ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା (Urgent)", text: "ସକାଳୁ ହଠାତ୍ ପ୍ରବଳ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।" },
+      { label: "🟡 ମଧ୍ୟମ: ଜ୍ୱର (Yellow)", text: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।" },
+      { label: "🟢 ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)", text: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।" }
+    ],
+    additionalBoxTitle: "କିଛି ଅତିରିକ୍ତ ପ୍ରଶ୍ନ (Some Additional Questions)",
+    additionalBoxHelp: "ତଳେ ଥିବା ପ୍ରଶ୍ନଗୁଡ଼ିକର ଉତ୍ତର ଦିଅନ୍ତୁ। ଉତ୍ତର ଦେବା ପରେ ପ୍ରଶ୍ନଟି ହଟିଯିବ ଏବଂ ନୋଟରେ ସାଇତା ହେବ।",
+    noQuestionsNeeded: "✓ ସମସ୍ତ ଅତିରିକ୍ତ ପ୍ରଶ୍ନର ଉତ୍ତର ମିଳିଗଲା!",
+    answeredBadge: "ଦାଖଲ ତଥ୍ୟ:",
+    saveBtn: "✓ ସାଇତନ୍ତୁ",
+    typeAnswerPlaceholder: "ଏଠାରେ ଆପଣଙ୍କ ଉତ୍ତର ଲେଖନ୍ତୁ...",
+    consentText: "ମୁଁ ସହମତ ଯେ ଏହି ତଥ୍ୟକୁ ସ୍ୱାସ୍ଥ୍ୟ କର୍ମଚାରୀଙ୍କ ଟ୍ରାଇଏଜ୍ ପ୍ରସ୍ତୁତି ପାଇଁ ବ୍ୟବହାର କରାଯାଇପାରିବ। ମୋର ତଥ୍ୟ ସୁରକ୍ଷିତ ରହିବ।",
+    submitBtn: "ଦାଖଲ କରନ୍ତୁ ଏବଂ ଟୋକନ୍ ରସିଦ ପାଆନ୍ତୁ →",
+    submittingBtn: "ମୂଲ୍ୟାଙ୍କନ ଚାଲିଛି..."
+  }
+};
 
 export default function PatientPortal({ onNavigateHome }) {
   // Session & navigation states
@@ -52,6 +113,193 @@ export default function PatientPortal({ onNavigateHome }) {
   // Submission / Receipt Data
   const [receiptData, setReceiptData] = useState(null);
   const [statusData, setStatusData] = useState(null);
+
+  // Multilingual, Dynamic Questions & Consent States
+  const [language, setLanguage] = useState("en");
+  const t = UI_TEXT[language] || UI_TEXT.en;
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [answeredMap, setAnsweredMap] = useState({});
+  const [inputDrafts, setInputDrafts] = useState({});
+  const [showPrintSlipModal, setShowPrintSlipModal] = useState(false);
+
+  // Dynamic questions generation (reactive to symptoms, language, and answeredMap)
+  const dynamicQuestions = useMemo(() => {
+    const list = [];
+    const text = (symptomText || "").toLowerCase();
+
+    // 1. DURATION QUESTION
+    const hasDuration = ["day", "hour", "week", "month", "din", "ghante", "kal", "aaj", "since", "from", "दिन", "घंटे", "सप्ताह", "महीने", "ସପ୍ତାହ", "ଦିନ", "ଘଣ୍ଟା"].some(k => text.includes(k));
+    if (!hasDuration && !answeredMap["duration"]) {
+      list.push({
+        id: "duration",
+        category: "General",
+        question: language === "hi" 
+          ? "यह समस्या कितने समय (घंटे या दिन) से हो रही है?"
+          : language === "or"
+          ? "ଏହି ସମସ୍ୟା କେତେ ସମୟ (ଘଣ୍ଟା ବା ଦିନ) ଧରି ହେଉଛି?"
+          : "How long (in hours or days) have you had these symptoms?",
+        quickChoices: language === "hi" ? ["आज से ही", "1-2 दिनों से", "3-5 दिनों से", "1 सप्ताह से अधिक"] : language === "or" ? ["ଆଜିଠାରୁ", "୧-୨ ଦିନ ହେବ", "୩-୫ ଦିନ", "୧ ସପ୍ତାହରୁ ଅଧିକ"] : ["Started today", "1-2 days", "3-5 days", "More than a week"]
+      });
+    }
+
+    // 2. SEVERITY QUESTION
+    const hasSeverity = ["severe", "mild", "moderate", "high", "extreme", "unbearable", "tez", "halka", "dard", "गंभीर", "तेज", "हल्का", "असहनीय", "ପ୍ରବଳ", "ଗମ୍ଭୀର", "ସାମାନ୍ୟ"].some(k => text.includes(k));
+    if (!hasSeverity && !answeredMap["severity"]) {
+      list.push({
+        id: "severity",
+        category: "General",
+        question: language === "hi"
+          ? "तकलीफ की गंभीरता (तीव्रता) कैसी है?"
+          : language === "or"
+          ? "କଷ୍ଟ ବା ଯନ୍ତ୍ରଣାର ତୀବ୍ରତା କିପରି ଅଛି?"
+          : "How severe or intense is your discomfort right now?",
+        quickChoices: language === "hi" ? ["हल्की (Mild)", "मध्यम (Moderate)", "गंभीर (Severe)", "अत्यधिक असहनीय (Critical)"] : language === "or" ? ["ସାମାନ୍ୟ (Mild)", "ମଧ୍ୟମ (Moderate)", "ଗମ୍ଭୀର (Severe)", "ଅତ୍ୟଧିକ (Critical)"] : ["Mild (Manageable)", "Moderate (Uncomfortable)", "Severe (Cannot function)", "Critical / Extreme"]
+      });
+    }
+
+    // 3. CURRENT / PRE-EXISTING MEDICATIONS
+    const hasMeds = ["medic", "tablet", "medicine", "drug", "दवा", "दवाई", "गोली", "कैप्सूल", "dawa", "dawai", "goli", "ଔଷଧ", "ଟାବଲେଟ୍"].some(k => text.includes(k));
+    if (!hasMeds && !answeredMap["medications"]) {
+      list.push({
+        id: "medications",
+        category: "General",
+        question: language === "hi"
+          ? "क्या आप वर्तमान में कोई नियमित या पहले से चलने वाली दवा (जैसे बीपी, शुगर, दमा) ले रहे हैं?"
+          : language === "or"
+          ? "ଆପଣ ବର୍ତ୍ତମାନ କୌଣସି ନିୟମିତ ବା ପୂର୍ବରୁ ଚାଲୁଥିବା ଔଷଧ (ଯେପରିକି ବିପି, ମଧୁମେହ, ଶ୍ୱାସରୋଗ) ଖାଉଛନ୍ତି କି?"
+          : "Are you currently taking any regular or pre-existing medications (e.g. for BP, Diabetes, Asthma)?",
+        quickChoices: language === "hi" 
+          ? ["कोई नियमित दवा नहीं", "बीपी / हृदय रोग की दवा", "शुगर / डायबिटीज (इंसुलिन)", "दमा / सांस की दवा", "अन्य नियमित दवा"] 
+          : language === "or" 
+          ? ["କୌଣସି ନିୟମିତ ଔଷଧ ନାହିଁ", "ବିପି / ହୃଦରୋଗ ଔଷଧ", "ମଧୁମେହ / ଇନସୁଲିନ୍", "ଶ୍ୱାସରୋଗ ଔଷଧ", "ଅନ୍ୟ ନିୟମିତ ଔଷଧ"] 
+          : ["No regular medications", "Blood Pressure (BP) medicine", "Diabetes / Sugar medicine", "Asthma Inhaler / Breathing medicine", "Other regular prescription"]
+      });
+    }
+
+    // 4. PRE-EXISTING MEDICAL HISTORY
+    const hasHistory = ["diabetes", "bp", "blood pressure", "asthma", "history", "शुगर", "बीपी", "मधुमेह", "दमा", "पुरानी बीमारी", "इतिहास", "sugar", "bimari", "ମଧୁମେହ", "ବିପି"].some(k => text.includes(k));
+    if (!hasHistory && !answeredMap["conditions"]) {
+      list.push({
+        id: "conditions",
+        category: "General",
+        question: language === "hi"
+          ? "क्या आपको पहले से कोई पुरानी बीमारी (डायबिटीज/शुगर, बीपी, हृदय रोग या दमा) है?"
+          : language === "or"
+          ? "ଆପଣଙ୍କର ପୂର୍ବରୁ କୌଣସି ରୋଗ (ମଧୁମେହ, ବିପି, ହୃଦରୋଗ ବା ଶ୍ୱାସରୋଗ) ଅଛି କି?"
+          : "Do you have any existing chronic conditions like Diabetes, BP, Heart issues, or Asthma?",
+        quickChoices: language === "hi" ? ["कोई पुरानी बीमारी नहीं", "डायबिटीज (शुगर)", "हाई ब्लड प्रेशर (BP)", "दमा (Asthma)"] : language === "or" ? ["ପୂର୍ବ ରୋଗ ନାହିଁ", "ମଧୁମେହ (Sugar)", "ଉଚ୍ଚ ରକ୍ତଚାପ (BP)", "ଶ୍ୱାସରୋଗ"] : ["No prior conditions", "Diabetes / Sugar", "High Blood Pressure (BP)", "Asthma"]
+      });
+    }
+
+    // 5. PROGRESSION
+    if (!answeredMap["progression"]) {
+      list.push({
+        id: "progression",
+        category: "General",
+        question: language === "hi"
+          ? "क्या आपके लक्षण अभी और बिगड़ रहे हैं, वैसे ही हैं, या सुधार हो रहा है?"
+          : language === "or"
+          ? "ଆପଣଙ୍କ ଲକ୍ଷଣ ଏବେ ଆହୁରି ଖରାପ ହେଉଛି ନା ସମାନ ରହୁଛି?"
+          : "Are your symptoms getting worse right now, staying the same, or improving?",
+        quickChoices: language === "hi" ? ["लक्षण बिगड़ रहे हैं (Worse)", "स्थिति स्थिर है (Same)", "धीरे-धीरे सुधार है (Improving)"] : language === "or" ? ["ଖରାପ ହେଉଛି (Worse)", "ସ୍ଥିର ଅଛି (Same)", "ସୁଧାର ହେଉଛି (Improving)"] : ["Getting worse right now", "Staying the same", "Gradually improving"]
+      });
+    }
+
+    // 6. DAILY FUNCTION & FLUIDS
+    if (!answeredMap["daily_function"]) {
+      list.push({
+        id: "daily_function",
+        category: "General",
+        question: language === "hi"
+          ? "क्या आप पानी, खाना ठीक से ले पा रहे हैं और सामान्य रूप से चल-फिर पा रहे हैं?"
+          : language === "or"
+          ? "ଆପଣ ଖାଇବା-ପିଇବା ଓ ଦୈନନ୍ଦିନ କାର୍ଯ୍ୟ ସ୍ୱାଭାବିକ ଭାବେ କରିପାରୁଛନ୍ତି କି?"
+          : "Are you able to drink water, eat, and perform daily activities normally?",
+        quickChoices: language === "hi" ? ["हाँ, सामान्य आहार ले रहे हैं", "पानी/खाना लेने में कठिनाई", "चलने-फिरने में असमर्थ"] : language === "or" ? ["ହଁ, ସ୍ୱାଭାବିକ ଅଛି", "ଖାଇବା-ପିଇବାରେ କଷ୍ଟ", "ଦୈନନ୍ଦିନ କାମ କରିବାରେ ଅସମର୍ଥ"] : ["Yes, normal intake", "Difficulty eating or drinking", "Unable to do daily tasks"]
+      });
+    }
+
+    // SYMPTOM-SPECIFIC QUESTIONS
+    if ((text.includes("fever") || text.includes("बुखार") || text.includes("bukhar") || text.includes("ଜ୍ୱର")) && !answeredMap["fever_pattern"]) {
+      list.push({
+        id: "fever_pattern",
+        category: "Fever Specific",
+        question: language === "hi"
+          ? "क्या बुखार लगातार बना हुआ है या ठंड और कंपकंपी के साथ आ-जा रहा है?"
+          : language === "or"
+          ? "ଜ୍ୱର କ୍ରମାଗତ ରହୁଛି ନା କମ୍ପ ସହ ଆସୁଛି-ଯାଉଛି?"
+          : "Is the fever continuous or coming and going with chills/shivering?",
+        quickChoices: language === "hi" ? ["लगातार तेज बुखार", "ठंड लगकर आता है", "हल्का बुखार"] : language === "or" ? ["କ୍ରମାଗତ ପ୍ରବଳ ଜ୍ୱର", "କମ୍ପ ସହ", "ସାମାନ୍ୟ ଜ୍ୱର"] : ["Continuous high fever", "Comes with chills", "Mild on/off"]
+      });
+    }
+
+    if ((text.includes("cough") || text.includes("खांसी") || text.includes("khansi") || text.includes("କାଶ")) && !answeredMap["cough_type"]) {
+      list.push({
+        id: "cough_type",
+        category: "Cough Specific",
+        question: language === "hi"
+          ? "क्या यह सूखी खांसी है या बलगम/कफ आ रहा है?"
+          : language === "or"
+          ? "ଏହା ଶୁଖିଲା କାଶ ନା କଫ ବାହାରୁଛି?"
+          : "Is it a dry cough or producing phlegm/mucus?",
+        quickChoices: language === "hi" ? ["सूखी खांसी", "बलगम / कफ के साथ"] : language === "or" ? ["ଶୁଖିଲା କାଶ", "କଫ ସହ"] : ["Dry cough", "With phlegm/mucus"]
+      });
+    }
+
+    if ((text.includes("chest") || text.includes("छाती") || text.includes("सीने") || text.includes("chhati") || text.includes("breath") || text.includes("सांस") || text.includes("ଶ୍ୱାସ")) && !answeredMap["chest_radiate"]) {
+      list.push({
+        id: "chest_radiate",
+        category: "Chest/Breathing Specific",
+        question: language === "hi"
+          ? "क्या छाती का दर्द आपकी बाईं बांह, गर्दन या जबड़े की तरफ फैल रहा है?"
+          : language === "or"
+          ? "ଛାତି ଯନ୍ତ୍ରଣା ବାମ ହାତ କିମ୍ବା ମୁହଁକୁ ବ୍ୟାପୁଛି କି?"
+          : "Is the chest pain radiating to your left arm, neck, or jaw?",
+        quickChoices: language === "hi" ? ["हाँ, बांह तक फैल रहा है", "नहीं, केवल छाती में है"] : language === "or" ? ["ହଁ, ବାମ ହାତକୁ ଯାଉଛି", "ନା, କେବଳ ଛାତିରେ"] : ["Yes, radiating to arm/jaw", "No, localized to chest"]
+      });
+    }
+
+    if ((text.includes("vomit") || text.includes("उल्टी") || text.includes("ulti") || text.includes("ବାନ୍ତି")) && !answeredMap["vomit_count"]) {
+      list.push({
+        id: "vomit_count",
+        category: "Vomiting Specific",
+        question: language === "hi"
+          ? "आज कितनी बार उल्टी हुई है, और क्या पानी पी पा रहे हैं?"
+          : language === "or"
+          ? "ଆଜି କେତେ ଥର ବାନ୍ତି ହୋଇଛି, ଏବଂ ପାଣି ପିଇପାରୁଛନ୍ତି କି?"
+          : "How many times have you vomited today, and can you keep liquids down?",
+        quickChoices: language === "hi" ? ["1-2 बार, पानी पी पा रहे हैं", "3 से अधिक बार, कुछ रुक नहीं रहा"] : language === "or" ? ["୧-୨ ଥର, ପାଣି ପିଇପାରୁଛନ୍ତି", "୩ ରୁ ଅଧିକ ଥର"] : ["1-2 times, keeping fluids down", "3+ times, cannot retain fluids"]
+      });
+    }
+
+    return list;
+  }, [symptomText, language, answeredMap]);
+
+  // Handle answering and popping out a question
+  const handleSaveAnswer = (qId, questionText, answerValue) => {
+    const cleanAnswer = (answerValue || "").trim();
+    if (!cleanAnswer) return;
+
+    setAnsweredMap((prev) => ({
+      ...prev,
+      [qId]: { question: questionText, answer: cleanAnswer }
+    }));
+
+    setInputDrafts((prev) => {
+      const copy = { ...prev };
+      delete copy[qId];
+      return copy;
+    });
+  };
+
+  // Remove an answered item to bring question back
+  const handleRemoveAnswered = (qId) => {
+    setAnsweredMap((prev) => {
+      const copy = { ...prev };
+      delete copy[qId];
+      return copy;
+    });
+  };
 
   // Auto-save draft on changes
   useEffect(() => {
@@ -249,6 +497,10 @@ export default function PatientPortal({ onNavigateHome }) {
   // --- SYMPTOMS SUBMIT ---
   const handleSubmitTriage = async (e) => {
     e.preventDefault();
+    if (!consentChecked) {
+      alert("Please review and check the declaration consent box before submitting your request.");
+      return;
+    }
     if (symptomText.trim().length < 15) {
       alert("Please describe your symptoms with at least 15 characters so doctors can properly evaluate your case.");
       return;
@@ -266,12 +518,22 @@ export default function PatientPortal({ onNavigateHome }) {
         temp: temp ? Number(temp) : null
       };
 
+      // Combine base symptom text with answered dynamic questions
+      let combinedSymptomText = symptomText.trim();
+      const answeredList = Object.values(answeredMap);
+      if (answeredList.length > 0) {
+        const answersBlock = answeredList
+          .map((a) => `[Question: ${a.question} -> Answer: ${a.answer}]`)
+          .join(" | ");
+        combinedSymptomText = `${combinedSymptomText}\n\nAdditional Clinical Information Provided by Patient:\n${answersBlock}`;
+      }
+
       const res = await fetch(`${API_BASE}/api/triage-notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           patientId: pId,
-          symptomText: symptomText.trim(),
+          symptomText: combinedSymptomText,
           vitals: vitalsObj,
           reportImageBase64: reportImageBase64 || undefined
         })
@@ -668,7 +930,7 @@ export default function PatientPortal({ onNavigateHome }) {
       {/* ========================================================================= */}
       {currentStep === "symptoms" && (
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
               <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
                 Step 2 of 2 • Clinical Symptoms
@@ -677,13 +939,34 @@ export default function PatientPortal({ onNavigateHome }) {
                 Describe your symptoms
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => setCurrentStep("intake")}
-              className="text-[12px] font-bold text-slate-500 hover:underline cursor-pointer"
-            >
-              ← Edit details
-            </button>
+            
+            <div className="flex items-center gap-2">
+              {/* Language Switcher */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => setLanguage(lang.code)}
+                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                      language === lang.code
+                        ? "bg-[#111827] text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setCurrentStep("intake")}
+                className="text-[12px] font-bold text-slate-500 hover:underline cursor-pointer ml-2"
+              >
+                ← Edit details
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleSubmitTriage} className="space-y-5">
@@ -728,6 +1011,24 @@ export default function PatientPortal({ onNavigateHome }) {
                   Listening... speak clearly into your microphone
                 </p>
               )}
+
+              {/* Quick Template Buttons */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-bold text-slate-500">{t.quickLabel}</span>
+                {t.templates.map((tpl, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setSymptomText(tpl.text);
+                      setAnsweredMap({});
+                    }}
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 cursor-pointer font-bold transition shadow-2xs active:scale-95"
+                  >
+                    {tpl.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Patient Vitals Tracker Card */}
@@ -797,6 +1098,152 @@ export default function PatientPortal({ onNavigateHome }) {
               </div>
             </div>
 
+            {/* SOME ADDITIONAL QUESTIONS AREA */}
+            <div className="rounded-2xl p-5 border border-slate-200/90 bg-white shadow-xs space-y-4">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
+                <div>
+                  <h3 className="text-[17px] font-black text-slate-900 flex items-center gap-2">
+                    <span className="text-lg">📋</span> {t.additionalBoxTitle}
+                  </h3>
+                  <p className="text-[12.5px] text-slate-500 mt-0.5">
+                    {t.additionalBoxHelp}
+                  </p>
+                </div>
+                {dynamicQuestions.length > 0 && (
+                  <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                    {dynamicQuestions.length} remaining
+                  </span>
+                )}
+              </div>
+
+              {/* Recorded Details (Pop-out answers summary cards) */}
+              {Object.keys(answeredMap).length > 0 && (
+                <div className="p-3.5 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11.5px] font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
+                      <span>✓</span> {t.answeredBadge}
+                    </span>
+                    <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-white text-[#15803D] border border-[#86EFAC]">
+                      {Object.keys(answeredMap).length} recorded
+                    </span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {Object.entries(answeredMap).map(([key, item]) => (
+                      <div 
+                        key={key}
+                        className="bg-white p-3 rounded-xl border border-[#D1D5DB] border-l-4 border-l-[#111827] flex items-start justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="space-y-1">
+                          {/* Question in COLOR 1: Crisp Solid Black */}
+                          <div className="flex items-start gap-2">
+                            <span className="text-[10.5px] font-black uppercase px-1.5 py-0.2 rounded bg-[#111827] text-white shrink-0 mt-0.5">
+                              Q
+                            </span>
+                            <p className="text-[13.5px] font-black text-[#111827] leading-snug">
+                              {item.question}
+                            </p>
+                          </div>
+
+                          {/* Answer in COLOR 2: Vibrant Medical Green Badge */}
+                          <div className="pl-6">
+                            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-[#065F46] bg-[#ECFDF5] border border-[#10B981] px-3 py-0.5 rounded-lg">
+                              <span className="text-[#059669] font-black">✓</span>
+                              <span>{item.answer}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveAnswered(key)}
+                          title="Click to edit or change answer"
+                          className="text-[11px] font-bold px-2 py-1 rounded-md bg-[#FEE2E2] text-[#B91C1C] hover:bg-[#FCA5A5] cursor-pointer transition shrink-0"
+                        >
+                          ✕ Change
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Dynamic Questions List - Each Question Pops Out / Disappears When Answered */}
+              {dynamicQuestions.length === 0 ? (
+                <div className="p-3.5 text-center rounded-xl bg-[#ECFDF5] border border-[#10B981] text-[#065F46] text-[13px] font-bold flex items-center justify-center gap-2">
+                  <span>✓</span>
+                  <span>{t.noQuestionsNeeded}</span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {dynamicQuestions.map((item) => {
+                    const currentDraft = inputDrafts[item.id] || "";
+
+                    return (
+                      <div 
+                        key={item.id}
+                        className="p-3.5 rounded-xl border border-[#D1D5DB] border-l-4 border-l-[#111827] bg-white space-y-2.5 shadow-2xs hover:border-[#111827] transition"
+                      >
+                        {/* Question in COLOR 1: Crisp Solid Black */}
+                        <div className="flex items-start gap-2">
+                          <span className="text-[10.5px] font-black uppercase px-1.5 py-0.2 rounded bg-[#111827] text-white shrink-0 mt-0.5">
+                            Q
+                          </span>
+                          <p className="text-[13.5px] font-black text-[#111827] leading-snug">
+                            {item.question}
+                          </p>
+                        </div>
+
+                        {/* Quick Choice Pills in vibrant green style */}
+                        {item.quickChoices && item.quickChoices.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pl-6">
+                            {item.quickChoices.map((choice, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => handleSaveAnswer(item.id, item.question, choice)}
+                                className="text-[12px] font-bold px-3 py-1 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] hover:bg-[#D1FAE5] hover:border-[#059669]"
+                              >
+                                {choice}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Custom Answer Input Bar */}
+                        <div className="flex items-center gap-2 pt-1 pl-6">
+                          <input
+                            type="text"
+                            value={currentDraft}
+                            onChange={(e) =>
+                              setInputDrafts({ ...inputDrafts, [item.id]: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleSaveAnswer(item.id, item.question, currentDraft);
+                              }
+                            }}
+                            placeholder={t.typeAnswerPlaceholder}
+                            className="flex-1 p-2 text-[13px] rounded-lg border border-[#D1D5DB] bg-[#F9FAFB] focus:bg-white outline-none focus:border-[#059669] focus:ring-1 focus:ring-[#059669]"
+                            style={{ color: "#111827" }}
+                          />
+                          <button
+                            type="button"
+                            disabled={!currentDraft.trim()}
+                            onClick={() => handleSaveAnswer(item.id, item.question, currentDraft)}
+                            className="px-3.5 py-2 rounded-lg font-black text-[12.5px] text-white transition cursor-pointer disabled:opacity-40 shadow-xs bg-[#059669] hover:bg-[#047857]"
+                          >
+                            {t.saveBtn}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Optional Lab Report Photo */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-700 block">
@@ -836,13 +1283,39 @@ export default function PatientPortal({ onNavigateHome }) {
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* MANDATORY DECLARATION FORM & CONSENT CHECKBOX */}
+            <div className={`p-4 rounded-xl border transition-all ${
+              consentChecked 
+                ? "bg-emerald-50/60 border-emerald-300 ring-1 ring-emerald-200" 
+                : "bg-slate-50 border-slate-200"
+            }`}>
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={consentChecked}
+                  onChange={(e) => setConsentChecked(e.target.checked)}
+                  className="mt-1 h-4 w-4 rounded accent-emerald-600 cursor-pointer"
+                />
+                <div className="space-y-1">
+                  <span className="text-[13px] leading-relaxed text-slate-800 font-medium block">
+                    {t.consentText}
+                  </span>
+                  {!consentChecked && (
+                    <span className="text-[11.5px] font-bold text-amber-700 block">
+                      ⚠️ Please check this box to confirm consent before submitting.
+                    </span>
+                  )}
+                </div>
+              </label>
+            </div>
+
+            {/* Submit Button (Strictly disabled until consentChecked is true) */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-3.5 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-50 shadow-sm active:scale-98"
+              disabled={!consentChecked || symptomText.trim().length < 15 || loading}
+              className="w-full py-3.5 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-98"
             >
-              {loading ? "Evaluating & Generating Token..." : "Submit Case & Generate PDF Receipt →"}
+              {loading ? t.submittingBtn : t.submitBtn}
             </button>
           </form>
         </div>
@@ -903,16 +1376,27 @@ export default function PatientPortal({ onNavigateHome }) {
 
           {/* PDF Download Button & Action Buttons */}
           <div className="space-y-3 max-w-md mx-auto pt-2">
-            <a
-              href={`${API_BASE}/api/patients/receipt/${receiptData.receiptNumber}/pdf`}
-              download={`${receiptData.receiptNumber}.pdf`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm flex items-center justify-center gap-2 cursor-pointer transition active:scale-98"
-            >
-              <span>📄</span>
-              <span>Download Medical PDF Token Pass</span>
-            </a>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <a
+                href={`${API_BASE}/api/patients/receipt/${receiptData.receiptNumber}/pdf`}
+                download={`${receiptData.receiptNumber}.pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 px-3 rounded-xl font-black text-[13px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98 text-center"
+              >
+                <span>📄</span>
+                <span>Download PDF Pass</span>
+              </a>
+
+              <button
+                type="button"
+                onClick={() => setShowPrintSlipModal(true)}
+                className="w-full py-3 px-3 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98"
+              >
+                <span>🖨️</span>
+                <span>Print OPD Slip</span>
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <button
@@ -926,6 +1410,8 @@ export default function PatientPortal({ onNavigateHome }) {
                 type="button"
                 onClick={() => {
                   setSymptomText("");
+                  setAnsweredMap({});
+                  setConsentChecked(false);
                   setCurrentStep("symptoms");
                 }}
                 className="flex-1 py-2.5 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 cursor-pointer shadow-2xs"
@@ -1041,6 +1527,14 @@ export default function PatientPortal({ onNavigateHome }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Printable OPD Slip Modal */}
+      {showPrintSlipModal && receiptData && (
+        <TriageSlipModal
+          note={receiptData}
+          onClose={() => setShowPrintSlipModal(false)}
+        />
       )}
     </div>
   );

@@ -1075,15 +1075,28 @@ export default function IntakePage({ onTriageCreated }) {
                 </p>
               </div>
 
-              {/* Printable Triage Slip Button */}
-              <button
-                type="button"
-                onClick={() => setShowPrintSlipModal(true)}
-                className="w-full py-2.5 px-4 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 transition shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-98"
-              >
-                <span>🖨️</span>
-                <span>Print OPD Triage Slip (Token Pass)</span>
-              </button>
+              {/* Action Buttons: Printable Slip & PDF Token Pass */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPrintSlipModal(true)}
+                  className="w-full py-2.5 px-3 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 transition shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                >
+                  <span>🖨️</span>
+                  <span>Print OPD Slip</span>
+                </button>
+
+                <a
+                  href={`${API_BASE}/api/patients/receipt/${resultNote.receiptNumber}/pdf`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={`TriaQ_Pass_${resultNote.receiptNumber}.pdf`}
+                  className="w-full py-2.5 px-3 rounded-xl font-black text-[13px] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-98 text-center"
+                >
+                  <span>📄</span>
+                  <span>Download PDF Pass</span>
+                </a>
+              </div>
 
               {/* Vitals Summary Card if vitals recorded */}
               {resultNote.vitals && (resultNote.vitals.bpSystolic || resultNote.vitals.pulse || resultNote.vitals.spo2 || resultNote.vitals.temp) && (

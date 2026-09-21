@@ -45,15 +45,29 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
 
           <button
             type="button"
+            onClick={() => setActivePortal("intake")}
+            className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+              activePortal === "intake"
+                ? "bg-emerald-700 text-white shadow-xs"
+                : "text-emerald-800 hover:bg-emerald-50"
+            }`}
+            title="Full Patient Intake with Additional Questions & Declaration Form"
+          >
+            <span>📋</span>
+            <span>Patient Intake</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActivePortal("patient-portal")}
             className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
               activePortal === "patient-portal"
-                ? "bg-emerald-700 text-white shadow-xs"
+                ? "bg-teal-700 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🩺</span>
-            <span>Patient Portal</span>
+            <span>📱</span>
+            <span className="hidden md:inline">Patient</span> Portal
           </button>
 
           <button

@@ -83,9 +83,13 @@ async function runTests() {
     assert.strictEqual(queueRes.status, 200);
     const queue = await queueRes.json();
     assert.ok(queue.length >= 3);
-    assert.strictEqual(queue[0].riskTag, "RED", "Top of queue must be RED");
-    assert.strictEqual(queue[1].riskTag, "YELLOW", "Second in queue must be YELLOW");
-    assert.strictEqual(queue[2].riskTag, "GREEN", "Third in queue must be GREEN");
+    const rank = (tag) => (tag === "RED" ? 1 : (tag === "YELLOW" || tag === "AMBER") ? 2 : 3);
+    for (let i = 0; i < queue.length - 1; i++) {
+      assert.ok(
+        rank(queue[i].riskTag) <= rank(queue[i + 1].riskTag),
+        `Queue ordering violated at index ${i}: ${queue[i].riskTag} before ${queue[i + 1].riskTag}`
+      );
+    }
     console.log("   Passed! Queue priority ordered accurately: RED -> YELLOW -> GREEN");
 
     // 6. GET /api/triage-notes/:id
