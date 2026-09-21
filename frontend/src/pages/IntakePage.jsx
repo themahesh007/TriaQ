@@ -172,9 +172,8 @@ export default function IntakePage({ onTriageCreated }) {
     const text = (symptomText || "").toLowerCase();
     const list = [];
 
-    // --- 1. DURATION ---
-    const hasDuration = ["day", "week", "hour", "since", "दिन", "घंटे", "हफ्ते", "हफ्ता", "समय", "से", "din", "ghante", "hafte", "ଦିନ", "ଘଣ୍ଟା", "ସପ୍ତାହ"].some(k => text.includes(k));
-    if (!hasDuration && !answeredMap["duration"]) {
+    // --- 1. DURATION (MANDATORY) ---
+    if (!answeredMap["duration"]) {
       list.push({
         id: "duration",
         category: "General",
@@ -187,7 +186,7 @@ export default function IntakePage({ onTriageCreated }) {
       });
     }
 
-    // --- 2. SEVERITY / PAIN SCALE ---
+    // --- 2. SEVERITY / PAIN SCALE (MANDATORY) ---
     if (!answeredMap["severity"]) {
       list.push({
         id: "severity",
@@ -201,9 +200,8 @@ export default function IntakePage({ onTriageCreated }) {
       });
     }
 
-    // --- 3. CURRENT / PRE-EXISTING MEDICATIONS ---
-    const hasMeds = ["medic", "tablet", "medicine", "drug", "दवा", "दवाई", "गोली", "कैप्सूल", "dawa", "dawai", "goli", "ଔଷଧ", "ଟାବଲେଟ୍"].some(k => text.includes(k));
-    if (!hasMeds && !answeredMap["medications"]) {
+    // --- 3. CURRENT / PRE-EXISTING MEDICATIONS (MANDATORY) ---
+    if (!answeredMap["medications"]) {
       list.push({
         id: "medications",
         category: "General",
@@ -220,9 +218,8 @@ export default function IntakePage({ onTriageCreated }) {
       });
     }
 
-    // --- 4. PRE-EXISTING MEDICAL HISTORY ---
-    const hasHistory = ["diabetes", "bp", "blood pressure", "asthma", "history", "शुगर", "बीपी", "मधुमेह", "दमा", "पुरानी बीमारी", "इतिहास", "sugar", "bimari", "ମଧୁମେହ", "ବିପି"].some(k => text.includes(k));
-    if (!hasHistory && !answeredMap["conditions"]) {
+    // --- 4. PRE-EXISTING MEDICAL HISTORY (MANDATORY) ---
+    if (!answeredMap["conditions"]) {
       list.push({
         id: "conditions",
         category: "General",
@@ -447,6 +444,10 @@ export default function IntakePage({ onTriageCreated }) {
   // Direct Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (dynamicQuestions.length > 0) {
+      alert(`Please answer all ${dynamicQuestions.length} required additional question(s) in the "Some Additional Questions" section before submitting.`);
+      return;
+    }
     if (!consentChecked || !symptomText.trim()) return;
 
     setSubmitting(true);
@@ -1006,6 +1007,21 @@ export default function IntakePage({ onTriageCreated }) {
               )}
             </div>
 
+            {/* MANDATORY WARNING IF ADDITIONAL QUESTIONS REMAIN */}
+            {dynamicQuestions.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[12.5px] font-bold flex items-start gap-2 shadow-2xs">
+                <span className="text-base mt-0.5">⚠️</span>
+                <div className="space-y-0.5">
+                  <p className="font-black text-[13px] text-amber-950">
+                    Mandatory Step: {dynamicQuestions.length} Additional Question{dynamicQuestions.length > 1 ? "s" : ""} Required
+                  </p>
+                  <p className="font-medium text-amber-900">
+                    Please answer each question in the <strong>"Some Additional Questions"</strong> section above (choose a quick choice or type an answer and click Save) to unlock submission.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Consent & Direct Submit Bar */}
             <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
               <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -1032,10 +1048,16 @@ export default function IntakePage({ onTriageCreated }) {
                 {/* Direct clean submit */}
                 <button
                   type="submit"
-                  disabled={!consentChecked || !symptomText.trim() || submitting}
+                  disabled={!consentChecked || !symptomText.trim() || dynamicQuestions.length > 0 || submitting}
                   className="px-7 py-3 rounded-xl font-black text-[14px] text-white transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98"
                 >
-                  {submitting ? t.submittingBtn : t.submitBtn}
+                  {submitting
+                    ? t.submittingBtn
+                    : dynamicQuestions.length > 0
+                    ? `Answer ${dynamicQuestions.length} Question${dynamicQuestions.length > 1 ? "s" : ""} to Submit`
+                    : !consentChecked
+                    ? "Check Declaration to Submit"
+                    : t.submitBtn}
                 </button>
               </div>
             </div>

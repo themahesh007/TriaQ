@@ -13,8 +13,7 @@ export default function App() {
   // Sync portal with URL hash for browser history / direct links
   const getInitialPortal = () => {
     const hash = window.location.hash.replace("#", "").toLowerCase();
-    if (["intake", "patient-intake"].includes(hash)) return "intake";
-    if (["patient", "patient-portal"].includes(hash)) return "patient-portal";
+    if (["intake", "patient-intake", "patient", "patient-portal"].includes(hash)) return "patient-portal";
     if (["staff", "staff-portal", "dashboard"].includes(hash)) return "staff-portal";
     if (["master", "master-portal", "admin"].includes(hash)) return "master-portal";
     return "home";

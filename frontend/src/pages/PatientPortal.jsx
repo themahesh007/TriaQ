@@ -127,9 +127,8 @@ export default function PatientPortal({ onNavigateHome }) {
     const list = [];
     const text = (symptomText || "").toLowerCase();
 
-    // 1. DURATION QUESTION
-    const hasDuration = ["day", "hour", "week", "month", "din", "ghante", "kal", "aaj", "since", "from", "दिन", "घंटे", "सप्ताह", "महीने", "ସପ୍ତାହ", "ଦିନ", "ଘଣ୍ଟା"].some(k => text.includes(k));
-    if (!hasDuration && !answeredMap["duration"]) {
+    // 1. DURATION QUESTION (MANDATORY)
+    if (!answeredMap["duration"]) {
       list.push({
         id: "duration",
         category: "General",
@@ -142,9 +141,8 @@ export default function PatientPortal({ onNavigateHome }) {
       });
     }
 
-    // 2. SEVERITY QUESTION
-    const hasSeverity = ["severe", "mild", "moderate", "high", "extreme", "unbearable", "tez", "halka", "dard", "गंभीर", "तेज", "हल्का", "असहनीय", "ପ୍ରବଳ", "ଗମ୍ଭୀର", "ସାମାନ୍ୟ"].some(k => text.includes(k));
-    if (!hasSeverity && !answeredMap["severity"]) {
+    // 2. SEVERITY QUESTION (MANDATORY)
+    if (!answeredMap["severity"]) {
       list.push({
         id: "severity",
         category: "General",
@@ -157,9 +155,8 @@ export default function PatientPortal({ onNavigateHome }) {
       });
     }
 
-    // 3. CURRENT / PRE-EXISTING MEDICATIONS
-    const hasMeds = ["medic", "tablet", "medicine", "drug", "दवा", "दवाई", "गोली", "कैप्सूल", "dawa", "dawai", "goli", "ଔଷଧ", "ଟାବଲେଟ୍"].some(k => text.includes(k));
-    if (!hasMeds && !answeredMap["medications"]) {
+    // 3. CURRENT / PRE-EXISTING MEDICATIONS (MANDATORY)
+    if (!answeredMap["medications"]) {
       list.push({
         id: "medications",
         category: "General",
@@ -176,9 +173,8 @@ export default function PatientPortal({ onNavigateHome }) {
       });
     }
 
-    // 4. PRE-EXISTING MEDICAL HISTORY
-    const hasHistory = ["diabetes", "bp", "blood pressure", "asthma", "history", "शुगर", "बीपी", "मधुमेह", "दमा", "पुरानी बीमारी", "इतिहास", "sugar", "bimari", "ମଧୁମେହ", "ବିପି"].some(k => text.includes(k));
-    if (!hasHistory && !answeredMap["conditions"]) {
+    // 4. PRE-EXISTING MEDICAL HISTORY (MANDATORY)
+    if (!answeredMap["conditions"]) {
       list.push({
         id: "conditions",
         category: "General",
@@ -497,6 +493,10 @@ export default function PatientPortal({ onNavigateHome }) {
   // --- SYMPTOMS SUBMIT ---
   const handleSubmitTriage = async (e) => {
     e.preventDefault();
+    if (dynamicQuestions.length > 0) {
+      alert(`Please answer all ${dynamicQuestions.length} required additional question(s) in the "Some Additional Questions" section above before submitting.`);
+      return;
+    }
     if (!consentChecked) {
       alert("Please review and check the declaration consent box before submitting your request.");
       return;
@@ -1283,6 +1283,21 @@ export default function PatientPortal({ onNavigateHome }) {
               </div>
             </div>
 
+            {/* MANDATORY WARNING IF ADDITIONAL QUESTIONS REMAIN */}
+            {dynamicQuestions.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[12.5px] font-bold flex items-start gap-2 shadow-2xs">
+                <span className="text-base mt-0.5">⚠️</span>
+                <div className="space-y-0.5">
+                  <p className="font-black text-[13px] text-amber-950">
+                    Mandatory Step: {dynamicQuestions.length} Additional Question{dynamicQuestions.length > 1 ? "s" : ""} Required
+                  </p>
+                  <p className="font-medium text-amber-900">
+                    Please answer each question in the <strong>"Some Additional Questions"</strong> section above (choose a quick choice or type an answer and click Save) to unlock submission.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* MANDATORY DECLARATION FORM & CONSENT CHECKBOX */}
             <div className={`p-4 rounded-xl border transition-all ${
               consentChecked 
@@ -1309,13 +1324,19 @@ export default function PatientPortal({ onNavigateHome }) {
               </label>
             </div>
 
-            {/* Submit Button (Strictly disabled until consentChecked is true) */}
+            {/* Submit Button (Strictly disabled until all questions answered and declaration checked) */}
             <button
               type="submit"
-              disabled={!consentChecked || symptomText.trim().length < 15 || loading}
+              disabled={!consentChecked || symptomText.trim().length < 15 || dynamicQuestions.length > 0 || loading}
               className="w-full py-3.5 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-98"
             >
-              {loading ? t.submittingBtn : t.submitBtn}
+              {loading
+                ? t.submittingBtn
+                : dynamicQuestions.length > 0
+                ? `Answer ${dynamicQuestions.length} Question${dynamicQuestions.length > 1 ? "s" : ""} Above to Submit`
+                : !consentChecked
+                ? "Check Declaration Consent to Submit"
+                : t.submitBtn}
             </button>
           </form>
         </div>

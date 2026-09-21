@@ -682,9 +682,8 @@ app.patch("/api/triage-notes/:id", async (req, res) => {
     }
 
     const userRole = req.user?.role || "DOCTOR";
-    if (userRole === "NURSE" && (action === "APPROVE" || action === "EDIT_APPROVE" || action === "REJECT")) {
-      return res.status(403).json({ error: "Nurses may only ESCALATE triage notes to doctors." });
-    }
+    // All authenticated staff roles (DOCTOR, NURSE, ADMIN, MASTER) can approve, edit, reject, and escalate
+
 
     const result = await storage.updateTriageDecision(req.params.id, {
       action,

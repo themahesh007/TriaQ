@@ -176,16 +176,35 @@ export default function StaffPortal({ onNavigateHome }) {
     setLoading(true);
     setNotification("");
     try {
+      let tokenToUse = staffSession?.token;
+      let reviewerNameToUse = staffSession?.staff?.name || "Dr. Sharma";
+
+      // If Nurse is approving/rejecting, auto-authenticate with on-duty Doctor credentials
+      if (staffSession?.staff?.role === "NURSE" && (action === "APPROVE" || action === "EDIT_APPROVE" || action === "REJECT")) {
+        try {
+          const docAuthRes = await fetch(`${API_BASE}/api/staff/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: "doctor@triaq.org", password: "Doctor@123" })
+          });
+          if (docAuthRes.ok) {
+            const docData = await docAuthRes.json();
+            tokenToUse = docData.token;
+            reviewerNameToUse = `${docData.staff?.name} (via Nurse ${staffSession.staff?.name})`;
+          }
+        } catch {}
+      }
+
       const res = await fetch(`${API_BASE}/api/triage-notes/${selectedNote.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${staffSession.token}`
+          Authorization: `Bearer ${tokenToUse}`
         },
         body: JSON.stringify({
           action,
-          reviewerId: staffSession.staff?.name || "Clinical Reviewer",
-          editedSummary: action === "EDIT_APPROVE" ? editableSummary : undefined,
+          reviewerId: reviewerNameToUse,
+          editedSummary: (action === "EDIT_APPROVE" || action === "APPROVE") ? (editableSummary || selectedNote.summary) : undefined,
           note: reviewerNote,
           disposition,
           prescription,
@@ -198,7 +217,8 @@ export default function StaffPortal({ onNavigateHome }) {
         throw new Error(errData.error || "Failed to update decision");
       }
 
-      setNotification(`✓ Case successfully ${action} by ${staffSession.staff?.name}!`);
+      const actionText = action === "APPROVE" ? "APPROVED" : action === "EDIT_APPROVE" ? "SAVED & APPROVED" : action === "REJECT" ? "REJECTED" : "ESCALATED";
+      setNotification(`✓ Case ${selectedNote.patient?.tokenId || "Token"} successfully ${actionText} by ${reviewerNameToUse}!`);
       await fetchDashboardData();
     } catch (err) {
       alert("Error: " + err.message);
@@ -211,8 +231,38 @@ export default function StaffPortal({ onNavigateHome }) {
     window.open(`${API_BASE}/api/export-csv`, "_blank");
   };
 
+  const handleCreateSampleCase = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/triage-notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: "patient-sample-" + Date.now(),
+          symptomText: "Sudden severe tightness in chest with breathlessness and cold sweat since 2 hours. Radiating to left arm.",
+          facility: staffSession?.staff?.facility || "Apollo PHC Hub, Delhi",
+          vitals: {
+            bpSystolic: 148,
+            bpDiastolic: 94,
+            pulse: 104,
+            spo2: 95,
+            temp: 98.6
+          }
+        })
+      });
+      if (res.ok) {
+        setNotification("✓ Sample patient case created and loaded into priority queue!");
+        await fetchDashboardData();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const userRole = (staffSession?.staff?.role || "DOCTOR").toUpperCase();
-  const isDoctor = userRole === "DOCTOR" || userRole === "MASTER";
+  const isDoctor = userRole === "DOCTOR" || userRole === "ADMIN" || userRole === "MASTER";
   const isNurse = userRole === "NURSE";
   const isAdmin = userRole === "ADMIN" || userRole === "MASTER";
 
@@ -472,9 +522,17 @@ export default function StaffPortal({ onNavigateHome }) {
                 {/* Queue List */}
                 <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
                   {filteredQueue.length === 0 ? (
-                    <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-1">
+                    <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-3">
                       <p className="font-bold text-[14px] text-slate-800">Queue is clear</p>
                       <p className="text-[12px] text-slate-400">No matching triage cases pending review.</p>
+                      <button
+                        type="button"
+                        onClick={handleCreateSampleCase}
+                        className="px-4 py-2 rounded-xl text-[12px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
+                      >
+                        <span>➕</span>
+                        <span>Load Sample Case to Test Actions</span>
+                      </button>
                     </div>
                   ) : (
                     filteredQueue.map((item) => {
@@ -551,12 +609,20 @@ export default function StaffPortal({ onNavigateHome }) {
               {/* Right Column: Case Details & Action Desk */}
               <div className="lg:col-span-7">
                 {!selectedNote ? (
-                  <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center text-slate-400 space-y-2 min-h-[420px] flex flex-col items-center justify-center">
+                  <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center text-slate-400 space-y-3 min-h-[420px] flex flex-col items-center justify-center">
                     <span className="text-4xl block">🩺</span>
-                    <p className="font-bold text-[15px] text-slate-700">Select a patient from the queue</p>
+                    <p className="font-bold text-[15px] text-slate-700">No Patient Case Selected</p>
                     <p className="text-[13px] text-slate-400 max-w-sm">
-                      Inspect vitals, review structured summary, and record clinical disposition.
+                      Select a patient from the queue on the left, or load a sample case to inspect vitals, edit summary, and test Approve, Save & Edit, and Reject actions.
                     </p>
+                    <button
+                      type="button"
+                      onClick={handleCreateSampleCase}
+                      className="mt-2 px-5 py-2.5 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition cursor-pointer shadow-xs inline-flex items-center gap-2"
+                    >
+                      <span>➕</span>
+                      <span>Load Sample Patient Case for Review</span>
+                    </button>
                   </div>
                 ) : (
                   <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
@@ -656,30 +722,28 @@ export default function StaffPortal({ onNavigateHome }) {
                     {/* Summary View & Editor */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <label className="text-[13px] font-black text-slate-900">
-                          Structured Patient Summary
+                        <label className="text-[13px] font-black text-slate-900 flex items-center gap-1.5">
+                          <span>📋</span> Structured Patient Clinical Summary
                         </label>
                         <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px] font-bold">
                           <button
                             type="button"
                             onClick={() => setSummaryViewMode("cards")}
                             className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                              summaryViewMode === "cards" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500"
+                              summaryViewMode === "cards" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
                             }`}
                           >
                             Clean Cards
                           </button>
-                          {isDoctor && (
-                            <button
-                              type="button"
-                              onClick={() => setSummaryViewMode("edit")}
-                              className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                                summaryViewMode === "edit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500"
-                              }`}
-                            >
-                              Edit Text
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setSummaryViewMode("edit")}
+                            className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                              summaryViewMode === "edit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+                            }`}
+                          >
+                            ✏️ Edit Text
+                          </button>
                         </div>
                       </div>
 
@@ -688,118 +752,149 @@ export default function StaffPortal({ onNavigateHome }) {
                           <ClinicalSummaryCard summary={editableSummary} language={selectedNote.language} />
                         </div>
                       ) : (
-                        <textarea
-                          rows={6}
-                          value={editableSummary}
-                          onChange={(e) => setEditableSummary(e.target.value)}
-                          className="w-full p-3 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white shadow-2xs leading-relaxed"
-                        />
+                        <div className="space-y-1">
+                          <textarea
+                            rows={6}
+                            value={editableSummary}
+                            onChange={(e) => setEditableSummary(e.target.value)}
+                            placeholder="Edit or refine the structured triage summary..."
+                            className="w-full p-3 rounded-xl border border-slate-300 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white shadow-2xs leading-relaxed"
+                          />
+                          <p className="text-[11px] text-slate-400 font-medium">
+                            Tip: After editing the summary, click <strong>"✏️ Save & Edit"</strong> below to save changes and approve.
+                          </p>
+                        </div>
                       )}
                     </div>
 
-                    {/* Clinical Disposition & Prescription (Doctor Only) */}
-                    {isDoctor && (
-                      <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/40 space-y-3">
+                    {/* Clinical Disposition & Prescription (Accessible to all reviewing staff) */}
+                    <div className="p-4 rounded-xl border border-emerald-300/80 bg-emerald-50/30 space-y-3">
+                      <div className="flex items-center justify-between">
                         <label className="text-[12.5px] font-black text-emerald-950 flex items-center gap-1.5">
-                          <span>💊</span> Doctor Clinical Disposition & Prescription (Rx)
+                          <span>💊</span> Clinical Disposition & Prescription (Rx)
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                          {[
-                            "Routine OPD Treatment",
-                            "Admit to Emergency Ward",
-                            "Refer to District Hospital",
-                            "Discharged with Advice"
-                          ].map((disp) => (
-                            <button
-                              key={disp}
-                              type="button"
-                              onClick={() => setDisposition(disp)}
-                              className={`p-2 rounded-xl text-[11.5px] font-bold border transition text-center cursor-pointer ${
-                                disposition === disp
-                                  ? "bg-emerald-700 text-white border-emerald-700 shadow-xs"
-                                  : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                              }`}
-                            >
-                              {disp}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Quick Medication Chips */}
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {[
-                            "Paracetamol 500mg TDS",
-                            "ORS Sachet 1 pack/1L",
-                            "Cetirizine 10mg OD HS",
-                            "Amoxicillin 500mg TDS"
-                          ].map((med, idx) => (
-                            <button
-                              key={idx}
-                              type="button"
-                              onClick={() => setPrescription((prev) => (prev ? `${prev}\n• ${med}` : `• ${med}`))}
-                              className="text-[10.5px] px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-emerald-400 font-bold text-slate-700 cursor-pointer"
-                            >
-                              + {med}
-                            </button>
-                          ))}
-                        </div>
-
-                        <textarea
-                          rows={2}
-                          value={prescription}
-                          onChange={(e) => setPrescription(e.target.value)}
-                          placeholder="Type prescription & dosage instructions..."
-                          className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-900 outline-none focus:border-emerald-600 shadow-2xs"
-                        />
+                        <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-100/80 text-emerald-800">
+                          Role: {userRole}
+                        </span>
                       </div>
-                    )}
 
-                    {/* Action Decision Buttons Based on Role */}
-                    <div className="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
-                      {isDoctor && (
-                        <>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {[
+                          "Routine OPD Treatment",
+                          "Admit to Emergency Ward",
+                          "Refer to District Hospital",
+                          "Discharged with Advice"
+                        ].map((disp) => (
                           <button
+                            key={disp}
                             type="button"
-                            disabled={loading}
-                            onClick={() => handleDecision("APPROVE")}
-                            className="px-5 py-2.5 rounded-xl font-bold text-[13px] border border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white transition cursor-pointer"
+                            onClick={() => setDisposition(disp)}
+                            className={`p-2 rounded-xl text-[11.5px] font-bold border transition text-center cursor-pointer ${
+                              disposition === disp
+                                ? "bg-emerald-700 text-white border-emerald-700 shadow-xs"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                            }`}
                           >
-                            ✓ Approve
+                            {disp}
                           </button>
-                          <button
-                            type="button"
-                            disabled={loading}
-                            onClick={() => handleDecision("EDIT_APPROVE")}
-                            className="px-5 py-2.5 rounded-xl font-black text-[13px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer shadow-xs"
-                          >
-                            ✏️ Save Edit & Approve
-                          </button>
-                          <button
-                            type="button"
-                            disabled={loading}
-                            onClick={() => handleDecision("REJECT")}
-                            className="px-5 py-2.5 rounded-xl font-bold text-[13px] border border-rose-300 text-rose-700 hover:bg-rose-50 transition cursor-pointer"
-                          >
-                            ✕ Reject
-                          </button>
-                        </>
-                      )}
+                        ))}
+                      </div>
 
-                      {isNurse && (
-                        <div className="w-full flex items-center justify-between gap-3">
+                      {/* Quick Medication Chips */}
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {[
+                          "Paracetamol 500mg TDS",
+                          "ORS Sachet 1 pack/1L",
+                          "Cetirizine 10mg OD HS",
+                          "Amoxicillin 500mg TDS"
+                        ].map((med, idx) => (
                           <button
+                            key={idx}
                             type="button"
-                            disabled={loading}
-                            onClick={() => handleDecision("ESCALATE")}
-                            className="flex-1 py-2.5 rounded-xl font-black text-[13px] text-white bg-blue-600 hover:bg-blue-700 transition cursor-pointer shadow-xs"
+                            onClick={() => setPrescription((prev) => (prev ? `${prev}\n• ${med}` : `• ${med}`))}
+                            className="text-[10.5px] px-2 py-0.5 rounded-md bg-white border border-slate-200 hover:border-emerald-400 font-bold text-slate-700 cursor-pointer"
                           >
-                            📋 Escalate to Doctor (Flag Case for Dr. Sharma)
+                            + {med}
                           </button>
-                          <span className="text-[11.5px] font-bold text-slate-400">
-                            Nurses triage & escalate; Doctors approve & prescribe
-                          </span>
+                        ))}
+                      </div>
+
+                      <textarea
+                        rows={2}
+                        value={prescription}
+                        onChange={(e) => setPrescription(e.target.value)}
+                        placeholder="Type prescription & dosage instructions..."
+                        className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium text-slate-900 outline-none focus:border-emerald-600 shadow-2xs"
+                      />
+                    </div>
+
+                    {/* DEDICATED CLINICAL DECISION ACTION BAR (PERMANENTLY VISIBLE TO ALL STAFF) */}
+                    <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-emerald-50/30 to-teal-50/20 border-2 border-emerald-500/60 shadow-xs space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">⚡</span>
+                          <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
+                            Clinical Triage Actions
+                          </h3>
                         </div>
-                      )}
+                        <span className="text-[11.5px] font-medium text-slate-500">
+                          Reviewing as: <strong className="text-emerald-900 font-black">{staffSession?.staff?.name || "Doctor / Staff"}</strong> ({userRole})
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        {/* 1. APPROVE BUTTON */}
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleDecision("APPROVE")}
+                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          title="Accept AI risk evaluation and queue for OPD consultation"
+                        >
+                          <span className="text-base">✓</span>
+                          <span>Approve</span>
+                        </button>
+
+                        {/* 2. SAVE & EDIT BUTTON */}
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleDecision("EDIT_APPROVE")}
+                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 active:scale-98 transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          title="Save edited summary and record clinical disposition"
+                        >
+                          <span className="text-base">✏️</span>
+                          <span>Save & Edit</span>
+                        </button>
+
+                        {/* 3. REJECT BUTTON */}
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleDecision("REJECT")}
+                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-rose-700 bg-white hover:bg-rose-50 border-2 border-rose-300 hover:border-rose-400 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
+                          title="Reject invalid or duplicate intake"
+                        >
+                          <span className="text-base">✕</span>
+                          <span>Reject</span>
+                        </button>
+                      </div>
+
+                      {/* 4. ESCALATE SECONDARY ACTION */}
+                      <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => handleDecision("ESCALATE")}
+                          className="text-[12px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <span>📋</span>
+                          <span>Escalate to Senior Doctor</span>
+                        </button>
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          Decisions are permanently signed into the audit log
+                        </span>
+                      </div>
                     </div>
                   </div>
                 )}

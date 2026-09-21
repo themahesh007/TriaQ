@@ -50,23 +50,18 @@ export default function HomePage({ onNavigate }) {
             </ul>
           </div>
 
-          <div className="space-y-2 pt-2 relative z-10">
-            <button
-              type="button"
-              onClick={() => onNavigate("intake")}
-              className="w-full py-3.5 px-6 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm hover:shadow transition-all cursor-pointer text-center active:scale-98 flex items-center justify-center gap-2"
-            >
-              <span>📋</span>
-              <span>Start Patient Intake Form →</span>
-            </button>
-
+          <div className="pt-2 relative z-10">
             <button
               type="button"
               onClick={() => onNavigate("patient-portal")}
-              className="w-full py-2.5 px-4 rounded-xl font-bold text-[13px] text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition-all cursor-pointer text-center active:scale-98"
+              className="w-full py-3.5 px-6 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm hover:shadow transition-all cursor-pointer text-center active:scale-98 flex items-center justify-center gap-2"
             >
-              📱 Patient Login / Check Token Pass
+              <span>🔐</span>
+              <span>Login to Patient Portal & Book Token →</span>
             </button>
+            <p className="text-[11.5px] text-center text-slate-400 mt-2 font-medium">
+              Mandatory Phone OTP or Email login required before clinical intake
+            </p>
           </div>
         </div>
 
