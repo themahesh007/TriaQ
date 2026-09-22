@@ -160,6 +160,7 @@ async function evaluateRiskWithAI(symptomText = "", language = "en", additionalA
   if (apiKey) {
     const candidateModels = Array.from(new Set([
       process.env.GEMINI_MODEL,
+      "gemini-3.6-flash",
       "gemini-flash-lite-latest",
       "gemini-3.5-flash-lite",
       "gemini-3.5-flash"
