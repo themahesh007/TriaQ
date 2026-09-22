@@ -197,6 +197,7 @@ Return ONLY a JSON object:
         const res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(3500),
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
             generationConfig: { responseMimeType: "application/json" }

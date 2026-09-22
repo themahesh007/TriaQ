@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
 const { encryptPII, decryptPatientProfile, maskPatientProfile } = require("./cryptoService");
+const db = require("./db");
 
 // Optional local JSON persistence path
 const DATA_DIR = path.join(__dirname, "../../data");
@@ -212,6 +213,52 @@ function persistStore() {
   }
 }
 
+// Initialize Supabase Cloud Sync (Hydrates existing records or seeds initial data)
+async function initCloudSync() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const isReady = await db.initDatabaseSchema();
+    if (!isReady) return;
+
+    const cloudData = await db.loadAllFromCloud();
+    if (cloudData && (cloudData.patients.length > 0 || cloudData.staff.length > 0 || cloudData.triageNotes.length > 0)) {
+      if (cloudData.patients.length > 0) {
+        const cIds = new Set(cloudData.patients.map((p) => p.id));
+        memoryStore.patients = [...cloudData.patients, ...memoryStore.patients.filter((p) => !cIds.has(p.id))];
+      }
+      if (cloudData.staff.length > 0) {
+        const sIds = new Set(cloudData.staff.map((s) => s.id));
+        memoryStore.staff = [...cloudData.staff, ...memoryStore.staff.filter((s) => !sIds.has(s.id))];
+      }
+      if (cloudData.triageNotes.length > 0) {
+        const nIds = new Set(cloudData.triageNotes.map((n) => n.id));
+        memoryStore.triageNotes = [...cloudData.triageNotes, ...memoryStore.triageNotes.filter((n) => !nIds.has(n.id))];
+      }
+      if (cloudData.auditLogs.length > 0) {
+        const aIds = new Set(cloudData.auditLogs.map((a) => a.id));
+        memoryStore.auditLogs = [...cloudData.auditLogs, ...memoryStore.auditLogs.filter((a) => !aIds.has(a.id))];
+      }
+      if (cloudData.facilities) memoryStore.facilities = cloudData.facilities;
+      console.log(`[Supabase Cloud] Hydrated ${memoryStore.patients.length} patients, ${memoryStore.staff.length} staff, and ${memoryStore.triageNotes.length} triage notes from cloud database!`);
+    } else {
+      console.log("[Supabase Cloud] Empty cloud database. Seeding initial records to Supabase...");
+      for (const s of memoryStore.staff) {
+        await db.saveStaffToCloud(s);
+      }
+      for (const p of memoryStore.patients) {
+        await db.savePatientToCloud(p);
+      }
+      for (const n of memoryStore.triageNotes) {
+        await db.saveTriageNoteToCloud(n);
+      }
+      console.log("[Supabase Cloud] Initial records seeded to cloud successfully!");
+    }
+  } catch (err) {
+    console.error("[Supabase Cloud] Initialization error:", err.message);
+  }
+}
+initCloudSync().catch((err) => console.error(err));
+
 let tokenCounter = 10 + memoryStore.patients.length;
 
 
@@ -237,7 +284,8 @@ const storage = {
   async createPatient(data = {}) {
     tokenCounter += 1;
     const dateStr = new Date().toISOString().slice(0, 10);
-    const tokenId = data.tokenId || `Ward-${tokenCounter}-${dateStr}`;
+    const timeSuffix = Date.now().toString().slice(-4);
+    const tokenId = data.tokenId || `Ward-${tokenCounter}-${timeSuffix}-${dateStr}`;
 
     const patient = {
       id: generateCuid(),
@@ -260,6 +308,7 @@ const storage = {
 
     memoryStore.patients.push(patient);
     persistStore();
+    db.savePatientToCloud(patient).catch(console.error);
     return patient;
   },
 
@@ -296,6 +345,7 @@ const storage = {
     patient.updatedAt = new Date().toISOString();
 
     persistStore();
+    db.savePatientToCloud(patient).catch(console.error);
     return patient;
   },
 
@@ -328,6 +378,7 @@ const storage = {
     if (!staff) return null;
     Object.assign(staff, updateData);
     persistStore();
+    db.saveStaffToCloud(staff).catch(console.error);
     return staff;
   },
 
@@ -346,6 +397,7 @@ const storage = {
     };
     memoryStore.staff.push(newStaff);
     persistStore();
+    db.saveStaffToCloud(newStaff).catch(console.error);
     return newStaff;
   },
 
@@ -392,6 +444,7 @@ const storage = {
 
     memoryStore.triageNotes.unshift(note);
     persistStore();
+    db.saveTriageNoteToCloud(note).catch(console.error);
     return note;
   },
 
@@ -507,6 +560,8 @@ const storage = {
     memoryStore.auditLogs.unshift(auditEntry);
     note.auditLogs.unshift(auditEntry);
     persistStore();
+    db.saveTriageNoteToCloud(note).catch(console.error);
+    db.saveAuditLogToCloud(auditEntry).catch(console.error);
 
     return { note, auditEntry };
   },
@@ -539,6 +594,8 @@ const storage = {
     memoryStore.auditLogs.unshift(auditEntry);
     note.auditLogs.unshift(auditEntry);
     persistStore();
+    db.saveTriageNoteToCloud(note).catch(console.error);
+    db.saveAuditLogToCloud(auditEntry).catch(console.error);
 
     return { note, auditEntry };
   },
