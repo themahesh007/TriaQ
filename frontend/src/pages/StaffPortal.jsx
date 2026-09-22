@@ -64,6 +64,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [summaryViewMode, setSummaryViewMode] = useState("cards");
+  const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
   // Admin tab states
   const [activeAdminTab, setActiveAdminTab] = useState("queue"); // queue | staff_manage
@@ -150,13 +151,19 @@ export default function StaffPortal({ onNavigateHome }) {
           setAllStaffList(await staffRes.json());
         }
       }
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     }
   }, [staffSession]);
 
+  // Real-Time Live Auto-Polling (every 3.5 seconds)
   useEffect(() => {
     fetchDashboardData();
+    const interval = setInterval(() => {
+      fetchDashboardData();
+    }, 3500);
+    return () => clearInterval(interval);
   }, [fetchDashboardData]);
 
   // Handle Staff Login
@@ -718,12 +725,24 @@ export default function StaffPortal({ onNavigateHome }) {
                 <span>Export CSV</span>
               </button>
 
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-emerald-800 shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Queue Live Sync</span>
+                <span className="text-emerald-400">•</span>
+                <span className="font-mono text-[10.5px] text-emerald-700">
+                  {lastSyncTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+              </div>
+
               <button
                 type="button"
                 onClick={fetchDashboardData}
                 className="px-3 py-2 rounded-xl font-bold text-[12.5px] bg-slate-100 hover:bg-slate-200 text-slate-800 transition cursor-pointer shadow-2xs"
               >
-                🔄 Refresh
+                🔄 Sync
               </button>
             </div>
           </div>

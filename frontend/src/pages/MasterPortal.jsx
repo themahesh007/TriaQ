@@ -28,6 +28,7 @@ export default function MasterPortal({ onNavigateHome }) {
   const [allStaff, setAllStaff] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [notification, setNotification] = useState("");
+  const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
   // Override modal states
   const [selectedNoteId, setSelectedNoteId] = useState("");
@@ -54,13 +55,20 @@ export default function MasterPortal({ onNavigateHome }) {
       // 4. Audit Log
       const logRes = await fetch(`${API_BASE}/api/audit-log?limit=100`, { headers });
       if (logRes.ok) setAuditLogs(await logRes.json());
+
+      setLastSyncTime(new Date());
     } catch (err) {
       console.error("Master data fetch error:", err);
     }
   }, [masterSession]);
 
+  // Real-Time Live Auto-Polling (every 3 seconds)
   useEffect(() => {
     fetchMasterData();
+    const interval = setInterval(() => {
+      fetchMasterData();
+    }, 3000);
+    return () => clearInterval(interval);
   }, [fetchMasterData]);
 
   // Master Login with 2FA
@@ -290,13 +298,27 @@ export default function MasterPortal({ onNavigateHome }) {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={fetchMasterData}
-              className="px-3.5 py-1.5 rounded-xl font-bold text-[12px] bg-slate-100 hover:bg-slate-200 text-slate-800 cursor-pointer"
-            >
-              🔄 Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-xl text-[11px] font-bold text-emerald-800 shadow-2xs">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>Live Real-Time Sync</span>
+                <span className="text-emerald-400">•</span>
+                <span className="font-mono text-[10.5px] text-emerald-700">
+                  {lastSyncTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchMasterData}
+                className="px-3.5 py-1.5 rounded-xl font-bold text-[12px] bg-slate-100 hover:bg-slate-200 text-slate-800 transition cursor-pointer shadow-2xs"
+              >
+                🔄 Sync Now
+              </button>
+            </div>
           </div>
 
           {notification && (
