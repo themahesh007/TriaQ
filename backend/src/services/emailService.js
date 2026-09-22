@@ -16,7 +16,10 @@ function createTransporter() {
     auth: {
       user,
       pass
-    }
+    },
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 8000
   });
 }
 
@@ -81,13 +84,19 @@ async function sendPasswordResetOTP(toEmail, otp, recipientName = "User") {
   }
 
   try {
-    const info = await transporter.sendMail({
+    const sendPromise = transporter.sendMail({
       from: `"TriaQ Security" <${fromUser}>`,
       to: toEmail,
       subject,
       text: textContent,
       html: htmlContent
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Email dispatch timed out after 6 seconds.")), 6000)
+    );
+
+    const info = await Promise.race([sendPromise, timeoutPromise]);
 
     console.log(`[EMAIL SERVICE] ✅ Live password reset email successfully sent to ${toEmail}. MessageId: ${info.messageId}`);
     return {
