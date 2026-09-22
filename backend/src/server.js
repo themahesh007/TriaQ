@@ -18,6 +18,7 @@ const {
   authMiddleware,
   requireRole
 } = require("./services/authService");
+const { sendPasswordResetOTP } = require("./services/emailService");
 const { generateTriageReceiptPDF } = require("./services/pdfService");
 
 const app = express();
@@ -243,6 +244,165 @@ app.post("/api/patients/login/send-otp", (req, res) => {
   } catch (err) {
     console.error("Send OTP error:", err);
     return res.status(500).json({ error: "Failed to send OTP code." });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password/send-otp
+ * Dispatches a 6-digit OTP to user's registered email (and SMS preview)
+ */
+app.post("/api/auth/forgot-password/send-otp", async (req, res) => {
+  try {
+    const { email, phone } = req.body;
+
+    let targetEmail = null;
+    let targetPhone = null;
+    let userName = "User";
+    let accountType = null;
+    let userId = null;
+
+    if (email && email.trim()) {
+      const cleanEmail = email.trim().toLowerCase();
+      // 1. Check patient
+      const patient = await storage.findPatientByEmail(cleanEmail);
+      if (patient) {
+        targetEmail = cleanEmail;
+        targetPhone = patient.phone;
+        userName = "Patient";
+        accountType = "PATIENT";
+        userId = patient.id;
+      } else {
+        // 2. Check staff
+        const staff = await storage.findStaffByEmail(cleanEmail);
+        if (staff) {
+          targetEmail = cleanEmail;
+          targetPhone = staff.phone;
+          userName = staff.name || staff.role;
+          accountType = staff.role;
+          userId = staff.id;
+        }
+      }
+    } else if (phone && phone.trim()) {
+      const cleanPhone = cleanIndianPhone(phone);
+      const patient = await storage.findPatientByPhone(cleanPhone);
+      if (patient) {
+        targetPhone = cleanPhone;
+        targetEmail = patient.email;
+        userName = "Patient";
+        accountType = "PATIENT";
+        userId = patient.id;
+      }
+    }
+
+    if (!targetEmail && !targetPhone) {
+      return res.status(404).json({
+        error: "No registered account found matching that email or contact number. Please check and try again."
+      });
+    }
+
+    // Generate 6-digit OTP stored by identifier (email or phone)
+    const identifier = targetEmail || targetPhone;
+    const { otp, expiresAt } = generateOTP(identifier);
+
+    // Also store by the alternate identifier if available
+    if (targetEmail && targetPhone) {
+      generateOTP(targetPhone);
+    }
+
+    let liveEmailSent = false;
+    let emailMessage = null;
+
+    // Send Real Live Email if email exists
+    if (targetEmail) {
+      const emailResult = await sendPasswordResetOTP(targetEmail, otp, userName);
+      liveEmailSent = emailResult.deliveredLive;
+      emailMessage = emailResult.message;
+    }
+
+    console.log(`[PASSWORD RESET] Generated OTP [${otp}] for ${userName} (${identifier}). Live email sent: ${liveEmailSent}`);
+
+    return res.json({
+      success: true,
+      identifier,
+      email: targetEmail,
+      phone: targetPhone ? `+91-${targetPhone.slice(0, 2)}*****${targetPhone.slice(-3)}` : null,
+      accountType,
+      expiresAt,
+      liveEmailSent,
+      demoOtp: !liveEmailSent ? otp : undefined,
+      message: liveEmailSent
+        ? `A 6-digit security code was dispatched directly to your real inbox (${targetEmail}). Please check your email!`
+        : `Security code generated for ${identifier}. (Valid for 5 minutes)`
+    });
+  } catch (err) {
+    console.error("Forgot password send-otp error:", err);
+    return res.status(500).json({ error: "Failed to dispatch password reset code." });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password/reset
+ * Verifies 6-digit OTP and securely updates password in Supabase PostgreSQL
+ */
+app.post("/api/auth/forgot-password/reset", async (req, res) => {
+  try {
+    const { identifier, otp, newPassword } = req.body;
+
+    if (!identifier || !otp || !newPassword) {
+      return res.status(400).json({ error: "Identifier, verification code, and new password are required." });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    }
+
+    const verifyResult = verifyOTP(identifier, otp);
+    if (!verifyResult.success) {
+      return res.status(400).json({ error: verifyResult.error });
+    }
+
+    const cleanId = String(identifier).trim();
+    const newHash = await hashPassword(newPassword);
+    let updated = false;
+
+    // Check if email
+    if (cleanId.includes("@")) {
+      const cleanEmail = cleanId.toLowerCase();
+      // Try patient
+      const patient = await storage.findPatientByEmail(cleanEmail);
+      if (patient) {
+        await storage.updatePatientPassword(patient.id, newHash);
+        updated = true;
+      }
+      // Try staff
+      const staff = await storage.findStaffByEmail(cleanEmail);
+      if (staff) {
+        await storage.updateStaff(staff.id, { passwordHash: newHash, requiresPasswordChange: false });
+        updated = true;
+      }
+    } else {
+      // Phone
+      const cleanPhone = cleanIndianPhone(cleanId);
+      const patient = await storage.findPatientByPhone(cleanPhone);
+      if (patient) {
+        await storage.updatePatientPassword(patient.id, newHash);
+        updated = true;
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({ error: "Account record not found to update." });
+    }
+
+    console.log(`[PASSWORD RESET] Successfully updated password for ${cleanId} and synced with Supabase.`);
+
+    return res.json({
+      success: true,
+      message: "Password reset successfully! You can now log in with your new password."
+    });
+  } catch (err) {
+    console.error("Forgot password reset error:", err);
+    return res.status(500).json({ error: "Failed to reset password." });
   }
 });
 
@@ -611,6 +771,47 @@ app.post("/api/master/suspend-staff", requireRole(["MASTER", "ADMIN"]), async (r
     return res.json({ success: true, staff: updated });
   } catch (err) {
     return res.status(500).json({ error: "Failed to suspend staff." });
+  }
+});
+
+/**
+ * POST /api/master/reset-staff-password
+ * Master administrator override to reset any staff member's password
+ */
+app.post("/api/master/reset-staff-password", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    const { staffId, newPassword } = req.body;
+    if (!staffId || !newPassword || newPassword.length < 8) {
+      return res.status(400).json({ error: "Valid staff ID and a new password (minimum 8 characters) are required." });
+    }
+
+    const staff = await storage.findStaffById(staffId);
+    if (!staff) {
+      return res.status(404).json({ error: "Staff member not found." });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    const updated = await storage.updateStaff(staffId, {
+      passwordHash,
+      requiresPasswordChange: true
+    });
+
+    console.log(`[MASTER OVERRIDE] Password reset for staff ${staff.email} by ${req.user?.name || "Master"}`);
+
+    return res.json({
+      success: true,
+      message: `Password reset successfully for ${staff.name} (${staff.email}).`,
+      staff: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        requiresPasswordChange: true
+      }
+    });
+  } catch (err) {
+    console.error("Master reset staff password error:", err);
+    return res.status(500).json({ error: "Failed to reset staff password." });
   }
 });
 

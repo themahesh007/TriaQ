@@ -349,6 +349,16 @@ const storage = {
     return patient;
   },
 
+  async updatePatientPassword(id, passwordHash) {
+    const patient = memoryStore.patients.find((p) => p.id === id);
+    if (!patient) return null;
+    patient.passwordHash = passwordHash;
+    patient.updatedAt = new Date().toISOString();
+    persistStore();
+    db.savePatientToCloud(patient).catch(console.error);
+    return patient;
+  },
+
   async getAllPatients(role = "DOCTOR") {
     return memoryStore.patients.map((p) => {
       if (role === "DOCTOR" || role === "MASTER") {

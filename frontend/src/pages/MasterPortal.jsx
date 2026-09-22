@@ -121,6 +121,37 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   };
 
+  // Reset Staff Password
+  const handleResetStaffPassword = async (staffId, staffName, staffEmail) => {
+    const defaultNewPass = "Staff@" + Math.floor(1000 + Math.random() * 9000);
+    const newPass = prompt(
+      `Enter new temporary password for ${staffName} (${staffEmail}):\n(Minimum 8 characters)`,
+      defaultNewPass
+    );
+    if (!newPass || newPass.trim().length < 8) {
+      if (newPass !== null) alert("Password must be at least 8 characters long.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/master/reset-staff-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${masterSession.token}`
+        },
+        body: JSON.stringify({ staffId, newPassword: newPass.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Password reset failed");
+      alert(`✓ Password successfully reset for ${staffName}!\n\nNew Temporary Password: ${newPass.trim()}\n\n(The staff member will be prompted to change it upon first login).`);
+      setNotification(`Password reset for ${staffEmail}.`);
+      fetchMasterData();
+    } catch (err) {
+      alert("Error resetting password: " + err.message);
+    }
+  };
+
   // Submit Decision Override
   const handleExecuteOverride = async (e) => {
     e.preventDefault();
@@ -448,13 +479,22 @@ export default function MasterPortal({ onNavigateHome }) {
                         {s.isActive ? "Active" : "Suspended"}
                       </span>
                       {s.role !== "MASTER" && s.isActive && (
-                        <button
-                          type="button"
-                          onClick={() => handleSuspendStaff(s.id)}
-                          className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 cursor-pointer"
-                        >
-                          Suspend Account
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleResetStaffPassword(s.id, s.name, s.email)}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 transition cursor-pointer flex items-center gap-1"
+                          >
+                            <span>🔑</span> Reset Password
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSuspendStaff(s.id)}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 transition cursor-pointer"
+                          >
+                            Suspend
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>

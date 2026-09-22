@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -34,6 +35,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Staff Self-Registration inputs
   const [isStaffRegister, setIsStaffRegister] = useState(false);
@@ -631,9 +633,18 @@ export default function StaffPortal({ onNavigateHome }) {
               </div>
 
               <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[12px] font-bold text-slate-700">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-[11.5px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
                 <input
                   type="password"
                   required
@@ -1234,6 +1245,20 @@ export default function StaffPortal({ onNavigateHome }) {
           </div>
         </div>
       )}
+
+      {/* Account Recovery / Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        initialEmail={email}
+        portalName="Staff Workstation"
+        onSuccess={({ identifier, newPassword }) => {
+          if (identifier.includes("@")) {
+            setEmail(identifier);
+          }
+          setPassword(newPassword);
+        }}
+      />
     </div>
   );
 }

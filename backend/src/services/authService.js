@@ -43,33 +43,41 @@ function verifyToken(token) {
   }
 }
 
+function normalizeIdentifier(id) {
+  const str = String(id || "").trim();
+  if (str.includes("@")) {
+    return str.toLowerCase();
+  }
+  return str.replace(/\D/g, "");
+}
+
 /**
- * Generate 6-digit phone OTP
+ * Generate 6-digit OTP for Email or Phone
  */
-function generateOTP(phone) {
-  const cleanPhone = String(phone).replace(/\D/g, "");
+function generateOTP(identifier) {
+  const cleanId = normalizeIdentifier(identifier);
   const otp = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  otpStore.set(cleanPhone, {
+  otpStore.set(cleanId, {
     otp,
     expiresAt,
     attempts: 0
   });
 
-  return { otp, cleanPhone, expiresAt };
+  return { otp, cleanId, cleanPhone: cleanId, expiresAt };
 }
 
 /**
- * Validate phone OTP
+ * Validate OTP for Email or Phone
  */
-function verifyOTP(phone, userOtp) {
-  const cleanPhone = String(phone).replace(/\D/g, "");
-  const record = otpStore.get(cleanPhone);
+function verifyOTP(identifier, userOtp) {
+  const cleanId = normalizeIdentifier(identifier);
+  const record = otpStore.get(cleanId);
 
   // Demo bypass: "123456" is always accepted for demonstration / hackathon testing
   if (userOtp === "123456") {
-    otpStore.delete(cleanPhone);
+    otpStore.delete(cleanId);
     return { success: true };
   }
 
@@ -78,12 +86,12 @@ function verifyOTP(phone, userOtp) {
   }
 
   if (Date.now() > record.expiresAt) {
-    otpStore.delete(cleanPhone);
+    otpStore.delete(cleanId);
     return { success: false, error: "OTP has expired. Please request a new one." };
   }
 
   if (record.attempts >= 5) {
-    otpStore.delete(cleanPhone);
+    otpStore.delete(cleanId);
     return { success: false, error: "Too many failed attempts. Please request a new code." };
   }
 
@@ -92,7 +100,7 @@ function verifyOTP(phone, userOtp) {
     return { success: false, error: "Invalid OTP code. Please check and try again." };
   }
 
-  otpStore.delete(cleanPhone);
+  otpStore.delete(cleanId);
   return { success: true };
 }
 
