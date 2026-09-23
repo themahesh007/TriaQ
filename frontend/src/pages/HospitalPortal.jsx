@@ -46,11 +46,26 @@ export default function HospitalPortal({ onNavigateHome }) {
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Active Dashboard Tab: "qr" | "staff" | "queue"
+  // Self-Registration Form States for Hospitals / Clinics
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regType, setRegType] = useState("HOSPITAL"); // HOSPITAL | CLINIC
+  const [regState, setRegState] = useState("");
+  const [regDistrict, setRegDistrict] = useState("");
+  const [regCity, setRegCity] = useState("");
+  const [regPhone, setRegPhone] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regError, setRegError] = useState("");
+  const [regSuccessMessage, setRegSuccessMessage] = useState("");
+
+  // Active Dashboard Tab: "qr" | "approvals" | "staff" | "queue"
   const [activeTab, setActiveTab] = useState("qr");
 
   // Facility Data
   const [staffList, setStaffList] = useState([]);
+  const [pendingStaff, setPendingStaff] = useState([]);
   const [facilityQueue, setFacilityQueue] = useState([]);
   const [notification, setNotification] = useState("");
 
@@ -88,25 +103,70 @@ export default function HospitalPortal({ onNavigateHome }) {
     }
   };
 
+  // Handle Hospital Self-Registration
+  const handleHospitalRegister = async (e) => {
+    e.preventDefault();
+    setRegError("");
+    setRegSuccessMessage("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: regName.trim(),
+          type: regType,
+          state: regState.trim(),
+          district: regDistrict.trim(),
+          city: regCity.trim(),
+          phone: cleanIndianPhone(regPhone),
+          adminEmail: regEmail.trim().toLowerCase(),
+          adminPassword: regPassword
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Hospital registration failed");
+
+      setRegSuccessMessage(data.message || `Registration for "${regName}" submitted successfully! Your hospital is pending Master clearance.`);
+      setRegName("");
+      setRegState("");
+      setRegDistrict("");
+      setRegCity("");
+      setRegPhone("");
+      setRegEmail("");
+      setRegPassword("");
+    } catch (err) {
+      setRegError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("triaq_hospital_session");
     setSession(null);
     setStaffList([]);
+    setPendingStaff([]);
     setFacilityQueue([]);
   };
 
-  // Fetch Facility Staff and Queue
+  // Fetch Facility Staff, Pending Approvals, and Queue
   const fetchFacilityData = useCallback(async () => {
     if (!session?.token) return;
     try {
       const headers = { Authorization: `Bearer ${session.token}` };
-      const staffRes = await fetch(`${API_BASE}/api/hospital/staff`, { headers });
+      const [staffRes, pendingRes, notesRes] = await Promise.all([
+        fetch(`${API_BASE}/api/hospital/staff`, { headers }),
+        fetch(`${API_BASE}/api/hospital/pending-staff`, { headers }),
+        fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers })
+      ]);
+
       if (staffRes.ok) {
         setStaffList(await staffRes.json());
       }
-
-      // Fetch pending notes for this facility
-      const notesRes = await fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers });
+      if (pendingRes.ok) {
+        setPendingStaff(await pendingRes.json());
+      }
       if (notesRes.ok) {
         const allNotes = await notesRes.json();
         const facilityName = session.facility?.name || "";
@@ -122,6 +182,64 @@ export default function HospitalPortal({ onNavigateHome }) {
       console.error("Facility data fetch error:", err);
     }
   }, [session]);
+
+  // HOD Approves Pending Doctor/Nurse Sign-up (Method B)
+  const handleApproveStaff = async (staffId, staffName, role) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/staff/${staffId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.token}`
+        },
+        body: JSON.stringify({ status: "APPROVED" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve staff");
+      setNotification(`✓ ${role === "DOCTOR" ? "Dr." : "Nurse"} ${staffName} has been approved and authorized to access Staff Desk!`);
+      fetchFacilityData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // HOD Rejects Pending Doctor/Nurse Sign-up (Method B)
+  const handleRejectStaff = async (staffId, staffName, role) => {
+    if (!confirm(`Are you sure you want to reject the registration of ${role === "DOCTOR" ? "Dr." : "Nurse"} ${staffName}?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/staff/${staffId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.token}`
+        },
+        body: JSON.stringify({ status: "REJECTED" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject staff");
+      setNotification(`Staff registration for ${staffName} was rejected.`);
+      fetchFacilityData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // HOD Removes Staff from Roster
+  const handleRemoveStaff = async (staffId, staffName) => {
+    if (!confirm(`Are you sure you want to remove ${staffName} from this hospital's active roster?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/staff/${staffId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session?.token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove staff");
+      setNotification(`✓ ${staffName} removed from hospital roster.`);
+      fetchFacilityData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
 
   useEffect(() => {
     if (session) {
@@ -232,92 +350,298 @@ export default function HospitalPortal({ onNavigateHome }) {
         </div>
       )}
 
-      {/* LOGIN VIEW IF NOT LOGGED IN */}
+      {/* LOGIN OR REGISTER VIEW IF NOT LOGGED IN */}
       {!session ? (
-        <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+        <div className="max-w-lg mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
           <div className="text-center space-y-1">
             <span className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
               <IconHospital className="w-6 h-6 text-emerald-600" />
             </span>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Hospital Admin Login
+              Hospital & Clinic Portal
             </h2>
             <p className="text-[13px] text-slate-500 font-medium">
-              Manage facility QR standees, sequential OPD tokens, and your hospital's Doctors & Nurses roster.
+              Manage reception QR standees, sequential OPD tokens, and your hospital's Doctors & Nurses roster.
             </p>
           </div>
 
-          {/* Quick Fill Demo */}
-          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
-            <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
-              Quick Facility Demo Credentials:
-            </span>
+          {/* Toggle Tabs: Login vs Register */}
+          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
             <button
               type="button"
               onClick={() => {
-                setLoginEmail("admin@apollo.org");
-                setLoginPassword("Apollo@123");
+                setIsRegistering(false);
+                setLoginError("");
+                setRegError("");
               }}
-              className="btn-tactile w-full py-2 px-3 rounded-lg bg-white hover:bg-emerald-50 text-[12px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs flex items-center justify-center gap-2"
+              className={`py-2 px-3 rounded-lg text-[13px] font-black transition cursor-pointer ${
+                !isRegistering
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
             >
-              <IconHospital className="w-4 h-4 text-emerald-600" />
-              <span>Apollo PHC Hub (admin@apollo.org / Apollo@123)</span>
+              Hospital Login
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegistering(true);
+                setLoginError("");
+                setRegError("");
+              }}
+              className={`py-2 px-3 rounded-lg text-[13px] font-black transition cursor-pointer ${
+                isRegistering
+                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              + Register Hospital
             </button>
           </div>
 
-          {loginError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-              {loginError}
+          {regSuccessMessage && (
+            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-[12.5px] font-bold leading-relaxed">
+              {regSuccessMessage}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Facility Administrator Email
-              </label>
-              <input
-                type="email"
-                required
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="admin@apollo.org"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showLoginPassword ? "text" : "password"}
-                  required
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
+          {!isRegistering ? (
+            /* --- 1. LOGIN FORM --- */
+            <div className="space-y-4">
+              {/* Quick Fill Demo */}
+              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 space-y-1.5">
+                <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
+                  Quick Facility Demo Credentials:
+                </span>
                 <button
                   type="button"
-                  onClick={() => setShowLoginPassword(!showLoginPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  title={showLoginPassword ? "Hide password" : "Show password"}
+                  onClick={() => {
+                    setLoginEmail("admin@apollo.org");
+                    setLoginPassword("Apollo@123");
+                  }}
+                  className="btn-tactile w-full py-2 px-3 rounded-lg bg-white hover:bg-emerald-50 text-[12px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs flex items-center justify-center gap-2"
                 >
-                  {showLoginPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                  <IconHospital className="w-4 h-4 text-emerald-600" />
+                  <span>Apollo PHC Hub (admin@apollo.org / Apollo@123)</span>
                 </button>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-tactile w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
-            >
-              {loading ? "Authenticating..." : "Sign In to Hospital Portal →"}
-            </button>
-          </form>
+              {loginError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                  {loginError}
+                </div>
+              )}
+
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Facility Administrator Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="admin@apollo.org"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showLoginPassword ? "text" : "password"}
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                      title={showLoginPassword ? "Hide password" : "Show password"}
+                    >
+                      {showLoginPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-tactile w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
+                >
+                  {loading ? "Authenticating..." : "Sign In to Hospital Portal →"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* --- 2. REGISTER NEW HOSPITAL FORM --- */
+            <div className="space-y-4">
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12px] font-medium leading-relaxed">
+                <strong>🛡️ Master Verification:</strong> To prevent fraudulent hospital listings, newly registered facilities require approval by the Master Administrator before logging in.
+              </div>
+
+              {regError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                  {regError}
+                </div>
+              )}
+
+              <form onSubmit={handleHospitalRegister} className="space-y-3.5">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Hospital / Clinic Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="e.g. City General Hospital or LifeCare Clinic"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Facility Type <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {["HOSPITAL", "CLINIC"].map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setRegType(t)}
+                        className={`py-2 px-3 rounded-xl text-[12px] font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          regType === t
+                            ? "bg-emerald-100 text-emerald-900 border-emerald-300 shadow-2xs"
+                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        {t === "HOSPITAL" ? <IconHospital className="w-4 h-4 text-emerald-600" /> : <IconClinic className="w-4 h-4 text-teal-600" />}
+                        <span>{t === "HOSPITAL" ? "Hospital" : "Clinic / PHC"}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* State, District, City (Mandatory) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      State <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={regState}
+                      onChange={(e) => setRegState(e.target.value)}
+                      placeholder="e.g. Odisha"
+                      className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      District <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={regDistrict}
+                      onChange={(e) => setRegDistrict(e.target.value)}
+                      placeholder="e.g. Khordha"
+                      className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      City <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={regCity}
+                      onChange={(e) => setRegCity(e.target.value)}
+                      placeholder="e.g. Bhubaneswar"
+                      className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Contact Number (10 Digits) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="p-2.5 bg-slate-100 border border-slate-200 rounded-xl text-[12px] font-bold text-slate-600">
+                      +91
+                    </span>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      placeholder="9876543210"
+                      className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Administrator Official Email (ID) <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="admin@hospital.org"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Create Password (PASS) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showRegPassword ? "text" : "password"}
+                      required
+                      minLength={8}
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Minimum 8 characters"
+                      className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                    >
+                      {showRegPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-tactile w-full py-3 rounded-xl font-black text-[14px] text-white bg-emerald-600 hover:bg-emerald-700 transition cursor-pointer shadow-xs active:scale-98"
+                >
+                  {loading ? "Registering Hospital..." : "Submit Hospital for Master Approval →"}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       ) : (
         /* LOGGED IN DASHBOARD */
@@ -342,12 +666,19 @@ export default function HospitalPortal({ onNavigateHome }) {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[130px]">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
                 <span className="block text-[11px] font-bold text-slate-300 uppercase">Live Queue</span>
                 <span className="text-2xl font-black text-emerald-400">{facilityQueue.length}</span>
                 <span className="block text-[10px] text-slate-400">Tokens Waiting</span>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[130px]">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
+                <span className="block text-[11px] font-bold text-slate-300 uppercase">Pending Staff</span>
+                <span className={`text-2xl font-black ${pendingStaff.length > 0 ? "text-amber-400 animate-pulse" : "text-slate-300"}`}>
+                  {pendingStaff.length}
+                </span>
+                <span className="block text-[10px] text-slate-400">Needs Clearance</span>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
                 <span className="block text-[11px] font-bold text-slate-300 uppercase">Medical Roster</span>
                 <span className="text-2xl font-black text-teal-300">{staffList.length}</span>
                 <span className="block text-[10px] text-slate-400">Doctors & Nurses</span>
@@ -359,7 +690,13 @@ export default function HospitalPortal({ onNavigateHome }) {
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
             {[
               { id: "qr", label: "Facility QR Standee", icon: IconQRCode },
-              { id: "staff", label: `Doctors & Nurses (${staffList.length})`, icon: IconDoctor },
+              {
+                id: "approvals",
+                label: `Staff Approvals (${pendingStaff.length})`,
+                icon: IconShield,
+                hasBadge: pendingStaff.length > 0
+              },
+              { id: "staff", label: `Active Roster (${staffList.length})`, icon: IconDoctor },
               { id: "queue", label: `Live OPD Queue (${facilityQueue.length})`, icon: IconPatient }
             ].map((tab) => {
               const TabIcon = tab.icon;
@@ -368,14 +705,19 @@ export default function HospitalPortal({ onNavigateHome }) {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`btn-tactile px-4 py-2 rounded-xl font-black text-[13px] transition flex items-center gap-2 cursor-pointer ${
+                  className={`btn-tactile px-4 py-2 rounded-xl font-black text-[13px] transition flex items-center gap-2 cursor-pointer relative ${
                     activeTab === tab.id
                       ? "bg-slate-900 text-white shadow-xs"
+                      : tab.hasBadge
+                      ? "bg-amber-50 text-amber-900 border-2 border-amber-400 hover:bg-amber-100"
                       : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
                   }`}
                 >
                   <TabIcon className="w-4 h-4" />
                   <span>{tab.label}</span>
+                  {tab.hasBadge && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                  )}
                 </button>
               );
             })}
@@ -489,7 +831,99 @@ export default function HospitalPortal({ onNavigateHome }) {
             </div>
           )}
 
-          {/* TAB 2: DOCTORS & NURSES MANAGEMENT */}
+          {/* TAB 2: STAFF APPROVALS DESK (METHOD B) */}
+          {activeTab === "approvals" && (
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <IconShield className="w-5 h-5 text-amber-600" />
+                    <span>Doctor & Nurse Sign-Up Approvals (HOD Desk)</span>
+                  </h3>
+                  <p className="text-[12.5px] text-slate-500 font-medium">
+                    Review and authorize medical staff who have registered under <strong>{session.facility?.name}</strong>. Only HOD-approved staff are granted access to the Staff Station.
+                  </p>
+                </div>
+                <span className="text-[12px] font-black px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  {pendingStaff.length} Pending Clearance
+                </span>
+              </div>
+
+              {pendingStaff.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <IconCheckCircle className="w-10 h-10 mx-auto text-emerald-500" />
+                  <p className="font-bold text-slate-700">All Medical Staff Registrations Cleared</p>
+                  <p className="text-xs text-slate-400">
+                    No pending Doctor or Nurse verification requests for this facility at this time.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pendingStaff.map((s) => {
+                    const isDoc = s.role === "DOCTOR";
+                    return (
+                      <div
+                        key={s.id}
+                        className="p-4 rounded-xl border-2 border-amber-300/80 bg-amber-50/30 shadow-xs space-y-3 transition hover:border-amber-400"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span
+                            className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                              isDoc
+                                ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                : "bg-teal-100 text-teal-900 border border-teal-300"
+                            }`}
+                          >
+                            {isDoc ? <IconDoctor className="w-3 h-3" /> : <IconNurse className="w-3 h-3" />}
+                            <span>{isDoc ? "Doctor" : "Staff Nurse"}</span>
+                          </span>
+                          <span className="text-[11px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 uppercase">
+                            Pending HOD Verification
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-black text-slate-900 text-base">
+                            {s.name}
+                          </h4>
+                          <p className="text-[12.5px] text-slate-600 font-medium">
+                            ✉️ {s.email}
+                          </p>
+                          {s.phone && (
+                            <p className="text-[12px] font-mono text-slate-500">
+                              📞 +91 {s.phone}
+                            </p>
+                          )}
+                          <p className="text-[11px] text-slate-400 font-medium mt-1">
+                            Registered on: {new Date(s.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-amber-200/70 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveStaff(s.id, s.name, s.role)}
+                            className="btn-tactile py-2 px-3 rounded-xl font-black text-[12.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✓ Approve Staff</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectStaff(s.id, s.name, s.role)}
+                            className="btn-tactile py-2 px-3 rounded-xl font-bold text-[12.5px] text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✕ Reject</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: DOCTORS & NURSES ACTIVE ROSTER */}
           {activeTab === "staff" && (
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
@@ -498,7 +932,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                     Hospital Doctors & Nurses Roster
                   </h3>
                   <p className="text-[12.5px] text-slate-500 font-medium">
-                    Add certified doctors and staff nurses authorized to conduct triage and consultations at {session.facility?.name}.
+                    Active certified doctors and staff nurses authorized to conduct triage and consultations at {session.facility?.name}.
                   </p>
                 </div>
                 <button
@@ -558,8 +992,14 @@ export default function HospitalPortal({ onNavigateHome }) {
                         </div>
 
                         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-medium">
-                          <span>Status: Active</span>
-                          <span className="text-emerald-700 font-bold">Authorized</span>
+                          <span className="text-emerald-700 font-bold">✓ Authorized Staff</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStaff(s.id, s.name)}
+                            className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Remove Staff
+                          </button>
                         </div>
                       </div>
                     );

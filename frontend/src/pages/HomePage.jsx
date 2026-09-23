@@ -81,13 +81,14 @@ export default function HomePage({ onNavigate }) {
         </div>
 
         {/* 2. Staff Portal Card */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-5 relative overflow-hidden group hover:-translate-y-1">
-          <div className="space-y-3">
+        <div className="bg-white rounded-2xl p-6 border-2 border-emerald-600 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-5 relative overflow-hidden group hover:-translate-y-1">
+          <div className="h-1.5 w-full bg-emerald-600 absolute top-0 left-0"></div>
+          <div className="space-y-3 pt-1">
             <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
               <IconDoctor className="w-6 h-6" />
             </div>
             <div>
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
                 Doctor & Nurse Desk
               </span>
               <h2 className="text-2xl font-black text-slate-900 mt-0.5">
@@ -99,15 +100,15 @@ export default function HomePage({ onNavigate }) {
             </p>
             <ul className="text-[12px] text-slate-500 space-y-1.5 font-medium pt-1">
               <li className="flex items-center gap-2">
-                <IconCheckCircle className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                <IconCheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Tactile Approve / Reject controls</span>
               </li>
               <li className="flex items-center gap-2">
-                <IconCheckCircle className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                <IconCheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Card pop-out & glide-in next token advance</span>
               </li>
               <li className="flex items-center gap-2">
-                <IconCheckCircle className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+                <IconCheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Synthesized chime & token voice caller</span>
               </li>
             </ul>
@@ -117,7 +118,7 @@ export default function HomePage({ onNavigate }) {
             <button
               type="button"
               onClick={() => onNavigate("staff-portal")}
-              className="btn-tactile w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="btn-tactile w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 border-2 border-emerald-600 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
             >
               <span>Staff Login Desk →</span>
             </button>

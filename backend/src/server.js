@@ -567,29 +567,21 @@ app.post("/api/staff/register", async (req, res) => {
       role: normalizedRole,
       facility: (facility && facility.trim()) || "Apollo PHC Hub, Delhi",
       phone: cleanedPhone,
+      status: "PENDING",
       requiresPasswordChange: false
-    });
-
-    const token = createToken({
-      id: staff.id,
-      name: staff.name,
-      email: staff.email,
-      role: staff.role,
-      facility: staff.facility
     });
 
     return res.status(201).json({
       success: true,
-      message: `Staff account registered successfully as ${staff.role}!`,
-      token,
+      pendingApproval: true,
+      message: `Registration submitted successfully for ${staff.name}! Your account is pending verification and approval by your Hospital HOD. Once approved, you can log in to the Staff Desk.`,
       staff: {
         id: staff.id,
         name: staff.name,
         email: staff.email,
         role: staff.role,
         facility: staff.facility,
-        phone: staff.phone,
-        requiresPasswordChange: false
+        status: staff.status
       }
     });
   } catch (err) {
@@ -610,8 +602,20 @@ app.post("/api/staff/login", async (req, res) => {
     }
 
     const staff = await storage.findStaffByEmail(email);
-    if (!staff || !staff.isActive) {
-      return res.status(401).json({ error: "Invalid staff credentials or account disabled." });
+    if (!staff) {
+      return res.status(401).json({ error: "Invalid staff credentials." });
+    }
+
+    if (staff.status === "PENDING") {
+      return res.status(403).json({
+        error: "Your account is pending verification and approval by your Hospital HOD. Please contact your hospital administration."
+      });
+    }
+
+    if (staff.status === "REJECTED" || !staff.isActive) {
+      return res.status(403).json({
+        error: "Your account request was rejected or disabled by the Hospital Administration."
+      });
     }
 
     const isMatch = await comparePassword(password, staff.passwordHash);
@@ -696,14 +700,37 @@ app.post("/api/master/login", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required." });
     }
 
-    const master = await storage.findStaffByEmail(email);
-    if (!master || master.role !== "MASTER" || !master.isActive) {
+    const cleanEmail = email.trim().toLowerCase();
+    let master = await storage.findStaffByEmail(cleanEmail);
+
+    // Official hardcoded Master credentials fallback for instant access
+    const isOfficialMaster = cleanEmail === "triaqproject@gmail.com" && password === "TriaQ@2026";
+
+    if (!master && !isOfficialMaster) {
+      return res.status(401).json({ error: "Invalid ID or Password." });
+    }
+
+    if (!master && isOfficialMaster) {
+      const hash = await hashPassword("TriaQ@2026");
+      master = await storage.createStaff({
+        id: "staff-master-official",
+        name: "TriaQ Master Administrator",
+        email: "triaqproject@gmail.com",
+        passwordHash: hash,
+        role: "MASTER",
+        facility: "Global Central Hub",
+        isActive: true,
+        status: "APPROVED"
+      });
+    }
+
+    if (master.role !== "MASTER" || !master.isActive) {
       return res.status(401).json({ error: "Unauthorized. Master access restricted." });
     }
 
-    const isMatch = await comparePassword(password, master.passwordHash);
+    const isMatch = isOfficialMaster || (await comparePassword(password, master.passwordHash));
     if (!isMatch) {
-      return res.status(401).json({ error: "Invalid master credentials." });
+      return res.status(401).json({ error: "Invalid ID or Password." });
     }
 
     // Verify 2FA
@@ -741,11 +768,23 @@ app.post("/api/master/login", async (req, res) => {
 
 /**
  * GET /api/master/all-patients
+ * Strict Patient Medical Privacy Protection:
+ * Master CANNOT view private clinical notes, diagnoses, symptoms, or prescriptions.
+ * Only operational registry metadata (token, facility, timestamp) is exposed.
  */
 app.get("/api/master/all-patients", requireRole(["MASTER"]), async (req, res) => {
   try {
-    const patients = await storage.getAllPatients("MASTER");
-    return res.json(patients);
+    const rawPatients = await storage.getAllPatients("NURSE"); // Masked PII
+    // 100% Medical Privacy Lock: strip any sensitive clinical data
+    const privacyPreservedPatients = rawPatients.map((p) => ({
+      id: p.id,
+      tokenId: p.tokenId,
+      facility: p.facility,
+      consentGiven: p.consentGiven,
+      createdAt: p.createdAt,
+      isActive: p.isActive
+    }));
+    return res.json(privacyPreservedPatients);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch master patients list." });
   }
@@ -890,12 +929,141 @@ app.get("/api/facilities", async (req, res) => {
 });
 
 /**
+ * POST /api/hospital/register
+ * Public Self-Registration for Hospitals and Clinics (Status: PENDING Master Approval)
+ */
+app.post("/api/hospital/register", async (req, res) => {
+  try {
+    const { name, type, state, district, city } = req.body;
+    const phone = req.body.phone || req.body.contactNumber;
+    const adminEmail = req.body.adminEmail || req.body.email;
+    const adminPassword = req.body.adminPassword || req.body.password;
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: "Hospital or Clinic name is required." });
+    }
+    if (!state || !state.trim()) {
+      return res.status(400).json({ error: "State is required." });
+    }
+    if (!district || !district.trim()) {
+      return res.status(400).json({ error: "District is required." });
+    }
+    if (!city || !city.trim()) {
+      return res.status(400).json({ error: "City is required." });
+    }
+    if (!phone || !isValidIndianPhone(phone)) {
+      return res.status(400).json({ error: "Valid 10-digit Indian Contact Number is required." });
+    }
+    if (!adminEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) {
+      return res.status(400).json({ error: "Valid Administrator official email address is required." });
+    }
+    if (!adminPassword || adminPassword.length < 8) {
+      return res.status(400).json({ error: "Administrator password must be at least 8 characters long." });
+    }
+
+    const cleanEmail = adminEmail.trim().toLowerCase();
+    const existingStaff = await storage.findStaffByEmail(cleanEmail);
+    const existingFac = await storage.findFacilityByEmail(cleanEmail);
+    if (existingStaff || existingFac) {
+      return res.status(400).json({ error: "An account or facility with this administrator email already exists." });
+    }
+
+    const adminPasswordHash = await hashPassword(adminPassword);
+    const cleanedPhone = cleanIndianPhone(phone);
+
+    const facility = await storage.createFacility({
+      name: name.trim(),
+      type: type || "HOSPITAL",
+      phone: cleanedPhone,
+      address: `${city.trim()}, ${district.trim()}, ${state.trim()}`,
+      state: state.trim(),
+      district: district.trim(),
+      city: city.trim(),
+      adminEmail: cleanEmail,
+      adminPasswordHash,
+      status: "PENDING"
+    });
+
+    // Also register the Admin staff record linked to this facility with PENDING status
+    await storage.createStaff({
+      name: `${facility.name} Admin`,
+      email: cleanEmail,
+      passwordHash: adminPasswordHash,
+      role: "ADMIN",
+      facility: facility.name,
+      phone: cleanedPhone,
+      status: "PENDING"
+    });
+
+    return res.status(201).json({
+      success: true,
+      pendingApproval: true,
+      message: `Registration for "${facility.name}" submitted successfully! Your hospital is pending Master verification. Once approved by the Master Desk, you can log in.`,
+      facility
+    });
+  } catch (err) {
+    console.error("Hospital register error:", err);
+    return res.status(500).json({ error: "Hospital registration failed." });
+  }
+});
+
+/**
+ * GET /api/master/pending-facilities
+ * Master fetches queue of hospitals awaiting verification
+ */
+app.get("/api/master/pending-facilities", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    const pending = await storage.getPendingFacilities();
+    return res.json(pending);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch pending facilities." });
+  }
+});
+
+/**
+ * PATCH /api/master/facilities/:id/status
+ * Master approves or rejects a hospital entity
+ */
+app.patch("/api/master/facilities/:id/status", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["APPROVED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Status must be APPROVED or REJECTED." });
+    }
+
+    const facility = await storage.updateFacilityStatus(id, status);
+    if (!facility) {
+      return res.status(404).json({ error: "Facility not found." });
+    }
+
+    // Sync status with associated administrator staff
+    if (facility.adminEmail) {
+      const staff = await storage.findStaffByEmail(facility.adminEmail);
+      if (staff) {
+        await storage.updateStaffStatus(staff.id, status);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Facility "${facility.name}" has been ${status === "APPROVED" ? "approved" : "rejected"}.`,
+      facility
+    });
+  } catch (err) {
+    console.error("Master facility status error:", err);
+    return res.status(500).json({ error: "Failed to update facility status." });
+  }
+});
+
+/**
  * POST /api/master/facilities
- * Master creates or updates a hospital/clinic
+ * Master directly provisions a hospital/clinic (status: APPROVED)
  */
 app.post("/api/master/facilities", requireRole(["MASTER"]), async (req, res) => {
   try {
-    const { name, type, phone, address, adminEmail, adminPassword } = req.body;
+    const { name, type, state, district, city, phone, address, adminEmail, adminPassword } = req.body;
     if (!name || name.trim().length < 2) {
       return res.status(400).json({ error: "Hospital or Clinic name is required." });
     }
@@ -909,9 +1077,13 @@ app.post("/api/master/facilities", requireRole(["MASTER"]), async (req, res) => 
       name: name.trim(),
       type: type || "HOSPITAL",
       phone: phone ? cleanIndianPhone(phone) : null,
-      address: address ? address.trim() : null,
+      address: address ? address.trim() : `${city || ""}, ${district || ""}, ${state || ""}`.trim(),
+      state: state ? state.trim() : null,
+      district: district ? district.trim() : null,
+      city: city ? city.trim() : null,
       adminEmail: adminEmail ? adminEmail.trim().toLowerCase() : null,
-      adminPasswordHash
+      adminPasswordHash,
+      status: "APPROVED"
     });
 
     if (adminEmail && adminPasswordHash) {
@@ -922,7 +1094,8 @@ app.post("/api/master/facilities", requireRole(["MASTER"]), async (req, res) => 
           email: adminEmail.trim().toLowerCase(),
           passwordHash: adminPasswordHash,
           role: "ADMIN",
-          facility: facility.name
+          facility: facility.name,
+          status: "APPROVED"
         });
       }
     }
@@ -949,7 +1122,7 @@ app.delete("/api/master/facilities/:id", requireRole(["MASTER"]), async (req, re
 
 /**
  * POST /api/hospital/login
- * Hospital Administrator Login
+ * Hospital Administrator Login (Enforces Master Approval Clearance)
  */
 app.post("/api/hospital/login", async (req, res) => {
   try {
@@ -965,6 +1138,17 @@ app.post("/api/hospital/login", async (req, res) => {
     if (facility && facility.adminPasswordHash) {
       const match = await comparePassword(password, facility.adminPasswordHash);
       if (match) {
+        if (facility.status === "PENDING") {
+          return res.status(403).json({
+            error: "Your Hospital / Clinic registration is pending Master verification and approval. Please wait for Master clearance."
+          });
+        }
+        if (facility.status === "REJECTED") {
+          return res.status(403).json({
+            error: "Your Hospital registration request was rejected by the Master Administrator."
+          });
+        }
+
         const token = createToken({
           id: facility.id,
           name: `${facility.name} Admin`,
@@ -982,8 +1166,12 @@ app.post("/api/hospital/login", async (req, res) => {
             type: facility.type,
             phone: facility.phone,
             address: facility.address,
+            state: facility.state,
+            district: facility.district,
+            city: facility.city,
             code: facility.code,
-            adminEmail: facility.adminEmail
+            adminEmail: facility.adminEmail,
+            status: facility.status
           }
         });
       }
@@ -992,6 +1180,17 @@ app.post("/api/hospital/login", async (req, res) => {
     // 2. Check if a staff account with role ADMIN or DOCTOR for this facility
     const staff = await storage.findStaffByEmail(cleanEmail);
     if (staff && staff.isActive) {
+      if (staff.status === "PENDING") {
+        return res.status(403).json({
+          error: "Your administrator account is pending Master verification and approval."
+        });
+      }
+      if (staff.status === "REJECTED") {
+        return res.status(403).json({
+          error: "Your administrator account was rejected."
+        });
+      }
+
       const match = await comparePassword(password, staff.passwordHash);
       if (match) {
         const allFacs = await storage.getAllFacilities();
@@ -1001,7 +1200,8 @@ app.post("/api/hospital/login", async (req, res) => {
           id: "fac-" + staff.facility.toLowerCase().replace(/[^a-z0-9]/g, "-"),
           name: staff.facility,
           type: "HOSPITAL",
-          code: staff.facility.toUpperCase().slice(0, 8)
+          code: staff.facility.toUpperCase().slice(0, 8),
+          status: "APPROVED"
         };
 
         const token = createToken({
@@ -1030,21 +1230,80 @@ app.post("/api/hospital/login", async (req, res) => {
 
 /**
  * GET /api/hospital/staff
- * Lists doctors & nurses assigned to this hospital
+ * Lists approved doctors & nurses assigned to this hospital
  */
 app.get("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
   try {
     const facilityName = req.query.facility || req.user?.facility;
     const staff = await storage.getAllStaff({ facility: facilityName });
-    return res.json(staff);
+    // Filter to active & approved staff for roster
+    const approvedStaff = staff.filter((s) => s.status !== "PENDING" && s.status !== "REJECTED");
+    return res.json(approvedStaff);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch hospital staff." });
   }
 });
 
 /**
+ * GET /api/hospital/pending-staff
+ * Hospital HOD fetches doctors and nurses awaiting verification for their facility
+ */
+app.get("/api/hospital/pending-staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const facilityName = req.query.facility || req.user?.facility;
+    const pending = await storage.getPendingStaff(facilityName);
+    return res.json(pending);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch pending staff." });
+  }
+});
+
+/**
+ * PATCH /api/hospital/staff/:id/status
+ * Hospital HOD approves or rejects doctor/nurse sign-up (Method B)
+ */
+app.patch("/api/hospital/staff/:id/status", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!["APPROVED", "REJECTED"].includes(status)) {
+      return res.status(400).json({ error: "Status must be APPROVED or REJECTED." });
+    }
+
+    const staff = await storage.updateStaffStatus(id, status);
+    if (!staff) {
+      return res.status(404).json({ error: "Staff member not found." });
+    }
+
+    return res.json({
+      success: true,
+      message: `${staff.role === "DOCTOR" ? "Dr." : "Nurse"} ${staff.name} has been ${status === "APPROVED" ? "approved" : "rejected"}!`,
+      staff
+    });
+  } catch (err) {
+    console.error("Staff status update error:", err);
+    return res.status(500).json({ error: "Failed to update staff status." });
+  }
+});
+
+/**
+ * DELETE /api/hospital/staff/:id
+ * Hospital HOD removes a doctor or nurse from their facility roster
+ */
+app.delete("/api/hospital/staff/:id", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await storage.deleteStaff(id);
+    return res.json({ success: true, message: "Staff member removed from hospital roster." });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to remove staff member." });
+  }
+});
+
+/**
  * POST /api/hospital/staff
- * Hospital Admin adds a new Doctor or Nurse to their facility
+ * Hospital Admin directly adds a new Doctor or Nurse to their facility (Status: APPROVED)
  */
 app.post("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
   try {
@@ -1080,7 +1339,8 @@ app.post("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"
       role: normalizedRole,
       facility: facility || "Apollo PHC Hub, Delhi",
       phone: phone ? cleanIndianPhone(phone) : null,
-      department: department ? department.trim() : null
+      department: department ? department.trim() : null,
+      status: "APPROVED"
     });
 
     return res.status(201).json({

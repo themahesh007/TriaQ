@@ -29,8 +29,8 @@ export default function MasterPortal({ onNavigateHome }) {
   });
 
   // Login inputs
-  const [email, setEmail] = useState("master@triaq.org");
-  const [password, setPassword] = useState("Master@123");
+  const [email, setEmail] = useState("triaqproject@gmail.com");
+  const [password, setPassword] = useState("TriaQ@2026");
   const [showMasterPw, setShowMasterPw] = useState(false);
   const [totpCode, setTotpCode] = useState("123456");
   const [loginError, setLoginError] = useState("");
@@ -44,6 +44,7 @@ export default function MasterPortal({ onNavigateHome }) {
   const [allPatients, setAllPatients] = useState([]);
   const [allStaff, setAllStaff] = useState([]);
   const [facilities, setFacilities] = useState([]);
+  const [pendingFacilities, setPendingFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [notification, setNotification] = useState("");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
@@ -52,6 +53,10 @@ export default function MasterPortal({ onNavigateHome }) {
   const [showAddFacilityModal, setShowAddFacilityModal] = useState(false);
   const [facName, setFacName] = useState("");
   const [facType, setFacType] = useState("HOSPITAL"); // HOSPITAL | CLINIC
+  const [facState, setFacState] = useState("");
+  const [facDistrict, setFacDistrict] = useState("");
+  const [facCity, setFacCity] = useState("");
+  const [facPhone, setFacPhone] = useState("");
   const [facCode, setFacCode] = useState("");
   const [facAddress, setFacAddress] = useState("");
   const [facAdminEmail, setFacAdminEmail] = useState("");
@@ -73,7 +78,7 @@ export default function MasterPortal({ onNavigateHome }) {
       const aRes = await fetch(`${API_BASE}/api/master/analytics`, { headers });
       if (aRes.ok) setAnalytics(await aRes.json());
 
-      // 2. All Patients
+      // 2. All Patients (anonymized metadata)
       const pRes = await fetch(`${API_BASE}/api/master/all-patients`, { headers });
       if (pRes.ok) setAllPatients(await pRes.json());
 
@@ -81,9 +86,13 @@ export default function MasterPortal({ onNavigateHome }) {
       const sRes = await fetch(`${API_BASE}/api/master/all-staff`, { headers });
       if (sRes.ok) setAllStaff(await sRes.json());
 
-      // 4. All Facilities
+      // 4. All Approved Facilities
       const fRes = await fetch(`${API_BASE}/api/facilities`);
       if (fRes.ok) setFacilities(await fRes.json());
+
+      // 4b. Pending Facilities Awaiting Master Approval
+      const pfRes = await fetch(`${API_BASE}/api/master/pending-facilities`, { headers });
+      if (pfRes.ok) setPendingFacilities(await pfRes.json());
 
       // 5. Audit Log
       const logRes = await fetch(`${API_BASE}/api/audit-log?limit=100`, { headers });
@@ -246,6 +255,47 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   };
 
+  // Master Approves Hospital Entity
+  const handleApproveFacility = async (facId, facName) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/master/facilities/${facId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${masterSession.token}`
+        },
+        body: JSON.stringify({ status: "APPROVED" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve hospital");
+      setNotification(`✓ Hospital "${facName}" approved and cleared for live operations!`);
+      fetchMasterData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // Master Rejects Hospital Entity
+  const handleRejectFacility = async (facId, facName) => {
+    if (!confirm(`Are you sure you want to reject registration of "${facName}"?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/master/facilities/${facId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${masterSession.token}`
+        },
+        body: JSON.stringify({ status: "REJECTED" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject hospital");
+      setNotification(`Hospital registration for "${facName}" was rejected.`);
+      fetchMasterData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   // Facility Management Handlers
   const handleCreateFacility = async (e) => {
     e.preventDefault();
@@ -260,6 +310,10 @@ export default function MasterPortal({ onNavigateHome }) {
         body: JSON.stringify({
           name: facName.trim(),
           type: facType,
+          state: facState.trim(),
+          district: facDistrict.trim(),
+          city: facCity.trim(),
+          phone: facPhone ? facPhone.replace(/\D/g, "") : undefined,
           code: facCode.trim() || undefined,
           address: facAddress.trim() || undefined,
           adminEmail: facAdminEmail.trim(),
@@ -272,6 +326,10 @@ export default function MasterPortal({ onNavigateHome }) {
       setNotification(`✓ Healthcare Facility "${facName}" registered successfully!`);
       setShowAddFacilityModal(false);
       setFacName("");
+      setFacState("");
+      setFacDistrict("");
+      setFacCity("");
+      setFacPhone("");
       setFacCode("");
       setFacAddress("");
       setFacAdminEmail("");
@@ -442,8 +500,12 @@ export default function MasterPortal({ onNavigateHome }) {
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap gap-1">
               {[
                 { id: "analytics", label: "Global Analytics", icon: IconShield },
-                { id: "facilities", label: `Facilities (${facilities.length})`, icon: IconHospital },
-                { id: "patients", label: `All Patients (${allPatients.length})`, icon: IconPatient },
+                {
+                  id: "facilities",
+                  label: `Facilities (${facilities.length})${pendingFacilities.length > 0 ? ` • ${pendingFacilities.length} Pending` : ""}`,
+                  icon: IconHospital
+                },
+                { id: "patients", label: `Patients Registry (${allPatients.length})`, icon: IconPatient },
                 { id: "staff", label: `All Staff (${allStaff.length})`, icon: IconDoctor },
                 { id: "override", label: "Decision Override", icon: IconCheckCircle },
                 { id: "audit", label: `System Audit (${auditLogs.length})`, icon: IconClipboard }
@@ -561,12 +623,23 @@ export default function MasterPortal({ onNavigateHome }) {
             </div>
           )}
 
-          {/* TAB 2: ALL PATIENTS (CROSS-FACILITY UNMASKED) */}
+          {/* TAB 2: REGISTERED PATIENTS REGISTRY (PRIVACY-PRESERVED) */}
           {activeTab === "patients" && (
             <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">All Patients Across Facilities (Decrypted)</h3>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">Hospital Patient Registries (Privacy-Protected)</h3>
+                  <p className="text-[12px] text-slate-500 font-medium">Operational overview of patient queues and facility token volume.</p>
+                </div>
                 <span className="text-[11.5px] font-bold text-slate-400">Total: {allPatients.length}</span>
+              </div>
+
+              {/* Strict Medical Privacy Protocol Banner */}
+              <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-950 text-[12.5px] font-medium flex items-start gap-2.5">
+                <span className="text-base">🛡️</span>
+                <p>
+                  <strong>Doctor-Patient Medical Confidentiality Guarantee:</strong> Master Administrator access is strictly operational (tracking system load and sequential token generation). Individual symptom descriptions, diagnoses, clinical notes, and prescriptions are sealed between treating doctors and patients, and are never exposed to Master oversight.
+                </p>
               </div>
 
               <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
@@ -578,14 +651,16 @@ export default function MasterPortal({ onNavigateHome }) {
                         <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
                           {p.facility}
                         </span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          {p.isActive !== false ? "Active Intake" : "Archived"}
+                        </span>
                       </div>
-                      <div className="text-slate-700 font-medium mt-0.5">
-                        {p.name} • Age: {p.age} • Phone: {p.phone}
+                      <div className="text-slate-600 font-medium mt-1 text-[12px]">
+                        Consent: {p.consentGiven ? "Verified Digital Consent Given" : "Pending"} • Clinical Notes: <span className="text-teal-800 font-bold">🔒 Confidential to Treating Physician</span>
                       </div>
-                      {p.address && <span className="text-[11.5px] text-slate-400">Address: {p.address}</span>}
                     </div>
                     <span className="text-[11px] font-mono text-slate-400">
-                      {new Date(p.createdAt).toLocaleDateString()}
+                      {new Date(p.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </div>
                 ))}
@@ -749,7 +824,7 @@ export default function MasterPortal({ onNavigateHome }) {
                     <span>Healthcare Facilities & Clinics ({facilities.length})</span>
                   </h3>
                   <p className="text-[12.5px] text-slate-500 font-medium">
-                    Configure network hospitals and clinics. Each facility receives a dedicated sequential token counter and QR standee.
+                    Verify and approve incoming hospital registrations, provision network clinics, and monitor QR reception standees.
                   </p>
                 </div>
                 <button
@@ -759,6 +834,78 @@ export default function MasterPortal({ onNavigateHome }) {
                 >
                   <span>+ Add Hospital / Clinic</span>
                 </button>
+              </div>
+
+              {/* PENDING HOSPITAL REGISTRATION APPROVAL QUEUE */}
+              {pendingFacilities.length > 0 && (
+                <div className="p-5 rounded-2xl border-2 border-amber-300 bg-amber-50/40 space-y-4 shadow-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-3">
+                    <div>
+                      <h4 className="font-black text-amber-950 text-base flex items-center gap-2">
+                        <IconShield className="w-5 h-5 text-amber-600" />
+                        <span>Pending Hospital Verification Queue ({pendingFacilities.length})</span>
+                      </h4>
+                      <p className="text-[12px] text-amber-800 font-medium">
+                        These healthcare institutions registered online. Review their state, district, city, contact number, and official admin email before approving.
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-black uppercase px-2.5 py-1 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
+                      Requires Master Clearance
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {pendingFacilities.map((pf) => (
+                      <div key={pf.id} className="p-4 rounded-xl border border-amber-300 bg-white shadow-xs space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10.5px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase">
+                            {pf.type || "HOSPITAL"}
+                          </span>
+                          <span className="text-[11px] font-mono text-slate-400">
+                            ID: {pf.id}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h5 className="font-black text-slate-900 text-base">{pf.name}</h5>
+                          <p className="text-[12.5px] text-slate-600 font-medium">
+                            📍 {pf.city ? `${pf.city}, ${pf.district}, ${pf.state}` : pf.address}
+                          </p>
+                          <p className="text-[12px] text-slate-600 font-medium mt-0.5">
+                            ✉️ {pf.adminEmail} • 📞 +91 {pf.phone || "N/A"}
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-1">
+                            Registered on: {new Date(pf.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveFacility(pf.id, pf.name)}
+                            className="btn-tactile py-2 px-3 rounded-xl font-black text-[12.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✓ Approve Hospital</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectFacility(pf.id, pf.name)}
+                            className="btn-tactile py-2 px-3 rounded-xl font-bold text-[12.5px] text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✕ Reject</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* APPROVED ACTIVE FACILITIES */}
+              <div>
+                <h4 className="text-sm font-black text-slate-700 uppercase tracking-wider mb-3">
+                  Approved & Active Facilities ({facilities.length})
+                </h4>
               </div>
 
               {facilities.length === 0 ? (
@@ -890,7 +1037,63 @@ export default function MasterPortal({ onNavigateHome }) {
                 />
               </div>
 
+              {/* State, District, City */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    State <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={facState}
+                    onChange={(e) => setFacState(e.target.value)}
+                    placeholder="e.g. Odisha"
+                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    District <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={facDistrict}
+                    onChange={(e) => setFacDistrict(e.target.value)}
+                    placeholder="e.g. Khordha"
+                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                    City <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={facCity}
+                    onChange={(e) => setFacCity(e.target.value)}
+                    placeholder="e.g. Bhubaneswar"
+                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Contact Number
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={facPhone}
+                    onChange={(e) => setFacPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="9876543210"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
                 <div>
                   <label className="block text-[12px] font-bold text-slate-700 mb-1">
                     Facility Code
@@ -901,18 +1104,6 @@ export default function MasterPortal({ onNavigateHome }) {
                     onChange={(e) => setFacCode(e.target.value.toUpperCase())}
                     placeholder="APOLLO-01"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-mono outline-none focus:border-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Address / City
-                  </label>
-                  <input
-                    type="text"
-                    value={facAddress}
-                    onChange={(e) => setFacAddress(e.target.value)}
-                    placeholder="Sector 14, Delhi"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>

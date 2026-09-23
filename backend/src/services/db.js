@@ -119,7 +119,13 @@ async function initDatabaseSchema() {
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS code TEXT;
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS admin_email TEXT;
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS state TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS district TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS city TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+        ALTER TABLE triaq_staff ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
 
         CREATE TABLE IF NOT EXISTS triaq_facility_token_counters (
           facility_id TEXT PRIMARY KEY,
@@ -183,6 +189,7 @@ async function loadAllFromCloud() {
         facility: r.facility,
         phone: r.phone,
         isActive: r.is_active,
+        status: r.status || "APPROVED",
         requiresPasswordChange: r.requires_password_change,
         twoFactorSecret: r.two_factor_secret,
         backupCodes: r.backup_codes,
@@ -233,9 +240,13 @@ async function loadAllFromCloud() {
         name: r.name,
         phone: r.phone,
         address: r.address,
+        state: r.state || "",
+        district: r.district || "",
+        city: r.city || "",
         type: r.type || "HOSPITAL",
         code: r.code || r.id,
         adminEmail: r.admin_email,
+        status: r.status || "APPROVED",
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
       });
 
@@ -318,8 +329,8 @@ async function saveStaffToCloud(staff) {
     await p.query(`
       INSERT INTO triaq_staff (
         id, email, password_hash, name, role, facility, phone,
-        is_active, requires_password_change, two_factor_secret, backup_codes, raw_data, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        is_active, status, requires_password_change, two_factor_secret, backup_codes, raw_data, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
         password_hash = EXCLUDED.password_hash,
@@ -328,6 +339,7 @@ async function saveStaffToCloud(staff) {
         facility = EXCLUDED.facility,
         phone = EXCLUDED.phone,
         is_active = EXCLUDED.is_active,
+        status = EXCLUDED.status,
         requires_password_change = EXCLUDED.requires_password_change,
         two_factor_secret = EXCLUDED.two_factor_secret,
         backup_codes = EXCLUDED.backup_codes,
@@ -341,6 +353,7 @@ async function saveStaffToCloud(staff) {
       staff.facility || "Apollo PHC Hub, Delhi",
       staff.phone || null,
       staff.isActive !== false,
+      staff.status || "APPROVED",
       staff.requiresPasswordChange || false,
       staff.twoFactorSecret || null,
       staff.backupCodes || [],
@@ -448,29 +461,50 @@ async function saveFacilityToCloud(facility) {
   try {
     await p.query(`
       INSERT INTO triaq_facilities (
-        id, name, phone, address, type, code, admin_email, admin_password_hash, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        id, name, phone, address, state, district, city, type, code, admin_email, admin_password_hash, status, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         phone = EXCLUDED.phone,
         address = EXCLUDED.address,
+        state = EXCLUDED.state,
+        district = EXCLUDED.district,
+        city = EXCLUDED.city,
         type = EXCLUDED.type,
         code = EXCLUDED.code,
         admin_email = EXCLUDED.admin_email,
-        admin_password_hash = EXCLUDED.admin_password_hash;
+        admin_password_hash = EXCLUDED.admin_password_hash,
+        status = EXCLUDED.status;
     `, [
       facility.id,
       facility.name,
       facility.phone || null,
       facility.address || null,
+      facility.state || null,
+      facility.district || null,
+      facility.city || null,
       facility.type || "HOSPITAL",
       facility.code || null,
       facility.adminEmail || null,
       facility.adminPasswordHash || null,
+      facility.status || "APPROVED",
       facility.createdAt || new Date().toISOString()
     ]);
   } catch (err) {
     console.error("[Supabase Database] Save facility error:", err.message);
+  }
+}
+
+/**
+ * Delete a staff member from Supabase
+ */
+async function deleteStaffFromCloud(id) {
+  const p = getPool();
+  if (!p || !id) return;
+  try {
+    await p.query("DELETE FROM triaq_staff WHERE id = $1", [id]);
+  } catch (err) {
+    console.error("[Supabase Database] Delete staff error:", err.message);
   }
 }
 
@@ -531,5 +565,6 @@ module.exports = {
   saveAuditLogToCloud,
   saveFacilityToCloud,
   deleteFacilityFromCloud,
+  deleteStaffFromCloud,
   getNextSequentialTokenNumber
 };

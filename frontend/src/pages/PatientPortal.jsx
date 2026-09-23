@@ -92,7 +92,7 @@ export default function PatientPortal({ onNavigateHome }) {
   });
 
   const [currentStep, setCurrentStep] = useState("auth"); // auth | intake | symptoms | confirmation | status
-  const [authTab, setAuthTab] = useState("otp"); // otp | password
+  const [authTab, setAuthTab] = useState("password"); // password | otp
   const [isSignup, setIsSignup] = useState(false);
 
   // Auth Inputs

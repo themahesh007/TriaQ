@@ -22,8 +22,22 @@ const DOCTOR_HASH = bcrypt.hashSync("Doctor@123", DEFAULT_SALT);
 const NURSE_HASH = bcrypt.hashSync("Nurse@123", DEFAULT_SALT);
 const ADMIN_HASH = bcrypt.hashSync("Admin@123", DEFAULT_SALT);
 const MASTER_HASH = bcrypt.hashSync("Master@123", DEFAULT_SALT);
+const TRIAQ_MASTER_HASH = bcrypt.hashSync("TriaQ@2026", DEFAULT_SALT);
 
 const initialStaff = [
+  {
+    id: "staff-master-official",
+    email: "triaqproject@gmail.com",
+    passwordHash: TRIAQ_MASTER_HASH,
+    name: "TriaQ Master Administrator",
+    role: "MASTER",
+    facility: "Global Central Hub",
+    isActive: true,
+    status: "APPROVED",
+    twoFactorSecret: "TRIAQ2FASECRETGLOBAL2026",
+    backupCodes: ["TRIAQ-BACKUP-01", "TRIAQ-BACKUP-02", "TRIAQ-BACKUP-03"],
+    createdAt: new Date().toISOString()
+  },
   {
     id: "staff-doc-1",
     email: "doctor@triaq.org",
@@ -32,6 +46,7 @@ const initialStaff = [
     role: "DOCTOR",
     facility: "Apollo PHC Hub, Delhi",
     isActive: true,
+    status: "APPROVED",
     requiresPasswordChange: false,
     createdAt: new Date().toISOString()
   },
@@ -43,6 +58,7 @@ const initialStaff = [
     role: "NURSE",
     facility: "Apollo PHC Hub, Delhi",
     isActive: true,
+    status: "APPROVED",
     requiresPasswordChange: false,
     createdAt: new Date().toISOString()
   },
@@ -54,6 +70,7 @@ const initialStaff = [
     role: "ADMIN",
     facility: "Apollo PHC Hub, Delhi",
     isActive: true,
+    status: "APPROVED",
     requiresPasswordChange: false,
     createdAt: new Date().toISOString()
   },
@@ -65,6 +82,7 @@ const initialStaff = [
     role: "MASTER",
     facility: "Global Central Hub",
     isActive: true,
+    status: "APPROVED",
     twoFactorSecret: "TRIAQ2FASECRETGLOBAL2026",
     backupCodes: ["TRIAQ-BACKUP-01", "TRIAQ-BACKUP-02", "TRIAQ-BACKUP-03"],
     createdAt: new Date().toISOString()
@@ -78,8 +96,28 @@ let memoryStore = {
   triageNotes: [],
   auditLogs: [],
   facilities: [
-    { id: "fac-1", name: "Apollo PHC Hub, Delhi", phone: "+91-11-2338-9000", address: "Sector 14, Delhi" },
-    { id: "fac-2", name: "Rural Health Centre, Odisha", phone: "+91-674-239-0000", address: "Puri Road, Odisha" }
+    {
+      id: "fac-1",
+      name: "Apollo PHC Hub, Delhi",
+      phone: "+91-11-2338-9000",
+      address: "Sector 14, Delhi",
+      state: "Delhi",
+      district: "South West Delhi",
+      city: "New Delhi",
+      status: "APPROVED",
+      type: "HOSPITAL"
+    },
+    {
+      id: "fac-2",
+      name: "Rural Health Centre, Odisha",
+      phone: "+91-674-239-0000",
+      address: "Puri Road, Odisha",
+      state: "Odisha",
+      district: "Puri",
+      city: "Bhubaneswar",
+      status: "APPROVED",
+      type: "CLINIC"
+    }
   ]
 };
 
@@ -417,7 +455,9 @@ const storage = {
       role: data.role || "NURSE",
       facility: data.facility || "Apollo PHC Hub, Delhi",
       phone: data.phone ? String(data.phone).replace(/\D/g, "") : null,
-      isActive: true,
+      department: data.department || null,
+      isActive: data.isActive !== undefined ? data.isActive : true,
+      status: data.status || "PENDING",
       requiresPasswordChange: data.requiresPasswordChange !== undefined ? data.requiresPasswordChange : false,
       createdAt: new Date().toISOString()
     };
@@ -425,6 +465,38 @@ const storage = {
     persistStore();
     db.saveStaffToCloud(newStaff).catch(console.error);
     return newStaff;
+  },
+
+  async getPendingStaff(facility = null) {
+    let list = memoryStore.staff.filter((s) => s.status === "PENDING");
+    if (facility && facility !== "ALL") {
+      const target = facility.toLowerCase().trim();
+      list = list.filter((s) => s.facility && s.facility.toLowerCase().trim() === target);
+    }
+    return list.map(({ passwordHash, twoFactorSecret, ...s }) => s);
+  },
+
+  async updateStaffStatus(id, status) {
+    const staff = memoryStore.staff.find((s) => s.id === id);
+    if (!staff) return null;
+    staff.status = status;
+    if (status === "REJECTED") {
+      staff.isActive = false;
+    } else if (status === "APPROVED") {
+      staff.isActive = true;
+    }
+    persistStore();
+    db.saveStaffToCloud(staff).catch(console.error);
+    return staff;
+  },
+
+  async deleteStaff(id) {
+    const idx = memoryStore.staff.findIndex((s) => s.id === id);
+    if (idx === -1) return false;
+    memoryStore.staff.splice(idx, 1);
+    persistStore();
+    db.deleteStaffFromCloud(id).catch(console.error);
+    return true;
   },
 
   // --- TRIAGE NOTES ---
@@ -695,10 +767,14 @@ const storage = {
       name: data.name.trim(),
       phone: data.phone || null,
       address: data.address || null,
+      state: data.state ? data.state.trim() : null,
+      district: data.district ? data.district.trim() : null,
+      city: data.city ? data.city.trim() : null,
       type: (data.type || "HOSPITAL").toUpperCase(),
       code,
       adminEmail: data.adminEmail ? data.adminEmail.trim().toLowerCase() : null,
       adminPasswordHash: data.adminPasswordHash || null,
+      status: data.status || "APPROVED",
       createdAt: new Date().toISOString()
     };
     if (!memoryStore.facilities) memoryStore.facilities = [];
@@ -706,6 +782,19 @@ const storage = {
     persistStore();
     db.saveFacilityToCloud(newFacility).catch(console.error);
     return newFacility;
+  },
+
+  async getPendingFacilities() {
+    return (memoryStore.facilities || []).filter((f) => f.status === "PENDING");
+  },
+
+  async updateFacilityStatus(id, status) {
+    const fac = (memoryStore.facilities || []).find((f) => f.id === id);
+    if (!fac) return null;
+    fac.status = status;
+    persistStore();
+    db.saveFacilityToCloud(fac).catch(console.error);
+    return fac;
   },
 
   async deleteFacility(id) {
