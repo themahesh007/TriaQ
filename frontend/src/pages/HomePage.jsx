@@ -84,7 +84,7 @@ export default function HomePage({ onNavigate }) {
         <div className="bg-white rounded-2xl p-6 border-2 border-emerald-600 shadow-sm hover:shadow-lg transition-all duration-300 flex flex-col justify-between space-y-5 relative overflow-hidden group hover:-translate-y-1">
           <div className="h-1.5 w-full bg-emerald-600 absolute top-0 left-0"></div>
           <div className="space-y-3 pt-1">
-            <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-xs">
+            <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
               <IconDoctor className="w-6 h-6" />
             </div>
             <div>
@@ -118,7 +118,7 @@ export default function HomePage({ onNavigate }) {
             <button
               type="button"
               onClick={() => onNavigate("staff-portal")}
-              className="btn-tactile w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 border-2 border-emerald-600 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs"
+              className="btn-tactile w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5"
             >
               <span>Staff Login Desk →</span>
             </button>

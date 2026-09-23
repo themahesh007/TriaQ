@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import {
@@ -158,6 +158,9 @@ export default function PatientPortal({ onNavigateHome }) {
   // Symptoms & Vitals Inputs
   const [symptomText, setSymptomText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const recognitionRef = useRef(null);
+  const [micError, setMicError] = useState("");
+  const [interimTranscript, setInterimTranscript] = useState("");
   const [reportImageBase64, setReportImageBase64] = useState(null);
   const [reportFileName, setReportFileName] = useState("");
 
@@ -542,35 +545,98 @@ export default function PatientPortal({ onNavigateHome }) {
     }
   };
 
-  // --- VOICE INPUT ---
+  // --- VOICE INPUT (Web Speech API with Multilingual Support) ---
+  const BCP47_LANG_MAP = {
+    en: "en-IN",
+    hi: "hi-IN",
+    or: "or-IN"
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+    };
+  }, []);
+
   const toggleSpeechRecognition = () => {
+    setMicError("");
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
-      alert("Voice speech recognition is not supported in this browser. Please type your symptoms.");
+      setMicError("Speech recognition is not natively supported in your current browser (e.g. Firefox). Please use Google Chrome, Microsoft Edge, or Mobile Safari, or type your symptoms directly.");
       return;
     }
 
     if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
       setIsRecording(false);
+      setInterimTranscript("");
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
-      recognition.lang = "en-IN";
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognitionRef.current = recognition;
+      recognition.lang = BCP47_LANG_MAP[language] || "en-IN";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
 
-      recognition.onstart = () => setIsRecording(true);
-      recognition.onend = () => setIsRecording(false);
-      recognition.onerror = () => setIsRecording(false);
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setMicError("");
+        setInterimTranscript("");
+      };
+
       recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setSymptomText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+        let finalStr = "";
+        let interimStr = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalStr += transcript + " ";
+          } else {
+            interimStr += transcript;
+          }
+        }
+
+        if (finalStr.trim()) {
+          setSymptomText((prev) => (prev ? `${prev.trim()} ${finalStr.trim()}` : finalStr.trim()));
+        }
+        setInterimTranscript(interimStr);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn("Speech recognition error:", event.error);
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          setMicError("Microphone access was denied. Please click the camera/mic icon in your browser URL bar and allow microphone permissions.");
+        } else if (event.error === "network") {
+          setMicError("Speech recognition network service error. Please check your connection or type symptoms directly.");
+        } else if (event.error !== "no-speech") {
+          setMicError(`Voice recognition notification: ${event.error}. You can also type your symptoms directly.`);
+        }
+        setIsRecording(false);
+        setInterimTranscript("");
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+        setInterimTranscript("");
       };
 
       recognition.start();
-    } catch {
+    } catch (err) {
+      console.error("Failed to start speech recognition:", err);
+      setMicError("Could not initialize microphone: " + (err.message || "Please check browser mic permissions."));
       setIsRecording(false);
     }
   };
@@ -1288,28 +1354,67 @@ export default function PatientPortal({ onNavigateHome }) {
                   value={symptomText}
                   onChange={(e) => setSymptomText(e.target.value)}
                   placeholder="e.g. Mild fever, dry cough and body ache for the past 2 days. No breathing difficulty..."
-                  className="w-full p-3.5 pr-14 rounded-xl border border-slate-200 text-[13.5px] text-slate-900 font-medium leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/40 focus:bg-white transition"
+                  className="w-full p-3.5 pr-20 rounded-xl border border-slate-200 text-[13.5px] text-slate-900 font-medium leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/40 focus:bg-white transition"
                 />
 
                 <button
                   type="button"
                   onClick={toggleSpeechRecognition}
-                  className={`absolute right-3 bottom-4 p-2.5 rounded-xl text-lg transition shadow-xs cursor-pointer ${
+                  className={`btn-tactile absolute right-3 bottom-3 py-2 px-3 rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5 ${
                     isRecording
-                      ? "bg-rose-600 text-white animate-pulse"
-                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-4 ring-rose-200"
+                      : "bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300"
                   }`}
-                  title={isRecording ? "Listening... click to stop" : "Speak symptoms in microphone"}
+                  title={isRecording ? "Click to finish voice recording" : "Speak symptoms via microphone"}
                 >
-                  🎙️
+                  <span className="text-base">🎙️</span>
+                  <span>{isRecording ? "Stop" : "Mic"}</span>
                 </button>
               </div>
 
+              {/* Interim Real-time Transcript Preview */}
+              {interimTranscript && (
+                <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-[12px] text-slate-700 italic flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+                  <span>Transcribing: "{interimTranscript}..."</span>
+                </div>
+              )}
+
+              {/* Live Listening Banner */}
               {isRecording && (
-                <p className="text-[11.5px] font-bold text-rose-600 animate-pulse flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-600"></span>
-                  Listening... speak clearly into your microphone
-                </p>
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12px] font-bold flex items-center justify-between gap-2 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2.5 w-2.5 shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                    </span>
+                    <span>Listening in {language === "hi" ? "Hindi (हिन्दी)" : language === "or" ? "Odia (ଓଡ଼ିଆ)" : "Indian English"}... Speak your symptoms clearly.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleSpeechRecognition}
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black hover:bg-rose-700 cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    Done Speaking ✓
+                  </button>
+                </div>
+              )}
+
+              {/* Microphone Permission / Service Error Banner */}
+              {micError && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-[12px] font-medium flex items-start justify-between gap-2 shadow-2xs">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base">⚠️</span>
+                    <p>{micError}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMicError("")}
+                    className="text-amber-800 hover:text-amber-950 font-black text-sm cursor-pointer shrink-0 ml-2"
+                  >
+                    ✕
+                  </button>
+                </div>
               )}
 
               {/* Quick Template Buttons */}

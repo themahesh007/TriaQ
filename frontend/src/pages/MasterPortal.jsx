@@ -2,9 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   IconHospital,
   IconClinic,
-  IconDoctor,
-  IconNurse,
-  IconPatient,
   IconHome,
   IconQRCode,
   IconEye,
@@ -36,13 +33,11 @@ export default function MasterPortal({ onNavigateHome }) {
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Active view tab
-  const [activeTab, setActiveTab] = useState("analytics"); // analytics | facilities | patients | staff | override | audit
+  // Active view tab (Defaults to Hospital Approvals & Network)
+  const [activeTab, setActiveTab] = useState("facilities"); // facilities | analytics | audit
 
   // Data states
   const [analytics, setAnalytics] = useState(null);
-  const [allPatients, setAllPatients] = useState([]);
-  const [allStaff, setAllStaff] = useState([]);
   const [facilities, setFacilities] = useState([]);
   const [pendingFacilities, setPendingFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -64,37 +59,24 @@ export default function MasterPortal({ onNavigateHome }) {
   const [showFacPw, setShowFacPw] = useState(false);
   const [showQrModalFacility, setShowQrModalFacility] = useState(null);
 
-  // Override modal states
-  const [selectedNoteId, setSelectedNoteId] = useState("");
-  const [overrideStatus, setOverrideStatus] = useState("APPROVED");
-  const [overrideReason, setOverrideReason] = useState("");
-
   const fetchMasterData = useCallback(async () => {
     if (!masterSession?.token) return;
     try {
       const headers = { Authorization: `Bearer ${masterSession.token}` };
 
-      // 1. Analytics
+      // 1. Operational Analytics (High-level counts only, no patient records)
       const aRes = await fetch(`${API_BASE}/api/master/analytics`, { headers });
       if (aRes.ok) setAnalytics(await aRes.json());
 
-      // 2. All Patients (anonymized metadata)
-      const pRes = await fetch(`${API_BASE}/api/master/all-patients`, { headers });
-      if (pRes.ok) setAllPatients(await pRes.json());
-
-      // 3. All Staff
-      const sRes = await fetch(`${API_BASE}/api/master/all-staff`, { headers });
-      if (sRes.ok) setAllStaff(await sRes.json());
-
-      // 4. All Approved Facilities
+      // 2. All Approved Facilities
       const fRes = await fetch(`${API_BASE}/api/facilities`);
       if (fRes.ok) setFacilities(await fRes.json());
 
-      // 4b. Pending Facilities Awaiting Master Approval
+      // 3. Pending Facilities Awaiting Master Approval
       const pfRes = await fetch(`${API_BASE}/api/master/pending-facilities`, { headers });
       if (pfRes.ok) setPendingFacilities(await pfRes.json());
 
-      // 5. Audit Log
+      // 4. Audit Log
       const logRes = await fetch(`${API_BASE}/api/audit-log?limit=100`, { headers });
       if (logRes.ok) setAuditLogs(await logRes.json());
 
@@ -142,58 +124,6 @@ export default function MasterPortal({ onNavigateHome }) {
   };
 
   // Suspend Staff
-  const handleSuspendStaff = async (staffId) => {
-    const reason = prompt("Enter suspension reason:");
-    if (!reason) return;
-    try {
-      const res = await fetch(`${API_BASE}/api/master/suspend-staff`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${masterSession.token}`
-        },
-        body: JSON.stringify({ staffId, reason })
-      });
-      if (res.ok) {
-        setNotification(`Staff account ${staffId} suspended.`);
-        fetchMasterData();
-      }
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
-  // Reset Staff Password
-  const handleResetStaffPassword = async (staffId, staffName, staffEmail) => {
-    const defaultNewPass = "Staff@" + Math.floor(1000 + Math.random() * 9000);
-    const newPass = prompt(
-      `Enter new temporary password for ${staffName} (${staffEmail}):\n(Minimum 8 characters)`,
-      defaultNewPass
-    );
-    if (!newPass || newPass.trim().length < 8) {
-      if (newPass !== null) alert("Password must be at least 8 characters long.");
-      return;
-    }
-
-    try {
-      const res = await fetch(`${API_BASE}/api/master/reset-staff-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${masterSession.token}`
-        },
-        body: JSON.stringify({ staffId, newPassword: newPass.trim() })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Password reset failed");
-      alert(`✓ Password successfully reset for ${staffName}!\n\nNew Temporary Password: ${newPass.trim()}\n\n(The staff member will be prompted to change it upon first login).`);
-      setNotification(`Password reset for ${staffEmail}.`);
-      fetchMasterData();
-    } catch (err) {
-      alert("Error resetting password: " + err.message);
-    }
-  };
-
   // Clear All Data (Fresh Start)
   const handleClearAllData = async () => {
     if (!window.confirm("⚠️ ARE YOU SURE?\n\nThis will completely wipe all patient tickets, triage history, and test logs from both the cloud database and local memory to give you a 100% clean, fresh start.\n\nContinue?")) {
@@ -215,41 +145,6 @@ export default function MasterPortal({ onNavigateHome }) {
       fetchMasterData();
     } catch (err) {
       alert("Error clearing data: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Submit Decision Override
-  const handleExecuteOverride = async (e) => {
-    e.preventDefault();
-    if (!selectedNoteId.trim() || !overrideReason.trim()) {
-      alert("Note ID and mandatory clinical rationale are required.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/master/override-decision`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${masterSession.token}`
-        },
-        body: JSON.stringify({
-          triageNoteId: selectedNoteId.trim(),
-          newStatus: overrideStatus,
-          reason: overrideReason.trim()
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Override failed");
-
-      setNotification(`✓ Override executed: Note ${selectedNoteId} updated to ${overrideStatus}. Logged to audit trail.`);
-      setSelectedNoteId("");
-      setOverrideReason("");
-      fetchMasterData();
-    } catch (err) {
-      alert("Error executing override: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -499,15 +394,12 @@ export default function MasterPortal({ onNavigateHome }) {
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap gap-1">
               {[
-                { id: "analytics", label: "Global Analytics", icon: IconShield },
                 {
                   id: "facilities",
-                  label: `Facilities (${facilities.length})${pendingFacilities.length > 0 ? ` • ${pendingFacilities.length} Pending` : ""}`,
+                  label: `Hospital Approvals & Network (${facilities.length})${pendingFacilities.length > 0 ? ` • ${pendingFacilities.length} PENDING` : ""}`,
                   icon: IconHospital
                 },
-                { id: "patients", label: `Patients Registry (${allPatients.length})`, icon: IconPatient },
-                { id: "staff", label: `All Staff (${allStaff.length})`, icon: IconDoctor },
-                { id: "override", label: "Decision Override", icon: IconCheckCircle },
+                { id: "analytics", label: "Platform Overview", icon: IconShield },
                 { id: "audit", label: `System Audit (${auditLogs.length})`, icon: IconClipboard }
               ].map((tab) => {
                 const TabIcon = tab.icon;
@@ -623,166 +515,7 @@ export default function MasterPortal({ onNavigateHome }) {
             </div>
           )}
 
-          {/* TAB 2: REGISTERED PATIENTS REGISTRY (PRIVACY-PRESERVED) */}
-          {activeTab === "patients" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div>
-                  <h3 className="text-base font-black text-slate-900">Hospital Patient Registries (Privacy-Protected)</h3>
-                  <p className="text-[12px] text-slate-500 font-medium">Operational overview of patient queues and facility token volume.</p>
-                </div>
-                <span className="text-[11.5px] font-bold text-slate-400">Total: {allPatients.length}</span>
-              </div>
 
-              {/* Strict Medical Privacy Protocol Banner */}
-              <div className="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-950 text-[12.5px] font-medium flex items-start gap-2.5">
-                <span className="text-base">🛡️</span>
-                <p>
-                  <strong>Doctor-Patient Medical Confidentiality Guarantee:</strong> Master Administrator access is strictly operational (tracking system load and sequential token generation). Individual symptom descriptions, diagnoses, clinical notes, and prescriptions are sealed between treating doctors and patients, and are never exposed to Master oversight.
-                </p>
-              </div>
-
-              <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-                {allPatients.map((p) => (
-                  <div key={p.id} className="py-3 flex flex-wrap items-center justify-between gap-2 text-[13px]">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-black text-slate-900">{p.tokenId}</span>
-                        <span className="text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                          {p.facility}
-                        </span>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                          {p.isActive !== false ? "Active Intake" : "Archived"}
-                        </span>
-                      </div>
-                      <div className="text-slate-600 font-medium mt-1 text-[12px]">
-                        Consent: {p.consentGiven ? "Verified Digital Consent Given" : "Pending"} • Clinical Notes: <span className="text-teal-800 font-bold">🔒 Confidential to Treating Physician</span>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      {new Date(p.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: STAFF GOVERNANCE */}
-          {activeTab === "staff" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-black text-slate-900">Staff Account Governance</h3>
-                <span className="text-[11.5px] font-bold text-slate-400">Total Staff: {allStaff.length}</span>
-              </div>
-
-              <div className="divide-y divide-slate-100">
-                {allStaff.map((s) => (
-                  <div key={s.id} className="py-3 flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span className="font-bold text-[14px] text-slate-900 block">{s.name}</span>
-                      <span className="text-[12px] text-slate-500 font-medium">
-                        {s.email} • {s.facility} • Role: <strong>{s.role}</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${s.isActive ? "bg-emerald-50 text-emerald-800" : "bg-rose-50 text-rose-800"}`}>
-                        {s.isActive ? "Active" : "Suspended"}
-                      </span>
-                      {s.role !== "MASTER" && s.isActive && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleResetStaffPassword(s.id, s.name, s.email)}
-                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 transition cursor-pointer flex items-center gap-1"
-                          >
-                            <span>🔑</span> Reset Password
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSuspendStaff(s.id)}
-                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-rose-300 text-rose-700 hover:bg-rose-50 transition cursor-pointer"
-                          >
-                            Suspend
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: DECISION OVERRIDE */}
-          {activeTab === "override" && (
-            <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 shadow-xs space-y-5 max-w-xl mx-auto">
-              <div className="space-y-1">
-                <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider">
-                  Administrative Override Protocol
-                </span>
-                <h3 className="text-xl font-black text-slate-900">
-                  Override Clinical Triage Decision
-                </h3>
-                <p className="text-[12.5px] text-slate-500 font-medium">
-                  Overrides are strictly logged in the permanent audit trail with your Master ID and clinical explanation.
-                </p>
-              </div>
-
-              <form onSubmit={handleExecuteOverride} className="space-y-4">
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Triage Note ID or Receipt Number <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={selectedNoteId}
-                    onChange={(e) => setSelectedNoteId(e.target.value)}
-                    placeholder="Paste Triage Note ID (e.g. c2ualh55gjqmu8habc2)"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:border-rose-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    New Decision Status
-                  </label>
-                  <select
-                    value={overrideStatus}
-                    onChange={(e) => setOverrideStatus(e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-900 outline-none focus:border-rose-600"
-                  >
-                    <option value="APPROVED">APPROVED (Force approve case)</option>
-                    <option value="REJECTED">REJECTED (Direct to emergency desk)</option>
-                    <option value="PENDING">PENDING (Re-open for doctor review)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Clinical Rationale & Explanation <span className="text-rose-600">*</span>
-                  </label>
-                  <textarea
-                    rows={3}
-                    required
-                    value={overrideReason}
-                    onChange={(e) => setOverrideReason(e.target.value)}
-                    placeholder="Describe clinical reason for override (e.g. Supervisor verified patient has acute symptoms requiring immediate admission)..."
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:border-rose-600 leading-relaxed"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-xl font-black text-[13.5px] text-white bg-rose-700 hover:bg-rose-800 transition cursor-pointer shadow-xs active:scale-98"
-                >
-                  {loading ? "Executing..." : "Execute Override & Log to Audit Trail →"}
-                </button>
-              </form>
-            </div>
-          )}
 
           {/* TAB 5: SYSTEM AUDIT LOG */}
           {activeTab === "audit" && (

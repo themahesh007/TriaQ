@@ -164,6 +164,7 @@ export default function IntakePage({ onTriageCreated }) {
   const [inputDrafts, setInputDrafts] = useState({});
 
   const fileInputRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   const t = UI_TEXT[language] || UI_TEXT.en;
 
@@ -350,74 +351,70 @@ export default function IntakePage({ onTriageCreated }) {
     setMicStatus("");
   };
 
-  // Voice recording
+  // Voice recording (Web Speech API)
   const handleMicClick = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    if (SpeechRecognition && !isRecording) {
-      try {
-        const recognition = new SpeechRecognition();
-        recognition.lang = language === "hi" ? "hi-IN" : language === "or" ? "or-IN" : "en-IN";
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        setIsRecording(true);
-        setMicStatus(t.micListening);
-
-        recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          setSymptomText((prev) => (prev ? `${prev} ${transcript}` : transcript));
-          setIsRecording(false);
-          setMicStatus(t.micCaptured);
-        };
-
-        recognition.onerror = () => {
-          simulateVoiceFallback();
-        };
-
-        recognition.onend = () => {
-          setIsRecording(false);
-        };
-
-        recognition.start();
-        return;
-      } catch {
-        simulateVoiceFallback();
-        return;
-      }
+    if (!SpeechRecognition) {
+      setMicStatus("Microphone voice recognition is not supported in this browser. Please use Chrome/Edge or type your symptoms.");
+      return;
     }
 
-    simulateVoiceFallback();
-  };
-
-  const simulateVoiceFallback = () => {
-    setIsRecording(true);
-    setMicStatus(t.micListening);
-    setTimeout(() => {
-      let samplePhases = [
-        "Patient reports high fever and persistent cough for 3 days with dizziness, taking paracetamol.",
-        "Experiencing acute chest pain and difficulty breathing since morning, no medicine taken.",
-        "Mild headache and slight fatigue today, no previous medical history."
-      ];
-      if (language === "hi") {
-        samplePhases = [
-          "मरीज को 3 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।",
-          "सुबह से सीने में अचानक तेज दर्द और सांस फूलने की समस्या हो रही है।",
-          "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।"
-        ];
-      } else if (language === "or") {
-        samplePhases = [
-          "ରୋଗୀଙ୍କୁ ୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।",
-          "ସକାଳୁ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ ହେଉଛି, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।",
-          "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।"
-        ];
+    if (isRecording) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
       }
-
-      const randomPhase = samplePhases[Math.floor(Math.random() * samplePhases.length)];
-      setSymptomText((prev) => (prev ? `${prev}\n${randomPhase}` : randomPhase));
       setIsRecording(false);
       setMicStatus(t.micCaptured);
-    }, 1200);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      recognition.lang = language === "hi" ? "hi-IN" : language === "or" ? "or-IN" : "en-IN";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      setIsRecording(true);
+      setMicStatus(t.micListening);
+
+      recognition.onresult = (event) => {
+        let finalStr = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalStr += event.results[i][0].transcript + " ";
+          }
+        }
+        if (finalStr.trim()) {
+          setSymptomText((prev) => (prev ? `${prev.trim()} ${finalStr.trim()}` : finalStr.trim()));
+          setMicStatus(t.micCaptured);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.warn("Speech recognition error:", event.error);
+        setIsRecording(false);
+        if (event.error === "not-allowed") {
+          setMicStatus("Microphone access denied. Please click the camera/mic icon in the browser address bar to allow permissions.");
+        } else if (event.error !== "no-speech") {
+          setMicStatus(`Voice input notice: ${event.error}`);
+        }
+      };
+
+      recognition.onend = () => {
+        setIsRecording(false);
+      };
+
+      recognition.start();
+    } catch (err) {
+      console.error("Speech recognition error:", err);
+      setIsRecording(false);
+      setMicStatus("Microphone error: " + (err.message || "Failed to start"));
+    }
   };
 
   // Report upload
