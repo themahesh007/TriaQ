@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import {
+  IconStethoscope,
+  IconHospital,
+  IconClinic,
+  IconDoctor,
+  IconNurse,
+  IconPatient,
+  IconHome,
+  IconQRCode,
+  IconEye,
+  IconEyeOff,
+  IconClipboard,
+  IconShield,
+  IconArrowRight,
+  IconCheckCircle,
+  IconXCircle
+} from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -33,6 +50,7 @@ export default function StaffPortal({ onNavigateHome }) {
   // Login inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -45,6 +63,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [regFacility, setRegFacility] = useState("Apollo PHC Hub, Delhi");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [regError, setRegError] = useState("");
 
   // Forced password change state
@@ -54,6 +73,8 @@ export default function StaffPortal({ onNavigateHome }) {
   // Dashboard states
   const [queue, setQueue] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [actionCompletedForNote, setActionCompletedForNote] = useState(null);
+  const [isAdvancingToken, setIsAdvancingToken] = useState(false);
   const [editableSummary, setEditableSummary] = useState("");
   const [originalSummary, setOriginalSummary] = useState("");
   const [reviewerNote, setReviewerNote] = useState("");
@@ -130,6 +151,9 @@ export default function StaffPortal({ onNavigateHome }) {
           if (curr) {
             const match = notes.find((n) => n.id === curr.id);
             if (match) return match;
+            if (actionCompletedForNote?.id === curr.id) {
+              return curr;
+            }
           }
           if (notes.length > 0) {
             setEditableSummary(notes[0].summary || "");
@@ -157,7 +181,7 @@ export default function StaffPortal({ onNavigateHome }) {
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     }
-  }, [staffSession]);
+  }, [staffSession, actionCompletedForNote]);
 
   // Real-Time Live Auto-Polling (every 3.5 seconds)
   useEffect(() => {
@@ -245,6 +269,7 @@ export default function StaffPortal({ onNavigateHome }) {
     localStorage.removeItem("triaq_staff_session");
     setStaffSession(null);
     setSelectedNote(null);
+    setActionCompletedForNote(null);
   };
 
   // Staff Decisions
@@ -295,13 +320,41 @@ export default function StaffPortal({ onNavigateHome }) {
       }
 
       const actionText = action === "APPROVE" ? "APPROVED" : action === "EDIT_APPROVE" ? "SAVED & APPROVED" : action === "REJECT" ? "REJECTED" : "ESCALATED";
-      setNotification(`✓ Case ${selectedNote.patient?.tokenId || "Token"} successfully ${actionText} by ${reviewerNameToUse}!`);
+      setActionCompletedForNote({
+        id: selectedNote.id,
+        action,
+        token: selectedNote.patient?.tokenId || selectedNote.tokenId || "Token",
+        reviewerName: reviewerNameToUse,
+        text: actionText
+      });
+      setNotification(`✓ Case ${selectedNote.patient?.tokenId || "Token"} successfully ${actionText} by ${reviewerNameToUse}! Click 'Next Patient Token →' to advance.`);
       await fetchDashboardData();
     } catch (err) {
       alert("Error: " + err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAdvanceToNextToken = () => {
+    setIsAdvancingToken(true);
+    setTimeout(() => {
+      const currentId = selectedNote?.id;
+      const remaining = queue.filter((n) => n.id !== currentId);
+      if (remaining.length > 0) {
+        const next = remaining[0];
+        setSelectedNote(next);
+        setEditableSummary(next.summary || "");
+        setOriginalSummary(next.summary || "");
+        setDisposition(next.disposition || "Routine OPD Treatment");
+        setPrescription(next.prescription || "");
+        setReviewerNote("");
+      } else {
+        setSelectedNote(null);
+      }
+      setActionCompletedForNote(null);
+      setIsAdvancingToken(false);
+    }, 240);
   };
 
   const handleExportCSV = () => {
@@ -401,8 +454,8 @@ export default function StaffPortal({ onNavigateHome }) {
           /* STAFF REGISTRATION VIEW */
           <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
             <div className="text-center space-y-1">
-              <span className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl mx-auto mb-2">
-                📋
+              <span className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
+                <IconClipboard className="w-6 h-6 text-emerald-700" />
               </span>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                 Register Staff Account
@@ -426,26 +479,30 @@ export default function StaffPortal({ onNavigateHome }) {
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { id: "DOCTOR", label: "🩺 Doctor", desc: "MD/MBBS" },
-                    { id: "NURSE", label: "👩‍⚕️ Nurse", desc: "Staff RN" },
-                    { id: "ADMIN", label: "🏢 Admin", desc: "Hospital Ops" }
-                  ].map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setRegRole(r.id)}
-                      className={`p-2 rounded-xl text-center border transition cursor-pointer ${
-                        regRole === r.id
-                          ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
-                          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
-                      }`}
-                    >
-                      <span className="block text-[12px] font-black">{r.label}</span>
-                      <span className={`block text-[10px] ${regRole === r.id ? "text-slate-300" : "text-slate-400"}`}>
-                        {r.desc}
-                      </span>
-                    </button>
-                  ))}
+                    { id: "DOCTOR", label: "Doctor", icon: IconDoctor, desc: "MD/MBBS" },
+                    { id: "NURSE", label: "Nurse", icon: IconNurse, desc: "Staff RN" },
+                    { id: "ADMIN", label: "Admin", icon: IconHospital, desc: "Hospital Ops" }
+                  ].map((r) => {
+                    const RoleIcon = r.icon;
+                    return (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setRegRole(r.id)}
+                        className={`p-2.5 rounded-xl text-center border transition cursor-pointer flex flex-col items-center justify-center ${
+                          regRole === r.id
+                            ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
+                            : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                        }`}
+                      >
+                        <RoleIcon className={`w-5 h-5 mb-1 ${regRole === r.id ? "text-emerald-400" : "text-slate-600"}`} />
+                        <span className="block text-[12px] font-black">{r.label}</span>
+                        <span className={`block text-[10px] ${regRole === r.id ? "text-slate-300" : "text-slate-400"}`}>
+                          {r.desc}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -523,20 +580,30 @@ export default function StaffPortal({ onNavigateHome }) {
                 />
               </div>
 
-              {/* Password */}
+              {/* Password with Eye Toggle */}
               <div>
                 <label className="block text-[12px] font-bold text-slate-700 mb-1">
                   Password (min 8 characters) <span className="text-rose-600">*</span>
                 </label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                    title={showRegPassword ? "Hide password" : "Show password"}
+                  >
+                    {showRegPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Submit Button */}
@@ -570,8 +637,8 @@ export default function StaffPortal({ onNavigateHome }) {
           /* STAFF LOGIN VIEW */
           <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
             <div className="text-center space-y-1">
-              <span className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center text-xl mx-auto mb-2">
-                👨‍⚕️
+              <span className="w-12 h-12 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
+                <IconDoctor className="w-6 h-6 text-slate-800" />
               </span>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                 Hospital Staff Login
@@ -590,23 +657,26 @@ export default function StaffPortal({ onNavigateHome }) {
                 <button
                   type="button"
                   onClick={() => handleQuickLogin("doctor@triaq.org", "Doctor@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs text-center"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
                 >
-                  🩺 Doctor
+                  <IconStethoscope className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Doctor</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickLogin("nurse@triaq.org", "Nurse@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-teal-50 text-[11px] font-bold text-teal-800 border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-2xs text-center"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-teal-50 text-[11px] font-bold text-teal-800 border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
                 >
-                  👩‍⚕️ Nurse
+                  <IconNurse className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Nurse</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleQuickLogin("admin@triaq.org", "Admin@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-800 border border-slate-200 hover:border-slate-400 transition cursor-pointer shadow-2xs text-center"
+                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-800 border border-slate-200 hover:border-slate-400 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
                 >
-                  🏢 Admin
+                  <IconHospital className="w-3.5 h-3.5 text-slate-700" />
+                  <span>Admin</span>
                 </button>
               </div>
             </div>
@@ -645,14 +715,24 @@ export default function StaffPortal({ onNavigateHome }) {
                     Forgot Password?
                   </button>
                 </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                />
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                    title={showLoginPassword ? "Hide password" : "Show password"}
+                  >
+                    {showLoginPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -912,7 +992,7 @@ export default function StaffPortal({ onNavigateHome }) {
                     </button>
                   </div>
                 ) : (
-                  <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+                  <div className={`bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5 transition-all duration-250 ${isAdvancingToken ? "animate-card-pop-out" : "animate-card-glide-in"}`}>
                     {/* Patient Header & PII Guard */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
                       <div>
@@ -1119,7 +1199,7 @@ export default function StaffPortal({ onNavigateHome }) {
                     <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-emerald-50/30 to-teal-50/20 border-2 border-emerald-500/60 shadow-xs space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">⚡</span>
+                          <IconCheckCircle className="w-5 h-5 text-emerald-600" />
                           <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
                             Clinical Triage Actions
                           </h3>
@@ -1129,40 +1209,67 @@ export default function StaffPortal({ onNavigateHome }) {
                         </span>
                       </div>
 
+                      {/* Prominent banner & Next Token advance button when action completed */}
+                      {actionCompletedForNote?.id === selectedNote.id && (
+                        <div className="p-3.5 rounded-xl bg-emerald-100/90 border border-emerald-300 text-emerald-950 space-y-2 animate-fade-in shadow-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-1">
+                            <span className="text-[13px] font-black flex items-center gap-1.5 text-emerald-900">
+                              <IconCheckCircle className="w-4 h-4 text-emerald-700" />
+                              Token {actionCompletedForNote.token} Marked as {actionCompletedForNote.text}!
+                            </span>
+                            <span className="text-[11px] font-bold text-emerald-800 bg-white/90 px-2 py-0.5 rounded-md border border-emerald-200">
+                              Signed: {actionCompletedForNote.reviewerName}
+                            </span>
+                          </div>
+                          <p className="text-[12px] text-slate-600 font-medium">
+                            Clinical evaluation saved. Click below to pop out this patient's token and advance smoothly to the next patient in the queue.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleAdvanceToNextToken}
+                            disabled={isAdvancingToken}
+                            className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span>Next Patient Token</span>
+                            <IconArrowRight className="w-4 h-4 text-emerald-400" />
+                          </button>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         {/* 1. APPROVE BUTTON */}
                         <button
                           type="button"
-                          disabled={loading}
+                          disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("APPROVE")}
-                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Accept AI risk evaluation and queue for OPD consultation"
                         >
-                          <span className="text-base">✓</span>
+                          <IconCheckCircle className="w-4 h-4" />
                           <span>Approve</span>
                         </button>
 
                         {/* 2. SAVE & EDIT BUTTON */}
                         <button
                           type="button"
-                          disabled={loading}
+                          disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("EDIT_APPROVE")}
-                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 active:scale-98 transition shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Save edited summary and record clinical disposition"
                         >
-                          <span className="text-base">✏️</span>
+                          <IconClipboard className="w-4 h-4" />
                           <span>Save & Edit</span>
                         </button>
 
                         {/* 3. REJECT BUTTON */}
                         <button
                           type="button"
-                          disabled={loading}
+                          disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("REJECT")}
-                          className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-rose-700 bg-white hover:bg-rose-50 border-2 border-rose-300 hover:border-rose-400 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-rose-700 bg-white hover:bg-rose-50 border-2 border-rose-300 hover:border-rose-400 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Reject invalid or duplicate intake"
                         >
-                          <span className="text-base">✕</span>
+                          <IconXCircle className="w-4 h-4" />
                           <span>Reject</span>
                         </button>
                       </div>
@@ -1171,11 +1278,11 @@ export default function StaffPortal({ onNavigateHome }) {
                       <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
                         <button
                           type="button"
-                          disabled={loading}
+                          disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("ESCALATE")}
-                          className="text-[12px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
+                          className="btn-tactile text-[12px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition cursor-pointer flex items-center gap-1.5"
                         >
-                          <span>📋</span>
+                          <IconShield className="w-4 h-4 text-blue-600" />
                           <span>Escalate to Senior Doctor</span>
                         </button>
                         <span className="text-[11px] text-slate-400 font-medium">

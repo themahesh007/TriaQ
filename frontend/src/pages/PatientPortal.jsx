@@ -1,6 +1,22 @@
 import React, { useState, useEffect, useMemo } from "react";
 import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import {
+  IconHospital,
+  IconClinic,
+  IconDoctor,
+  IconNurse,
+  IconPatient,
+  IconHome,
+  IconQRCode,
+  IconEye,
+  IconEyeOff,
+  IconClipboard,
+  IconShield,
+  IconArrowRight,
+  IconCheckCircle,
+  IconXCircle
+} from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -82,6 +98,7 @@ export default function PatientPortal({ onNavigateHome }) {
   // Auth Inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [phone, setPhone] = useState("9876543210");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -89,6 +106,12 @@ export default function PatientPortal({ onNavigateHome }) {
   const [authError, setAuthError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Facility & QR Check-In States
+  const [facilities, setFacilities] = useState([]);
+  const [selectedFacility, setSelectedFacility] = useState("Apollo PHC Hub, Delhi");
+  const [selectedFacilityId, setSelectedFacilityId] = useState("");
+  const [isQrCheckIn, setIsQrCheckIn] = useState(false);
 
   // Intake Profile Inputs (persisted to localStorage draft)
   const [fullName, setFullName] = useState(() => localStorage.getItem("triaq_draft_name") || "");
@@ -98,6 +121,39 @@ export default function PatientPortal({ onNavigateHome }) {
   const [conditions, setConditions] = useState(() => localStorage.getItem("triaq_draft_conditions") || "");
   const [medications, setMedications] = useState(() => localStorage.getItem("triaq_draft_meds") || "");
   const [intakeSavedNotice, setIntakeSavedNotice] = useState("");
+
+  // Detect QR check-in parameters & fetch facilities list
+  useEffect(() => {
+    try {
+      const fullUrl = window.location.href;
+      const hashPart = window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "";
+      const searchParams = new URLSearchParams(window.location.search || hashPart);
+      const facilityParam = searchParams.get("facility");
+      const nameParam = searchParams.get("name");
+
+      if (nameParam) {
+        const decoded = decodeURIComponent(nameParam);
+        setSelectedFacility(decoded);
+        if (facilityParam) setSelectedFacilityId(facilityParam);
+        setIsQrCheckIn(true);
+      }
+    } catch (e) {
+      console.error("QR Param parsing error:", e);
+    }
+
+    fetch(`${API_BASE}/api/facilities`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setFacilities(data);
+          if (!isQrCheckIn && data.length > 0) {
+            setSelectedFacility(data[0].name);
+            setSelectedFacilityId(data[0].id);
+          }
+        }
+      })
+      .catch((err) => console.error("Error loading facilities:", err));
+  }, []);
 
   // Symptoms & Vitals Inputs
   const [symptomText, setSymptomText] = useState("");
@@ -576,6 +632,8 @@ export default function PatientPortal({ onNavigateHome }) {
           patientId: pId,
           symptomText: combinedSymptomText,
           vitals: vitalsObj,
+          facility: selectedFacility,
+          facilityId: selectedFacilityId || undefined,
           reportImageBase64: reportImageBase64 || undefined
         })
       });
@@ -585,6 +643,7 @@ export default function PatientPortal({ onNavigateHome }) {
 
       setReceiptData({
         ...note,
+        facility: selectedFacility,
         fullName: fullName || "Patient",
         age,
         phone: contactPhone || phone,
@@ -889,14 +948,24 @@ export default function PatientPortal({ onNavigateHome }) {
                       </button>
                     )}
                   </div>
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                      title={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -981,6 +1050,62 @@ export default function PatientPortal({ onNavigateHome }) {
           {intakeSavedNotice && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12.5px] font-bold">
               {intakeSavedNotice}
+            </div>
+          )}
+
+          {/* Facility Selection / QR Standee Locked Badge */}
+          {isQrCheckIn ? (
+            <div className="p-4 rounded-xl bg-emerald-50 border-2 border-emerald-400 text-emerald-950 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                  <IconQRCode className="w-5 h-5" />
+                </span>
+                <div>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 block">
+                    Facility QR Check-In Verified
+                  </span>
+                  <span className="text-[15px] font-black text-slate-900">
+                    {selectedFacility}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[11px] font-black uppercase px-3 py-1 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300">
+                🔒 QR Locked
+              </span>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+              <label className="block text-[12px] font-bold text-slate-800 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <IconHospital className="w-4 h-4 text-emerald-600" />
+                  Select Healthcare Facility / Clinic for Token <span className="text-rose-600">*</span>
+                </span>
+                <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Sequential Queue Counter
+                </span>
+              </label>
+              <select
+                value={selectedFacility}
+                onChange={(e) => {
+                  setSelectedFacility(e.target.value);
+                  const matched = facilities.find((f) => f.name === e.target.value);
+                  if (matched) setSelectedFacilityId(matched.id);
+                }}
+                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+              >
+                {facilities.length > 0 ? (
+                  facilities.map((f) => (
+                    <option key={f.id} value={f.name}>
+                      {f.name} ({f.type === "CLINIC" ? "Clinic" : "Hospital"} - {f.code})
+                    </option>
+                  ))
+                ) : (
+                  <option value="Apollo PHC Hub, Delhi">Apollo PHC Hub, Delhi (Hospital - APOLLO-01)</option>
+                )}
+              </select>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Tokens generated online are synchronized live with walk-in patients scanning the QR standee at the hospital reception.
+              </p>
             </div>
           )}
 
@@ -1541,10 +1666,16 @@ export default function PatientPortal({ onNavigateHome }) {
           {/* Receipt Monospace Card */}
           <div className="p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 space-y-3 max-w-md mx-auto">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-              Official Token Receipt Number
+              Official OPD Consultation Token
             </span>
-            <div className="font-mono text-xl sm:text-2xl font-black text-slate-900 tracking-wider select-all">
-              {receiptData.receiptNumber || `TRIAQ-${new Date().toISOString().slice(0, 10)}-00142`}
+            <div className="font-mono text-2xl sm:text-3xl font-black text-slate-900 tracking-wider select-all py-1.5 px-3 bg-white rounded-xl border border-emerald-200 shadow-2xs">
+              {receiptData.patient?.tokenId || receiptData.tokenId || "TOKEN NUMBER 01"}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[12px] text-slate-700 font-bold">
+              <span>Facility: <strong className="text-emerald-900 font-black">{receiptData.facility || selectedFacility}</strong></span>
+              <span>•</span>
+              <span className="font-mono text-[11px] text-slate-500">{receiptData.receiptNumber || "OPD Pass"}</span>
             </div>
 
             <div className="flex items-center justify-center gap-2 pt-1">
@@ -1558,10 +1689,10 @@ export default function PatientPortal({ onNavigateHome }) {
                 }`}
               >
                 {receiptData.riskTag === "RED"
-                  ? "🔴 Urgent (RED)"
+                  ? "Urgent (RED)"
                   : receiptData.riskTag === "YELLOW" || receiptData.riskTag === "AMBER"
-                  ? "🟡 Moderate (YELLOW)"
-                  : "🟢 Normal Priority (GREEN)"}
+                  ? "Moderate (YELLOW)"
+                  : "Normal Priority (GREEN)"}
               </span>
 
               <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-white text-slate-600 border border-slate-200">

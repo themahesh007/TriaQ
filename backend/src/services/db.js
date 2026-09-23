@@ -107,7 +107,24 @@ async function initDatabaseSchema() {
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           phone TEXT,
-          address TEXT
+          address TEXT,
+          type TEXT DEFAULT 'HOSPITAL',
+          code TEXT,
+          admin_email TEXT,
+          admin_password_hash TEXT,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'HOSPITAL';
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS code TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS admin_email TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS admin_password_hash TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+        CREATE TABLE IF NOT EXISTS triaq_facility_token_counters (
+          facility_id TEXT PRIMARY KEY,
+          date_str TEXT NOT NULL,
+          last_token_number INTEGER DEFAULT 0
         );
       `);
       console.log("[Supabase Database] Connected & cloud tables verified! 🚀");
@@ -211,12 +228,23 @@ async function loadAllFromCloud() {
         timestamp: r.timestamp ? new Date(r.timestamp).toISOString() : new Date().toISOString()
       });
 
+      const mapFacility = (r) => ({
+        id: r.id,
+        name: r.name,
+        phone: r.phone,
+        address: r.address,
+        type: r.type || "HOSPITAL",
+        code: r.code || r.id,
+        adminEmail: r.admin_email,
+        createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+      });
+
       return {
         patients: patientsRes.rows.map(mapPatient),
         staff: staffRes.rows.map(mapStaff),
         triageNotes: notesRes.rows.map(mapNote),
         auditLogs: logsRes.rows.map(mapLog),
-        facilities: facilitiesRes.rows.length > 0 ? facilitiesRes.rows : null
+        facilities: facilitiesRes.rows.length > 0 ? facilitiesRes.rows.map(mapFacility) : null
       };
     } finally {
       client.release();
@@ -411,6 +439,88 @@ async function saveAuditLogToCloud(log) {
   }
 }
 
+/**
+ * Save or update a facility in Supabase in real-time
+ */
+async function saveFacilityToCloud(facility) {
+  const p = getPool();
+  if (!p || !facility) return;
+  try {
+    await p.query(`
+      INSERT INTO triaq_facilities (
+        id, name, phone, address, type, code, admin_email, admin_password_hash, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        phone = EXCLUDED.phone,
+        address = EXCLUDED.address,
+        type = EXCLUDED.type,
+        code = EXCLUDED.code,
+        admin_email = EXCLUDED.admin_email,
+        admin_password_hash = EXCLUDED.admin_password_hash;
+    `, [
+      facility.id,
+      facility.name,
+      facility.phone || null,
+      facility.address || null,
+      facility.type || "HOSPITAL",
+      facility.code || null,
+      facility.adminEmail || null,
+      facility.adminPasswordHash || null,
+      facility.createdAt || new Date().toISOString()
+    ]);
+  } catch (err) {
+    console.error("[Supabase Database] Save facility error:", err.message);
+  }
+}
+
+/**
+ * Delete a facility from Supabase
+ */
+async function deleteFacilityFromCloud(id) {
+  const p = getPool();
+  if (!p || !id) return;
+  try {
+    await p.query("DELETE FROM triaq_facilities WHERE id = $1", [id]);
+  } catch (err) {
+    console.error("[Supabase Database] Delete facility error:", err.message);
+  }
+}
+
+/**
+ * Atomic live sequential token generator: "TOKEN NUMBER 01", "TOKEN NUMBER 02", etc.
+ */
+async function getNextSequentialTokenNumber(facilityId = "GLOBAL") {
+  const p = getPool();
+  const cleanFacility = String(facilityId || "GLOBAL").trim().toLowerCase().replace(/[^a-z0-9]/g, "-");
+  const today = new Date().toISOString().slice(0, 10);
+  const compositeKey = `${cleanFacility}_${today}`;
+
+  if (!p) {
+    return null;
+  }
+
+  try {
+    const res = await p.query(`
+      INSERT INTO triaq_facility_token_counters (facility_id, date_str, last_token_number)
+      VALUES ($1, $2, 1)
+      ON CONFLICT (facility_id) DO UPDATE SET
+        last_token_number = CASE 
+          WHEN triaq_facility_token_counters.date_str = EXCLUDED.date_str THEN triaq_facility_token_counters.last_token_number + 1
+          ELSE 1
+        END,
+        date_str = EXCLUDED.date_str
+      RETURNING last_token_number;
+    `, [compositeKey, today]);
+
+    const num = res.rows[0]?.last_token_number || 1;
+    return `TOKEN NUMBER ${String(num).padStart(2, "0")}`;
+  } catch (err) {
+    console.error("[Token Counter] DB error:", err.message);
+    return null;
+  }
+}
+
 module.exports = {
   getPool,
   initDatabaseSchema,
@@ -418,5 +528,8 @@ module.exports = {
   savePatientToCloud,
   saveStaffToCloud,
   saveTriageNoteToCloud,
-  saveAuditLogToCloud
+  saveAuditLogToCloud,
+  saveFacilityToCloud,
+  deleteFacilityFromCloud,
+  getNextSequentialTokenNumber
 };

@@ -5,6 +5,7 @@ import HomePage from "./pages/HomePage";
 import IntakePage from "./pages/IntakePage";
 import PatientPortal from "./pages/PatientPortal";
 import StaffPortal from "./pages/StaffPortal";
+import HospitalPortal from "./pages/HospitalPortal";
 import MasterPortal from "./pages/MasterPortal";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -12,8 +13,10 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 export default function App() {
   // Sync portal with URL hash for browser history / direct links
   const getInitialPortal = () => {
-    const hash = window.location.hash.replace("#", "").toLowerCase();
+    const rawHash = window.location.hash.replace("#", "").toLowerCase();
+    const hash = rawHash.split("?")[0];
     if (["intake", "patient-intake", "patient", "patient-portal"].includes(hash)) return "patient-portal";
+    if (["hospital", "hospital-portal", "clinic"].includes(hash)) return "hospital-portal";
     if (["staff", "staff-portal", "dashboard"].includes(hash)) return "staff-portal";
     if (["master", "master-portal", "admin"].includes(hash)) return "master-portal";
     return "home";
@@ -60,7 +63,7 @@ export default function App() {
       {/* 1. Persistent Top Safety Banner */}
       <Banner />
 
-      {/* 2. Upgraded 3-Tier Navbar */}
+      {/* 2. Upgraded Multi-Tier Navbar */}
       <Navbar
         activePortal={activePortal}
         setActivePortal={setActivePortal}
@@ -78,6 +81,9 @@ export default function App() {
             onNavigateHome={() => setActivePortal("home")}
             onNavigateToIntake={() => setActivePortal("intake")}
           />
+        )}
+        {activePortal === "hospital-portal" && (
+          <HospitalPortal onNavigateHome={() => setActivePortal("home")} />
         )}
         {activePortal === "staff-portal" && (
           <StaffPortal onNavigateHome={() => setActivePortal("home")} />

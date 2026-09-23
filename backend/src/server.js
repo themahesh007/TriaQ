@@ -871,6 +871,228 @@ app.get("/api/master/analytics", requireRole(["MASTER", "ADMIN"]), async (req, r
 });
 
 // ==========================================
+// 3.5. HOSPITAL & FACILITY MANAGEMENT ROUTES
+// ==========================================
+
+/**
+ * GET /api/facilities
+ * Public endpoint to list active hospitals and clinics
+ */
+app.get("/api/facilities", async (req, res) => {
+  try {
+    const facilities = await storage.getAllFacilities();
+    return res.json(facilities);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch facilities." });
+  }
+});
+
+/**
+ * POST /api/master/facilities
+ * Master creates or updates a hospital/clinic
+ */
+app.post("/api/master/facilities", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    const { name, type, phone, address, adminEmail, adminPassword } = req.body;
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: "Hospital or Clinic name is required." });
+    }
+
+    let adminPasswordHash = null;
+    if (adminPassword && adminPassword.length >= 8) {
+      adminPasswordHash = await hashPassword(adminPassword);
+    }
+
+    const facility = await storage.createFacility({
+      name: name.trim(),
+      type: type || "HOSPITAL",
+      phone: phone ? cleanIndianPhone(phone) : null,
+      address: address ? address.trim() : null,
+      adminEmail: adminEmail ? adminEmail.trim().toLowerCase() : null,
+      adminPasswordHash
+    });
+
+    if (adminEmail && adminPasswordHash) {
+      const existingStaff = await storage.findStaffByEmail(adminEmail);
+      if (!existingStaff) {
+        await storage.createStaff({
+          name: `${facility.name} Admin`,
+          email: adminEmail.trim().toLowerCase(),
+          passwordHash: adminPasswordHash,
+          role: "ADMIN",
+          facility: facility.name
+        });
+      }
+    }
+
+    return res.status(201).json({ success: true, facility });
+  } catch (err) {
+    console.error("Create facility error:", err);
+    return res.status(500).json({ error: "Failed to create facility." });
+  }
+});
+
+/**
+ * DELETE /api/master/facilities/:id
+ */
+app.delete("/api/master/facilities/:id", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await storage.deleteFacility(id);
+    return res.json({ success: true, message: "Facility removed successfully." });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete facility." });
+  }
+});
+
+/**
+ * POST /api/hospital/login
+ * Hospital Administrator Login
+ */
+app.post("/api/hospital/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check if facility admin credentials directly
+    const facility = await storage.findFacilityByEmail(cleanEmail);
+    if (facility && facility.adminPasswordHash) {
+      const match = await comparePassword(password, facility.adminPasswordHash);
+      if (match) {
+        const token = createToken({
+          id: facility.id,
+          name: `${facility.name} Admin`,
+          email: facility.adminEmail,
+          role: "HOSPITAL_ADMIN",
+          facility: facility.name,
+          facilityId: facility.id
+        });
+        return res.json({
+          success: true,
+          token,
+          facility: {
+            id: facility.id,
+            name: facility.name,
+            type: facility.type,
+            phone: facility.phone,
+            address: facility.address,
+            code: facility.code,
+            adminEmail: facility.adminEmail
+          }
+        });
+      }
+    }
+
+    // 2. Check if a staff account with role ADMIN or DOCTOR for this facility
+    const staff = await storage.findStaffByEmail(cleanEmail);
+    if (staff && staff.isActive) {
+      const match = await comparePassword(password, staff.passwordHash);
+      if (match) {
+        const allFacs = await storage.getAllFacilities();
+        const matchingFac = allFacs.find(
+          (f) => f.name.toLowerCase() === staff.facility.toLowerCase()
+        ) || {
+          id: "fac-" + staff.facility.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+          name: staff.facility,
+          type: "HOSPITAL",
+          code: staff.facility.toUpperCase().slice(0, 8)
+        };
+
+        const token = createToken({
+          id: staff.id,
+          name: staff.name,
+          email: staff.email,
+          role: "HOSPITAL_ADMIN",
+          facility: staff.facility,
+          facilityId: matchingFac.id
+        });
+
+        return res.json({
+          success: true,
+          token,
+          facility: matchingFac
+        });
+      }
+    }
+
+    return res.status(401).json({ error: "Invalid hospital administrator credentials." });
+  } catch (err) {
+    console.error("Hospital login error:", err);
+    return res.status(500).json({ error: "Hospital authentication failed." });
+  }
+});
+
+/**
+ * GET /api/hospital/staff
+ * Lists doctors & nurses assigned to this hospital
+ */
+app.get("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const facilityName = req.query.facility || req.user?.facility;
+    const staff = await storage.getAllStaff({ facility: facilityName });
+    return res.json(staff);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch hospital staff." });
+  }
+});
+
+/**
+ * POST /api/hospital/staff
+ * Hospital Admin adds a new Doctor or Nurse to their facility
+ */
+app.post("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const { name, email, password, role, phone, department } = req.body;
+    const facility = req.body.facility || req.user?.facility;
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: "Staff name is required." });
+    }
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({ error: "Valid staff email is required." });
+    }
+    if (!password || password.length < 8) {
+      return res.status(400).json({ error: "Password must be at least 8 characters long." });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await storage.findStaffByEmail(cleanEmail);
+    if (existing) {
+      return res.status(400).json({ error: "A staff account with this email already exists." });
+    }
+
+    const normalizedRole = (role || "DOCTOR").toUpperCase();
+    if (!["DOCTOR", "NURSE", "ADMIN"].includes(normalizedRole)) {
+      return res.status(400).json({ error: "Role must be DOCTOR or NURSE." });
+    }
+
+    const passwordHash = await hashPassword(password);
+    const newStaff = await storage.createStaff({
+      name: name.trim(),
+      email: cleanEmail,
+      passwordHash,
+      role: normalizedRole,
+      facility: facility || "Apollo PHC Hub, Delhi",
+      phone: phone ? cleanIndianPhone(phone) : null,
+      department: department ? department.trim() : null
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: `${normalizedRole === "DOCTOR" ? "Doctor" : "Nurse"} ${newStaff.name} added successfully!`,
+      staff: newStaff
+    });
+  } catch (err) {
+    console.error("Hospital add staff error:", err);
+    return res.status(500).json({ error: "Failed to add medical staff." });
+  }
+});
+
+// ==========================================
 // 4. CORE CLINICAL TRIAGE ROUTES
 // ==========================================
 

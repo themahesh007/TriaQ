@@ -1,4 +1,20 @@
 import React, { useState, useEffect, useCallback } from "react";
+import {
+  IconHospital,
+  IconClinic,
+  IconDoctor,
+  IconNurse,
+  IconPatient,
+  IconHome,
+  IconQRCode,
+  IconEye,
+  IconEyeOff,
+  IconClipboard,
+  IconShield,
+  IconArrowRight,
+  IconCheckCircle,
+  IconXCircle
+} from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -15,20 +31,33 @@ export default function MasterPortal({ onNavigateHome }) {
   // Login inputs
   const [email, setEmail] = useState("master@triaq.org");
   const [password, setPassword] = useState("Master@123");
+  const [showMasterPw, setShowMasterPw] = useState(false);
   const [totpCode, setTotpCode] = useState("123456");
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
 
   // Active view tab
-  const [activeTab, setActiveTab] = useState("analytics"); // analytics | patients | staff | override | audit
+  const [activeTab, setActiveTab] = useState("analytics"); // analytics | facilities | patients | staff | override | audit
 
   // Data states
   const [analytics, setAnalytics] = useState(null);
   const [allPatients, setAllPatients] = useState([]);
   const [allStaff, setAllStaff] = useState([]);
+  const [facilities, setFacilities] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [notification, setNotification] = useState("");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
+
+  // Facility management modal states
+  const [showAddFacilityModal, setShowAddFacilityModal] = useState(false);
+  const [facName, setFacName] = useState("");
+  const [facType, setFacType] = useState("HOSPITAL"); // HOSPITAL | CLINIC
+  const [facCode, setFacCode] = useState("");
+  const [facAddress, setFacAddress] = useState("");
+  const [facAdminEmail, setFacAdminEmail] = useState("");
+  const [facAdminPassword, setFacAdminPassword] = useState("");
+  const [showFacPw, setShowFacPw] = useState(false);
+  const [showQrModalFacility, setShowQrModalFacility] = useState(null);
 
   // Override modal states
   const [selectedNoteId, setSelectedNoteId] = useState("");
@@ -52,7 +81,11 @@ export default function MasterPortal({ onNavigateHome }) {
       const sRes = await fetch(`${API_BASE}/api/master/all-staff`, { headers });
       if (sRes.ok) setAllStaff(await sRes.json());
 
-      // 4. Audit Log
+      // 4. All Facilities
+      const fRes = await fetch(`${API_BASE}/api/facilities`);
+      if (fRes.ok) setFacilities(await fRes.json());
+
+      // 5. Audit Log
       const logRes = await fetch(`${API_BASE}/api/audit-log?limit=100`, { headers });
       if (logRes.ok) setAuditLogs(await logRes.json());
 
@@ -213,6 +246,60 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   };
 
+  // Facility Management Handlers
+  const handleCreateFacility = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/master/facilities`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${masterSession.token}`
+        },
+        body: JSON.stringify({
+          name: facName.trim(),
+          type: facType,
+          code: facCode.trim() || undefined,
+          address: facAddress.trim() || undefined,
+          adminEmail: facAdminEmail.trim(),
+          adminPassword: facAdminPassword
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to register facility");
+
+      setNotification(`✓ Healthcare Facility "${facName}" registered successfully!`);
+      setShowAddFacilityModal(false);
+      setFacName("");
+      setFacCode("");
+      setFacAddress("");
+      setFacAdminEmail("");
+      setFacAdminPassword("");
+      fetchMasterData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteFacility = async (facilityId, facilityName) => {
+    if (!window.confirm(`Are you sure you want to remove healthcare facility "${facilityName}"?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/master/facilities/${facilityId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${masterSession.token}` }
+      });
+      if (res.ok) {
+        setNotification(`✓ Facility "${facilityName}" deleted.`);
+        fetchMasterData();
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
   return (
     <div className="max-w-[1240px] mx-auto px-4 py-6 md:py-8 space-y-6">
       {/* Top Header */}
@@ -298,14 +385,24 @@ export default function MasterPortal({ onNavigateHome }) {
               <label className="block text-[12px] font-bold text-slate-700 mb-1">
                 Master Password
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-              />
+              <div className="relative">
+                <input
+                  type={showMasterPw ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowMasterPw(!showMasterPw)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                  title={showMasterPw ? "Hide password" : "Show password"}
+                >
+                  {showMasterPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
@@ -342,25 +439,30 @@ export default function MasterPortal({ onNavigateHome }) {
         <div className="space-y-6">
           {/* Navigation Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap gap-1">
               {[
-                { id: "analytics", label: "📊 Global Analytics" },
-                { id: "patients", label: `👥 All Patients (${allPatients.length})` },
-                { id: "staff", label: `👨‍⚕️ All Staff (${allStaff.length})` },
-                { id: "override", label: "⚡ Decision Override" },
-                { id: "audit", label: `📜 System Audit (${auditLogs.length})` }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer ${
-                    activeTab === tab.id ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+                { id: "analytics", label: "Global Analytics", icon: IconShield },
+                { id: "facilities", label: `Facilities (${facilities.length})`, icon: IconHospital },
+                { id: "patients", label: `All Patients (${allPatients.length})`, icon: IconPatient },
+                { id: "staff", label: `All Staff (${allStaff.length})`, icon: IconDoctor },
+                { id: "override", label: "Decision Override", icon: IconCheckCircle },
+                { id: "audit", label: `System Audit (${auditLogs.length})`, icon: IconClipboard }
+              ].map((tab) => {
+                const TabIcon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`btn-tactile px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === tab.id ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    <TabIcon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="flex items-center gap-2">
@@ -636,6 +738,305 @@ export default function MasterPortal({ onNavigateHome }) {
               </div>
             </div>
           )}
+
+          {/* TAB 6: HEALTHCARE FACILITIES & CLINICS */}
+          {activeTab === "facilities" && (
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <IconHospital className="w-5 h-5 text-emerald-600" />
+                    <span>Healthcare Facilities & Clinics ({facilities.length})</span>
+                  </h3>
+                  <p className="text-[12.5px] text-slate-500 font-medium">
+                    Configure network hospitals and clinics. Each facility receives a dedicated sequential token counter and QR standee.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddFacilityModal(true)}
+                  className="btn-tactile py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <span>+ Add Hospital / Clinic</span>
+                </button>
+              </div>
+
+              {facilities.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <IconHospital className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="font-bold text-slate-700">No Facilities Registered Yet</p>
+                  <p className="text-xs text-slate-400">Click "+ Add Hospital / Clinic" to register your first facility.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {facilities.map((fac) => (
+                    <div
+                      key={fac.id}
+                      className="p-4 rounded-xl border border-slate-200 hover:border-emerald-300 bg-white hover:shadow-xs transition space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            fac.type === "CLINIC"
+                              ? "bg-teal-100 text-teal-900 border border-teal-300"
+                              : "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                          }`}
+                        >
+                          {fac.type === "CLINIC" ? <IconClinic className="w-3 h-3" /> : <IconHospital className="w-3 h-3" />}
+                          <span>{fac.type || "HOSPITAL"}</span>
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400 font-bold">
+                          {fac.code || "FAC-01"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-black text-slate-900 text-[14.5px]">
+                          {fac.name}
+                        </h4>
+                        <p className="text-[12px] text-slate-500 font-medium line-clamp-1">
+                          📍 {fac.address || "Main Medical Hub"}
+                        </p>
+                        <p className="text-[11px] text-slate-400 font-mono mt-1">
+                          Admin: {fac.adminEmail || "admin@facility.org"}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowQrModalFacility(fac)}
+                          className="btn-tactile text-[11.5px] font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <IconQRCode className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>QR Standee</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFacility(fac.id, fac.name)}
+                          className="btn-tactile text-[11.5px] font-bold text-rose-700 hover:text-rose-900 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ADD FACILITY MODAL */}
+      {showAddFacilityModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-xl space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <IconHospital className="w-5 h-5 text-emerald-600" />
+                <span>Register Healthcare Facility</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddFacilityModal(false)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer font-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateFacility} className="space-y-3.5">
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Facility Type <span className="text-rose-600">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: "HOSPITAL", label: "Hospital", desc: "Multi-dept / OPD Hub" },
+                    { id: "CLINIC", label: "Clinic", desc: "Private / PHC Center" }
+                  ].map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setFacType(t.id)}
+                      className={`p-2.5 rounded-xl border font-bold text-center cursor-pointer transition ${
+                        facType === t.id
+                          ? "bg-slate-900 text-white border-slate-900"
+                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span className="block text-sm font-black">{t.label}</span>
+                      <span className={`block text-[10px] ${facType === t.id ? "text-slate-300" : "text-slate-400"}`}>
+                        {t.desc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Facility Name <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={facName}
+                  onChange={(e) => setFacName(e.target.value)}
+                  placeholder={facType === "HOSPITAL" ? "Apollo PHC Hub, Delhi" : "City Health Clinic, Mumbai"}
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Facility Code
+                  </label>
+                  <input
+                    type="text"
+                    value={facCode}
+                    onChange={(e) => setFacCode(e.target.value.toUpperCase())}
+                    placeholder="APOLLO-01"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-mono outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Address / City
+                  </label>
+                  <input
+                    type="text"
+                    value={facAddress}
+                    onChange={(e) => setFacAddress(e.target.value)}
+                    placeholder="Sector 14, Delhi"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Facility Admin Email <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={facAdminEmail}
+                  onChange={(e) => setFacAdminEmail(e.target.value)}
+                  placeholder="admin@apollo.org"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Admin Initial Password <span className="text-rose-600">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showFacPw ? "text" : "password"}
+                    required
+                    minLength={8}
+                    value={facAdminPassword}
+                    onChange={(e) => setFacAdminPassword(e.target.value)}
+                    placeholder="Apollo@123"
+                    className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowFacPw(!showFacPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                  >
+                    {showFacPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddFacilityModal(false)}
+                  className="px-4 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-tactile px-5 py-2 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
+                >
+                  {loading ? "Registering..." : "Confirm & Register Facility"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR STANDEE VIEW MODAL */}
+      {showQrModalFacility && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 border-2 border-emerald-500/40 shadow-xl space-y-4 text-center animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+                Official Facility QR Standee
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowQrModalFacility(null)}
+                className="text-slate-400 hover:text-slate-700 cursor-pointer font-black"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900">{showQrModalFacility.name}</h3>
+              <p className="text-[12px] text-slate-500 font-medium">Scan to check in & obtain live sequential token</p>
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 inline-block shadow-inner">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+                  `${window.location.origin}/#patient?facility=${encodeURIComponent(
+                    showQrModalFacility.id
+                  )}&name=${encodeURIComponent(showQrModalFacility.name)}`
+                )}&margin=10`}
+                alt="Facility QR Code"
+                className="w-48 h-48 mx-auto rounded-lg"
+              />
+              <p className="text-[11px] font-mono text-slate-500 mt-2 font-bold">
+                Target: {showQrModalFacility.name}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="btn-tactile w-full py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
+              >
+                🖨️ Print Reception Standee
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const checkInUrl = `${window.location.origin}/#patient?facility=${encodeURIComponent(
+                    showQrModalFacility.id
+                  )}&name=${encodeURIComponent(showQrModalFacility.name)}`;
+                  navigator.clipboard.writeText(checkInUrl);
+                  setNotification(`✓ Direct check-in link for ${showQrModalFacility.name} copied!`);
+                  setShowQrModalFacility(null);
+                }}
+                className="btn-tactile w-full py-2 px-4 rounded-xl font-bold text-[12px] text-slate-700 bg-slate-100 hover:bg-slate-200 cursor-pointer"
+              >
+                📋 Copy Check-In Link
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

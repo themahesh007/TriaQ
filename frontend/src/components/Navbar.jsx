@@ -1,4 +1,11 @@
 import React from "react";
+import {
+  IconHome,
+  IconPatient,
+  IconDoctor,
+  IconHospital,
+  IconShield
+} from "./Icons";
 
 export default function Navbar({ activePortal, setActivePortal, pendingCount = 0 }) {
   return (
@@ -19,7 +26,7 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
                 TriaQ
               </span>
               <span className="text-[9.5px] font-black px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 tracking-wider">
-                3-TIER CLINICAL
+                HOSPITAL NETWORK
               </span>
             </div>
             <p className="text-[11.5px] font-medium text-slate-500">
@@ -28,45 +35,45 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
           </div>
         </div>
 
-        {/* 3-Tier Navigation Pills */}
-        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+        {/* Multi-Tier Navigation Pills with Tactile Physics */}
+        <nav className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs flex-wrap">
           <button
             type="button"
             onClick={() => setActivePortal("home")}
-            className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`btn-tactile px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
               activePortal === "home"
                 ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-200"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🏠</span>
+            <IconHome className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Home</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActivePortal("patient-portal")}
-            className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`btn-tactile px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
               activePortal === "patient-portal"
                 ? "bg-emerald-700 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
             title="Patient Portal: Login to Book OPD Token & Intake"
           >
-            <span>📱</span>
+            <IconPatient className="w-3.5 h-3.5" />
             <span>Patient Portal</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActivePortal("staff-portal")}
-            className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`btn-tactile px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
               activePortal === "staff-portal"
                 ? "bg-slate-900 text-white shadow-xs"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>👨‍⚕️</span>
+            <IconDoctor className="w-3.5 h-3.5" />
             <span>Staff Desk</span>
             {pendingCount > 0 && (
               <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black text-white bg-rose-600 animate-pulse">
@@ -77,15 +84,30 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
 
           <button
             type="button"
+            onClick={() => setActivePortal("hospital-portal")}
+            className={`btn-tactile px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+              activePortal === "hospital-portal"
+                ? "bg-teal-700 text-white shadow-xs"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+            title="Hospital Portal: QR Standees & Doctor/Nurse Management"
+          >
+            <IconHospital className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Hospital Portal</span>
+            <span className="md:hidden">Hospital</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActivePortal("master-portal")}
-            className={`px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`btn-tactile px-3 py-1.5 rounded-lg font-bold text-[12.5px] transition-all cursor-pointer flex items-center gap-1.5 ${
               activePortal === "master-portal"
                 ? "bg-rose-800 text-white shadow-xs"
                 : "text-slate-500 hover:text-slate-800"
             }`}
             title="System Admin & Governance"
           >
-            <span>🔐</span>
+            <IconShield className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Master</span>
           </button>
         </nav>

@@ -283,10 +283,18 @@ function generateReceiptNumber() {
 const storage = {
   // --- PATIENTS ---
   async createPatient(data = {}) {
-    tokenCounter += 1;
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const timeSuffix = Date.now().toString().slice(-4);
-    const tokenId = data.tokenId || `Ward-${tokenCounter}-${timeSuffix}-${dateStr}`;
+    const targetFacility = data.facility || "Apollo PHC Hub, Delhi";
+    let tokenId = data.tokenId;
+
+    if (!tokenId) {
+      const cloudToken = await db.getNextSequentialTokenNumber(targetFacility);
+      if (cloudToken) {
+        tokenId = cloudToken;
+      } else {
+        tokenCounter += 1;
+        tokenId = `TOKEN NUMBER ${String(tokenCounter).padStart(2, "0")}`;
+      }
+    }
 
     const patient = {
       id: generateCuid(),
@@ -380,8 +388,15 @@ const storage = {
     return memoryStore.staff.find((s) => s.id === id) || null;
   },
 
-  async getAllStaff() {
-    return memoryStore.staff.map(({ passwordHash, twoFactorSecret, ...s }) => s);
+  async getAllStaff(filter = null) {
+    let list = memoryStore.staff;
+    if (filter) {
+      const facility = typeof filter === "string" ? filter : filter.facility;
+      if (facility && facility !== "ALL") {
+        list = list.filter((s) => s.facility && s.facility.toLowerCase() === facility.toLowerCase());
+      }
+    }
+    return list.map(({ passwordHash, twoFactorSecret, ...s }) => s);
   },
 
   async updateStaff(id, updateData) {
@@ -649,6 +664,56 @@ const storage = {
       activeStaffCount: memoryStore.staff.filter((s) => s.isActive).length,
       facilities: memoryStore.facilities
     };
+  },
+
+  // --- FACILITIES ---
+  async getAllFacilities() {
+    return memoryStore.facilities || [];
+  },
+
+  async findFacilityById(id) {
+    return (memoryStore.facilities || []).find((f) => f.id === id) || null;
+  },
+
+  async findFacilityByName(name) {
+    if (!name) return null;
+    const clean = name.trim().toLowerCase();
+    return (memoryStore.facilities || []).find((f) => f.name.toLowerCase() === clean) || null;
+  },
+
+  async findFacilityByEmail(email) {
+    if (!email) return null;
+    const clean = email.trim().toLowerCase();
+    return (memoryStore.facilities || []).find((f) => f.adminEmail && f.adminEmail.toLowerCase() === clean) || null;
+  },
+
+  async createFacility(data) {
+    const id = data.id || "fac-" + Date.now().toString(36);
+    const code = data.code || String(data.name || "FAC").toUpperCase().replace(/[^A-Z0-9]/g, "-").slice(0, 16);
+    const newFacility = {
+      id,
+      name: data.name.trim(),
+      phone: data.phone || null,
+      address: data.address || null,
+      type: (data.type || "HOSPITAL").toUpperCase(),
+      code,
+      adminEmail: data.adminEmail ? data.adminEmail.trim().toLowerCase() : null,
+      adminPasswordHash: data.adminPasswordHash || null,
+      createdAt: new Date().toISOString()
+    };
+    if (!memoryStore.facilities) memoryStore.facilities = [];
+    memoryStore.facilities.push(newFacility);
+    persistStore();
+    db.saveFacilityToCloud(newFacility).catch(console.error);
+    return newFacility;
+  },
+
+  async deleteFacility(id) {
+    if (!memoryStore.facilities) return false;
+    memoryStore.facilities = memoryStore.facilities.filter((f) => f.id !== id);
+    persistStore();
+    db.deleteFacilityFromCloud(id).catch(console.error);
+    return true;
   },
 
   async clearAllData() {
