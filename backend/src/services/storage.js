@@ -98,8 +98,9 @@ if (fs.existsSync(STORE_FILE)) {
   }
 }
 
-// Seed demo pending triage cases if none exist
+// Seed demo pending triage cases only if explicitly configured
 function seedDemoCasesIfEmpty() {
+  if (process.env.SEED_DEMO_CASES !== "true") return;
   const pendingNotes = memoryStore.triageNotes.filter((n) => n.status === "PENDING");
   if (pendingNotes.length === 0) {
     const demoDate = new Date().toISOString();
@@ -648,6 +649,38 @@ const storage = {
       activeStaffCount: memoryStore.staff.filter((s) => s.isActive).length,
       facilities: memoryStore.facilities
     };
+  },
+
+  async clearAllData() {
+    memoryStore.patients = [];
+    memoryStore.triageNotes = [];
+    memoryStore.auditLogs = [];
+    memoryStore.staff = [...initialStaff];
+    persistStore();
+
+    const pool = db.getPool();
+    if (pool) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query("TRUNCATE TABLE triaq_patients CASCADE");
+        await client.query("TRUNCATE TABLE triaq_triage_notes CASCADE");
+        await client.query("TRUNCATE TABLE triaq_audit_logs CASCADE");
+        await client.query("TRUNCATE TABLE triaq_staff CASCADE");
+        await client.query("COMMIT");
+
+        for (const s of initialStaff) {
+          await db.saveStaffToCloud(s);
+        }
+        console.log("[Supabase Database] Successfully wiped all patients, triage notes, and audit logs!");
+      } catch (e) {
+        await client.query("ROLLBACK");
+        console.error("Clear data error:", e.message);
+      } finally {
+        client.release();
+      }
+    }
+    return { success: true };
   }
 };
 

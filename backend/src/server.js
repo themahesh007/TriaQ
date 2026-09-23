@@ -841,6 +841,24 @@ app.post("/api/master/override-decision", requireRole(["MASTER"]), async (req, r
 });
 
 /**
+ * POST /api/master/clear-all-data
+ * Completely resets patient records, triage queue, and audit trail for a fresh slate
+ */
+app.post("/api/master/clear-all-data", requireRole(["MASTER"]), async (req, res) => {
+  try {
+    await storage.clearAllData();
+    console.log(`[MASTER ACTION] All project data cleared by ${req.user?.name || "Master"}`);
+    return res.json({
+      success: true,
+      message: "All patient records, triage tickets, and audit history have been completely cleared!"
+    });
+  } catch (err) {
+    console.error("Clear all data error:", err);
+    return res.status(500).json({ error: "Failed to clear project data." });
+  }
+});
+
+/**
  * GET /api/master/analytics
  */
 app.get("/api/master/analytics", requireRole(["MASTER", "ADMIN"]), async (req, res) => {

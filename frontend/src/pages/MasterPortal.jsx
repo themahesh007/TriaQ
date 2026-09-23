@@ -152,6 +152,32 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   };
 
+  // Clear All Data (Fresh Start)
+  const handleClearAllData = async () => {
+    if (!window.confirm("⚠️ ARE YOU SURE?\n\nThis will completely wipe all patient tickets, triage history, and test logs from both the cloud database and local memory to give you a 100% clean, fresh start.\n\nContinue?")) {
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/master/clear-all-data`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${masterSession.token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to clear data");
+      alert("✨ All project data has been wiped! You now have a 100% fresh, clean system.");
+      setNotification("All project data wiped clean.");
+      fetchMasterData();
+    } catch (err) {
+      alert("Error clearing data: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Submit Decision Override
   const handleExecuteOverride = async (e) => {
     e.preventDefault();
@@ -213,6 +239,14 @@ export default function MasterPortal({ onNavigateHome }) {
             <span className="text-[12.5px] font-bold text-slate-800">
               {masterSession.master?.name}
             </span>
+            <button
+              type="button"
+              onClick={handleClearAllData}
+              className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition cursor-pointer flex items-center gap-1"
+              title="Wipe all patients and triage tickets for a clean slate"
+            >
+              <span>🧹</span> Reset Data
+            </button>
             <button
               type="button"
               onClick={handleLogout}
