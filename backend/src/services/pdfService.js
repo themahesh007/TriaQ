@@ -87,8 +87,24 @@ function generateTriageReceiptPDF(data) {
         .font("Helvetica-Bold")
         .text(flagLabel, 30, y + 7, { align: "center" });
 
+      // Assigned Room / Ward Destination Banner if present
+      const dest = data.assignedRoom || data.patient?.assignedRoom || data.disposition;
+      if (dest) {
+        y += 32;
+        doc
+          .rect(30, y, doc.page.width - 60, 22)
+          .fillAndStroke("#ECFDF5", "#059669");
+        doc
+          .fontSize(8.5)
+          .fillColor("#065F46")
+          .font("Helvetica-Bold")
+          .text(`ASSIGNED DESTINATION: ${String(dest).toUpperCase()}`, 35, y + 6);
+        y += 28;
+      } else {
+        y += 35;
+      }
+
       // Patient Demographics
-      y += 35;
       doc
         .fontSize(9)
         .fillColor("#334155")

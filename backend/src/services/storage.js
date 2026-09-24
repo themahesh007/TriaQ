@@ -1,3 +1,10 @@
+const defaultHospitalRooms = [
+  { id: "room-01", roomNumber: "Room 01", name: "Emergency Trauma & Resuscitation", category: "EMERGENCY_WARD", floor: "Ground Floor", urgency: "RED" },
+  { id: "room-02", roomNumber: "Room 02", name: "Acute Cardiac & Intensive ER", category: "EMERGENCY_WARD", floor: "Ground Floor", urgency: "RED" },
+  { id: "room-03", roomNumber: "Room 03", name: "General Medicine & Fever Clinic", category: "OPD_CLINIC", floor: "1st Floor, Wing A", urgency: "GREEN" },
+  { id: "room-04", roomNumber: "Room 04", name: "Pediatric & Routine Consultation", category: "OPD_CLINIC", floor: "1st Floor, Wing B", urgency: "GREEN" },
+  { id: "room-05", roomNumber: "Room 05", name: "Daycare Observation & Minor OT", category: "DAYCARE", floor: "Ground Floor, Wing C", urgency: "YELLOW" }
+];
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
@@ -527,6 +534,7 @@ const storage = {
       vitals: data.vitals || null,
       prescription: data.prescription || null,
       disposition: data.disposition || null,
+      assignedRoom: data.assignedRoom || null,
       riskTag: data.riskTag,
       matchedRiskKeywords: data.matchedRiskKeywords || [],
       missingInfo: data.missingInfo || [],
@@ -632,6 +640,10 @@ const storage = {
     note.status = newStatus;
     if (disposition) note.disposition = disposition;
     if (prescription) note.prescription = prescription;
+    if (updateData.assignedRoom) {
+      note.assignedRoom = updateData.assignedRoom;
+      if (note.patient) note.patient.assignedRoom = updateData.assignedRoom;
+    }
     note.updatedAt = new Date().toISOString();
 
     // Add immutable audit log
@@ -775,6 +787,8 @@ const storage = {
       adminEmail: data.adminEmail ? data.adminEmail.trim().toLowerCase() : null,
       adminPasswordHash: data.adminPasswordHash || null,
       status: data.status || "APPROVED",
+      licenseNumber: data.licenseNumber ? data.licenseNumber.trim() : null,
+      rooms: Array.isArray(data.rooms) && data.rooms.length > 0 ? data.rooms : defaultHospitalRooms,
       createdAt: new Date().toISOString()
     };
     if (!memoryStore.facilities) memoryStore.facilities = [];
@@ -782,6 +796,44 @@ const storage = {
     persistStore();
     db.saveFacilityToCloud(newFacility).catch(console.error);
     return newFacility;
+  },
+
+  async getFacilityRooms(facilityIdOrName) {
+    if (!facilityIdOrName) return defaultHospitalRooms;
+    const fac = (memoryStore.facilities || []).find(
+      (f) => f.id === facilityIdOrName || f.name.toLowerCase() === String(facilityIdOrName).toLowerCase()
+    );
+    if (!fac || !Array.isArray(fac.rooms) || fac.rooms.length === 0) {
+      return defaultHospitalRooms;
+    }
+    return fac.rooms;
+  },
+
+  async addFacilityRoom(facilityId, roomData) {
+    const fac = (memoryStore.facilities || []).find((f) => f.id === facilityId || f.name.toLowerCase() === String(facilityId).toLowerCase());
+    if (!fac) return null;
+    if (!Array.isArray(fac.rooms)) fac.rooms = [...defaultHospitalRooms];
+    const newRoom = {
+      id: "room-" + Date.now().toString(36),
+      roomNumber: roomData.roomNumber ? roomData.roomNumber.trim() : `Room ${fac.rooms.length + 1}`,
+      name: roomData.name ? roomData.name.trim() : "General Consultation",
+      category: roomData.category || "OPD_CLINIC",
+      floor: roomData.floor ? roomData.floor.trim() : "Ground Floor",
+      urgency: roomData.urgency || (roomData.category === "EMERGENCY_WARD" ? "RED" : "GREEN")
+    };
+    fac.rooms.push(newRoom);
+    persistStore();
+    db.saveFacilityToCloud(fac).catch(console.error);
+    return newRoom;
+  },
+
+  async deleteFacilityRoom(facilityId, roomId) {
+    const fac = (memoryStore.facilities || []).find((f) => f.id === facilityId || f.name.toLowerCase() === String(facilityId).toLowerCase());
+    if (!fac || !Array.isArray(fac.rooms)) return false;
+    fac.rooms = fac.rooms.filter((r) => r.id !== roomId && r.roomNumber !== roomId);
+    persistStore();
+    db.saveFacilityToCloud(fac).catch(console.error);
+    return true;
   },
 
   async getPendingFacilities() {

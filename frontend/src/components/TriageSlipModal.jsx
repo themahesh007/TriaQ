@@ -136,6 +136,24 @@ export default function TriageSlipModal({ note, onClose }) {
             </p>
           </div>
 
+          {/* Assigned Room / OPD Ward Destination */}
+          {(note.assignedRoom || note.patient?.assignedRoom || note.disposition) && (
+            <div className="p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-950 space-y-1 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
+                  <span>📍</span>
+                  <span>ASSIGNED CLINICAL DESTINATION</span>
+                </span>
+                <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 uppercase">
+                  PROCEED HERE
+                </span>
+              </div>
+              <div className="text-[15.5px] font-black text-slate-900">
+                {note.assignedRoom || note.patient?.assignedRoom || note.disposition}
+              </div>
+            </div>
+          )}
+
           {/* Vital Signs Table if Recorded */}
           {vitals && (vitals.bpSystolic || vitals.pulse || vitals.spo2 || vitals.temp) && (
             <div className="border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50">

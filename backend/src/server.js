@@ -947,12 +947,16 @@ app.get("/api/facilities", async (req, res) => {
 app.post("/api/hospital/register", async (req, res) => {
   try {
     const { name, type, state, district, city } = req.body;
+    const licenseNumber = req.body.licenseNumber || req.body.regLicenseNumber;
     const phone = req.body.phone || req.body.contactNumber;
     const adminEmail = req.body.adminEmail || req.body.email;
     const adminPassword = req.body.adminPassword || req.body.password;
 
     if (!name || name.trim().length < 2) {
       return res.status(400).json({ error: "Hospital or Clinic name is required." });
+    }
+    if (!licenseNumber || licenseNumber.trim().length < 3) {
+      return res.status(400).json({ error: "Hospital / Medical License Number is required (e.g. Clinical Establishment Act Reg No)." });
     }
     if (!state || !state.trim()) {
       return res.status(400).json({ error: "State is required." });
@@ -986,6 +990,7 @@ app.post("/api/hospital/register", async (req, res) => {
     const facility = await storage.createFacility({
       name: name.trim(),
       type: type || "HOSPITAL",
+      licenseNumber: licenseNumber.trim().toUpperCase(),
       phone: cleanedPhone,
       address: `${city.trim()}, ${district.trim()}, ${state.trim()}`,
       state: state.trim(),
@@ -1488,12 +1493,34 @@ app.get("/api/triage-notes/:id", async (req, res) => {
 });
 
 /**
+ * GET /api/triage-notes/:id/pdf
+ * Generates and downloads official printable triage PDF pass
+ */
+app.get("/api/triage-notes/:id/pdf", async (req, res) => {
+  try {
+    const role = req.user?.role || "DOCTOR";
+    const note = await storage.getNoteById(req.params.id, role);
+    if (!note) {
+      return res.status(404).json({ error: "Triage note not found" });
+    }
+    const pdfBuffer = await generateTriageReceiptPDF(note);
+    const filename = `TriaQ_Slip_${(note.patient?.tokenId || note.tokenId || "Pass").replace(/\\s+/g, "_")}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error generating PDF pass:", error);
+    return res.status(500).json({ error: "Failed to generate triage PDF pass" });
+  }
+});
+
+/**
  * PATCH /api/triage-notes/:id
  * Reviewer decision (APPROVE, EDIT_APPROVE, REJECT, ESCALATE)
  */
 app.patch("/api/triage-notes/:id", async (req, res) => {
   try {
-    const { action, reviewerId, editedSummary, note: reviewerNote, disposition, prescription, reason } = req.body;
+    const { action, reviewerId, editedSummary, note: reviewerNote, disposition, prescription, reason, assignedRoom } = req.body;
 
     if (!["APPROVE", "EDIT_APPROVE", "REJECT", "ESCALATE"].includes(action)) {
       return res.status(400).json({ error: "Invalid action. Must be APPROVE, EDIT_APPROVE, REJECT, or ESCALATE" });
@@ -1515,6 +1542,7 @@ app.patch("/api/triage-notes/:id", async (req, res) => {
       disposition,
       prescription,
       reason,
+      assignedRoom,
       ipAddress: req.ip || "127.0.0.1",
       userAgent: req.headers["user-agent"]
     });
@@ -1597,6 +1625,76 @@ app.get("/api/audit-log", async (req, res) => {
   } catch (error) {
     console.error("Error fetching audit logs:", error);
     return res.status(500).json({ error: "Failed to fetch audit log entries" });
+  }
+});
+
+
+// ==========================================
+// HOSPITAL ROOMS & OPD WARDS MANAGEMENT
+// ==========================================
+
+/**
+ * GET /api/hospital/rooms
+ * Fetch rooms/wards for the logged-in hospital facility
+ */
+app.get("/api/hospital/rooms", requireRole(["HOSPITAL_ADMIN", "ADMIN", "DOCTOR", "NURSE", "MASTER"]), async (req, res) => {
+  try {
+    const facilityId = req.query.facilityId || req.user?.facilityId || req.user?.facility;
+    const rooms = await storage.getFacilityRooms(facilityId);
+    return res.json(rooms);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch facility rooms." });
+  }
+});
+
+/**
+ * POST /api/hospital/rooms
+ * Add a new room or OPD ward to the hospital
+ */
+app.post("/api/hospital/rooms", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const facilityId = req.body.facilityId || req.user?.facilityId || req.user?.facility;
+    const { roomNumber, name, category, floor, urgency } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Room or Ward name is required." });
+    }
+    const newRoom = await storage.addFacilityRoom(facilityId, { roomNumber, name, category, floor, urgency });
+    if (!newRoom) {
+      return res.status(404).json({ error: "Facility not found." });
+    }
+    return res.status(201).json(newRoom);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to add room." });
+  }
+});
+
+/**
+ * DELETE /api/hospital/rooms/:roomId
+ * Delete a room or OPD ward from the hospital
+ */
+app.delete("/api/hospital/rooms/:roomId", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
+  try {
+    const facilityId = req.query.facilityId || req.user?.facilityId || req.user?.facility;
+    const success = await storage.deleteFacilityRoom(facilityId, req.params.roomId);
+    if (!success) {
+      return res.status(404).json({ error: "Room not found." });
+    }
+    return res.json({ success: true, message: "Room removed successfully." });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to delete room." });
+  }
+});
+
+/**
+ * GET /api/facilities/:facilityId/rooms
+ * Public/Staff accessible rooms for a specific facility
+ */
+app.get("/api/facilities/:facilityId/rooms", async (req, res) => {
+  try {
+    const rooms = await storage.getFacilityRooms(req.params.facilityId);
+    return res.json(rooms);
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch facility rooms." });
   }
 });
 

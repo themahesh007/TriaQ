@@ -541,6 +541,14 @@ export default function MasterPortal({ onNavigateHome }) {
                           <p className="text-[12px] text-slate-600 font-medium mt-0.5">
                             ✉️ {pf.adminEmail} • 📞 +91 {pf.phone || "N/A"}
                           </p>
+                          {pf.licenseNumber && (
+                            <p className="text-[11.5px] font-bold text-slate-800 mt-1 flex items-center gap-1.5">
+                              <span className="text-slate-500 font-normal">License No:</span>
+                              <span className="font-mono bg-slate-100 text-slate-900 px-2 py-0.5 rounded border border-slate-200">
+                                {pf.licenseNumber}
+                              </span>
+                            </p>
+                          )}
                           <p className="text-[11px] text-slate-400 font-medium mt-1">
                             Registered on: {new Date(pf.createdAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
                           </p>

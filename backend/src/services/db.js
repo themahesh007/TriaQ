@@ -124,6 +124,8 @@ async function initDatabaseSchema() {
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS city TEXT;
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS license_number TEXT;
+        ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS rooms JSONB;
 
         ALTER TABLE triaq_staff ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
 
@@ -247,6 +249,8 @@ async function loadAllFromCloud() {
         code: r.code || r.id,
         adminEmail: r.admin_email,
         status: r.status || "APPROVED",
+        licenseNumber: r.license_number || "",
+        rooms: r.rooms || null,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
       });
 
@@ -461,8 +465,8 @@ async function saveFacilityToCloud(facility) {
   try {
     await p.query(`
       INSERT INTO triaq_facilities (
-        id, name, phone, address, state, district, city, type, code, admin_email, admin_password_hash, status, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        id, name, phone, address, state, district, city, type, code, admin_email, admin_password_hash, status, license_number, rooms, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       ON CONFLICT (id) DO UPDATE SET
         name = EXCLUDED.name,
         phone = EXCLUDED.phone,
@@ -474,7 +478,9 @@ async function saveFacilityToCloud(facility) {
         code = EXCLUDED.code,
         admin_email = EXCLUDED.admin_email,
         admin_password_hash = EXCLUDED.admin_password_hash,
-        status = EXCLUDED.status;
+        status = EXCLUDED.status,
+        license_number = EXCLUDED.license_number,
+        rooms = EXCLUDED.rooms;
     `, [
       facility.id,
       facility.name,
@@ -488,6 +494,8 @@ async function saveFacilityToCloud(facility) {
       facility.adminEmail || null,
       facility.adminPasswordHash || null,
       facility.status || "APPROVED",
+      facility.licenseNumber || null,
+      facility.rooms ? JSON.stringify(facility.rooms) : null,
       facility.createdAt || new Date().toISOString()
     ]);
   } catch (err) {
@@ -522,12 +530,23 @@ async function deleteFacilityFromCloud(id) {
 }
 
 /**
- * Atomic live sequential token generator: "TOKEN NUMBER 01", "TOKEN NUMBER 02", etc.
+ * Compute the Indian Standard Time (IST, UTC+5:30) operational OPD day.
+ * Hospital OPD shifts start at 4:00 AM IST and end around 8:00 PM IST.
+ * Patients arriving between 4:00 AM today and 3:59 AM tomorrow share the same operational day.
+ */
+function getIstOpdDateStr(now = new Date()) {
+  // IST is UTC+5.5 hours. Shift by -4.0 hours for the 4:00 AM day boundary: (+5.5 - 4.0) = +1.5 hours.
+  const shifted = new Date(now.getTime() + (1.5 * 60 * 60 * 1000));
+  return shifted.toISOString().slice(0, 10); // 'YYYY-MM-DD' in IST OPD cycle
+}
+
+/**
+ * Atomic live sequential token generator with daily 4:00 AM IST reset per facility.
  */
 async function getNextSequentialTokenNumber(facilityId = "GLOBAL") {
   const p = getPool();
   const cleanFacility = String(facilityId || "GLOBAL").trim().toLowerCase().replace(/[^a-z0-9]/g, "-");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getIstOpdDateStr();
   const compositeKey = `${cleanFacility}_${today}`;
 
   if (!p) {
@@ -566,5 +585,6 @@ module.exports = {
   saveFacilityToCloud,
   deleteFacilityFromCloud,
   deleteStaffFromCloud,
-  getNextSequentialTokenNumber
+  getNextSequentialTokenNumber,
+  getIstOpdDateStr
 };

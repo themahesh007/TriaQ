@@ -57,10 +57,11 @@ export default function HospitalPortal({ onNavigateHome }) {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regLicenseNumber, setRegLicenseNumber] = useState("");
   const [regError, setRegError] = useState("");
   const [submittedPendingFacility, setSubmittedPendingFacility] = useState(null);
 
-  // Active Dashboard Tab: "qr" | "approvals" | "staff" | "queue"
+  // Active Dashboard Tab: "qr" | "approvals" | "staff" | "queue" | "rooms"
   const [activeTab, setActiveTab] = useState("qr");
 
   // Facility Data
@@ -68,6 +69,15 @@ export default function HospitalPortal({ onNavigateHome }) {
   const [pendingStaff, setPendingStaff] = useState([]);
   const [facilityQueue, setFacilityQueue] = useState([]);
   const [notification, setNotification] = useState("");
+
+  // Rooms & OPD Wards Management
+  const [roomsList, setRoomsList] = useState([]);
+  const [showAddRoomModal, setShowAddRoomModal] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState("");
+  const [newRoomName, setNewRoomName] = useState("");
+  const [newRoomCategory, setNewRoomCategory] = useState("OPD");
+  const [newRoomFloor, setNewRoomFloor] = useState("Ground Floor");
+  const [newRoomUrgency, setNewRoomUrgency] = useState("GREEN");
 
 
 
@@ -102,6 +112,7 @@ export default function HospitalPortal({ onNavigateHome }) {
     const facilityPayload = {
       name: regName.trim(),
       type: regType,
+      licenseNumber: regLicenseNumber.trim().toUpperCase(),
       state: regState.trim(),
       district: regDistrict.trim(),
       city: regCity.trim(),
@@ -140,10 +151,11 @@ export default function HospitalPortal({ onNavigateHome }) {
     if (!session?.token) return;
     try {
       const headers = { Authorization: `Bearer ${session.token}` };
-      const [staffRes, pendingRes, notesRes] = await Promise.all([
+      const [staffRes, pendingRes, notesRes, roomsRes] = await Promise.all([
         fetch(`${API_BASE}/api/hospital/staff`, { headers }),
         fetch(`${API_BASE}/api/hospital/pending-staff`, { headers }),
-        fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers })
+        fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers }),
+        fetch(`${API_BASE}/api/hospital/rooms`, { headers })
       ]);
 
       if (staffRes.ok) {
@@ -151,6 +163,9 @@ export default function HospitalPortal({ onNavigateHome }) {
       }
       if (pendingRes.ok) {
         setPendingStaff(await pendingRes.json());
+      }
+      if (roomsRes && roomsRes.ok) {
+        setRoomsList(await roomsRes.json());
       }
       if (notesRes.ok) {
         const allNotes = await notesRes.json();
@@ -203,6 +218,54 @@ export default function HospitalPortal({ onNavigateHome }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to reject staff");
       setNotification(`Staff registration for ${staffName} was rejected.`);
+      fetchFacilityData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // Hospital Adds a Room or OPD Ward
+  const handleAddRoom = async (e) => {
+    e.preventDefault();
+    if (!newRoomName.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/rooms`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.token}`
+        },
+        body: JSON.stringify({
+          roomNumber: newRoomNumber.trim() || `Room 0${roomsList.length + 1}`,
+          name: newRoomName.trim(),
+          category: newRoomCategory,
+          floor: newRoomFloor.trim() || "Ground Floor",
+          urgency: newRoomUrgency
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add room");
+      setNotification(`✓ ${newRoomName} successfully added to hospital layout!`);
+      setShowAddRoomModal(false);
+      setNewRoomNumber("");
+      setNewRoomName("");
+      fetchFacilityData();
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  };
+
+  // Hospital Removes a Room or OPD Ward
+  const handleDeleteRoom = async (roomId, roomName) => {
+    if (!confirm(`Are you sure you want to remove "${roomName}" from hospital layout?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/hospital/rooms/${roomId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session?.token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to remove room");
+      setNotification(`✓ "${roomName}" removed from layout.`);
       fetchFacilityData();
     } catch (err) {
       alert("Error: " + err.message);
@@ -480,6 +543,12 @@ export default function HospitalPortal({ onNavigateHome }) {
                       <span className="text-slate-500">Facility Type:</span>
                       <span className="font-bold text-emerald-800">{submittedPendingFacility.type}</span>
                     </div>
+                    {submittedPendingFacility.licenseNumber && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">License Number:</span>
+                        <span className="font-mono text-slate-900 font-bold">{submittedPendingFacility.licenseNumber}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-500">Regional Location:</span>
                       <strong className="text-slate-900">
@@ -517,6 +586,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                     onClick={() => {
                       setSubmittedPendingFacility(null);
                       setRegName("");
+                      setRegLicenseNumber("");
                       setRegState("");
                       setRegDistrict("");
                       setRegCity("");
@@ -555,6 +625,23 @@ export default function HospitalPortal({ onNavigateHome }) {
                     placeholder="e.g. City General Hospital or LifeCare Clinic"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Hospital / Medical License Number <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={regLicenseNumber}
+                    onChange={(e) => setRegLicenseNumber(e.target.value.toUpperCase())}
+                    placeholder="e.g. CEA/OD/2024/774 or MH/HOSP/8892"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 tracking-wider"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Official registration number under the Clinical Establishments Act or State Health Dept.
+                  </p>
                 </div>
 
                 <div>
@@ -746,6 +833,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                 icon: IconShield,
                 hasBadge: pendingStaff.length > 0
               },
+              { id: "rooms", label: `Rooms & OPD Wards (${roomsList.length})`, icon: IconHospital },
               { id: "staff", label: `Active Roster (${staffList.length})`, icon: IconDoctor },
               { id: "queue", label: `Live OPD Queue (${facilityQueue.length})`, icon: IconPatient }
             ].map((tab) => {
@@ -1043,6 +1131,199 @@ export default function HospitalPortal({ onNavigateHome }) {
                             className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
                           >
                             Remove Staff
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: ROOMS & OPD WARDS MANAGEMENT */}
+          {activeTab === "rooms" && (
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <IconHospital className="w-5 h-5 text-emerald-600" />
+                    <span>Hospital Rooms & OPD Wards Layout</span>
+                  </h3>
+                  <p className="text-[12.5px] text-slate-500 font-medium">
+                    Configure Emergency Wards, OPD consultation suites, and specialized clinics. These rooms sync live to the Staff Desk so clinicians can route patients by urgency.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAddRoomModal(true)}
+                  className="btn-tactile px-4 py-2.5 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-2 cursor-pointer"
+                >
+                  <span>➕ Add Room / OPD Ward</span>
+                </button>
+              </div>
+
+              {/* Add Room Modal / Inline Form */}
+              {showAddRoomModal && (
+                <div className="p-5 rounded-2xl border-2 border-emerald-400 bg-emerald-50/40 shadow-xs space-y-4 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5 uppercase tracking-wide">
+                      <span>🏥</span> Add New Room or Ward
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddRoomModal(false)}
+                      className="text-slate-400 hover:text-slate-700 font-black cursor-pointer"
+                    >
+                      ✕ Cancel
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddRoom} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Room Number / Code <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newRoomNumber}
+                        onChange={(e) => setNewRoomNumber(e.target.value)}
+                        placeholder="e.g. Room 01, Ward A"
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Room / Ward Designation <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={newRoomName}
+                        onChange={(e) => setNewRoomName(e.target.value)}
+                        placeholder="e.g. Emergency Ward, General OPD"
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Ward Category
+                      </label>
+                      <select
+                        value={newRoomCategory}
+                        onChange={(e) => setNewRoomCategory(e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold bg-white outline-none focus:border-emerald-600 cursor-pointer"
+                      >
+                        <option value="EMERGENCY">🔴 Emergency Ward (Severe)</option>
+                        <option value="OPD">🟢 OPD Consultation (Routine)</option>
+                        <option value="SPECIALIST">🩺 Specialist Clinic</option>
+                        <option value="ICU">🟣 ICU / Critical Care</option>
+                        <option value="TRIAGE">🟡 Secondary Triage Desk</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                        Floor / Location
+                      </label>
+                      <input
+                        type="text"
+                        value={newRoomFloor}
+                        onChange={(e) => setNewRoomFloor(e.target.value)}
+                        placeholder="Ground Floor, Wing A"
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium bg-white outline-none focus:border-emerald-600"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2 md:col-span-4 flex items-center justify-end gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddRoomModal(false)}
+                        className="px-4 py-2 rounded-xl text-[12.5px] font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="btn-tactile px-5 py-2 rounded-xl text-[12.5px] font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
+                      >
+                        Save Room to Layout →
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Rooms List */}
+              {roomsList.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <IconHospital className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="font-bold text-slate-700">No Custom Rooms Configured</p>
+                  <p className="text-xs text-slate-400">
+                    Click "+ Add Room / OPD Ward" above to define your hospital's emergency wards and OPD consultation rooms.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {roomsList.map((room) => {
+                    const isEmerg = room.category === "EMERGENCY" || room.urgency === "RED";
+                    const isOpd = room.category === "OPD" || room.urgency === "GREEN";
+                    return (
+                      <div
+                        key={room.id || room.roomNumber}
+                        className={`p-4 rounded-xl border transition shadow-2xs space-y-3 ${
+                          isEmerg
+                            ? "bg-rose-50/40 border-rose-200 hover:border-rose-400"
+                            : isOpd
+                            ? "bg-emerald-50/40 border-emerald-200 hover:border-emerald-400"
+                            : "bg-white border-slate-200 hover:border-slate-400"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono font-black text-[13px] px-2.5 py-0.5 rounded bg-white border border-slate-200 text-slate-900 shadow-2xs">
+                            {room.roomNumber}
+                          </span>
+                          <span
+                            className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                              isEmerg
+                                ? "bg-rose-100 text-rose-800 border border-rose-300"
+                                : isOpd
+                                ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                                : "bg-teal-100 text-teal-900 border border-teal-300"
+                            }`}
+                          >
+                            {room.category || "OPD"}
+                          </span>
+                        </div>
+
+                        <div>
+                          <h4 className="font-black text-slate-900 text-base">
+                            {room.name}
+                          </h4>
+                          <p className="text-[12px] text-slate-500 font-medium">
+                            📍 {room.floor || "Ground Floor"}
+                          </p>
+                          <p className="text-[11px] font-bold mt-1 text-slate-600">
+                            {isEmerg
+                              ? "⚠️ Priority: High / Immediate (Emergency Ward)"
+                              : "✓ Priority: Routine OPD (Walk-in Consult)"}
+                          </p>
+                        </div>
+
+                        <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between">
+                          <span className="text-[11px] font-bold text-emerald-700">
+                            Live on Staff Desk
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRoom(room.id, room.name)}
+                            className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer"
+                          >
+                            Remove
                           </button>
                         </div>
                       </div>
