@@ -516,6 +516,18 @@ app.post("/api/patients/logout", (req, res) => {
   res.clearCookie("token");
   return res.json({ loggedOut: true });
 });
+/**
+ * GET /api/health
+ * Live deployment health check and version verification
+ */
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    version: "1.1.0",
+    service: "TriaQ Clinical API",
+    deployedAt: new Date().toISOString()
+  });
+});
 
 // ==========================================
 // 2. STAFF PORTAL ROUTES
