@@ -109,7 +109,7 @@ export default function PatientPortal({ onNavigateHome }) {
 
   // Facility & QR Check-In States
   const [facilities, setFacilities] = useState([]);
-  const [selectedFacility, setSelectedFacility] = useState("Apollo PHC Hub, Delhi");
+  const [selectedFacility, setSelectedFacility] = useState("");
   const [selectedFacilityId, setSelectedFacilityId] = useState("");
   const [isQrCheckIn, setIsQrCheckIn] = useState(false);
 
@@ -1162,11 +1162,11 @@ export default function PatientPortal({ onNavigateHome }) {
                 {facilities.length > 0 ? (
                   facilities.map((f) => (
                     <option key={f.id} value={f.name}>
-                      {f.name} ({f.type === "CLINIC" ? "Clinic" : "Hospital"} - {f.code})
+                      {f.name} ({f.type === "CLINIC" ? "Clinic" : "Hospital"}{f.city ? ` - ${f.city}` : ""})
                     </option>
                   ))
                 ) : (
-                  <option value="Apollo PHC Hub, Delhi">Apollo PHC Hub, Delhi (Hospital - APOLLO-01)</option>
+                  <option value="">-- No registered facilities available --</option>
                 )}
               </select>
               <p className="text-[11px] text-slate-500 font-medium">

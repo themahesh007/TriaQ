@@ -1,10 +1,4 @@
-const defaultHospitalRooms = [
-  { id: "room-01", roomNumber: "Room 01", name: "Emergency Trauma & Resuscitation", category: "EMERGENCY_WARD", floor: "Ground Floor", urgency: "RED" },
-  { id: "room-02", roomNumber: "Room 02", name: "Acute Cardiac & Intensive ER", category: "EMERGENCY_WARD", floor: "Ground Floor", urgency: "RED" },
-  { id: "room-03", roomNumber: "Room 03", name: "General Medicine & Fever Clinic", category: "OPD_CLINIC", floor: "1st Floor, Wing A", urgency: "GREEN" },
-  { id: "room-04", roomNumber: "Room 04", name: "Pediatric & Routine Consultation", category: "OPD_CLINIC", floor: "1st Floor, Wing B", urgency: "GREEN" },
-  { id: "room-05", roomNumber: "Room 05", name: "Daycare Observation & Minor OT", category: "DAYCARE", floor: "Ground Floor, Wing C", urgency: "YELLOW" }
-];
+const defaultHospitalRooms = [];
 const fs = require("fs");
 const path = require("path");
 const bcrypt = require("bcryptjs");
@@ -102,30 +96,7 @@ let memoryStore = {
   staff: [...initialStaff],
   triageNotes: [],
   auditLogs: [],
-  facilities: [
-    {
-      id: "fac-1",
-      name: "Apollo PHC Hub, Delhi",
-      phone: "+91-11-2338-9000",
-      address: "Sector 14, Delhi",
-      state: "Delhi",
-      district: "South West Delhi",
-      city: "New Delhi",
-      status: "APPROVED",
-      type: "HOSPITAL"
-    },
-    {
-      id: "fac-2",
-      name: "Rural Health Centre, Odisha",
-      phone: "+91-674-239-0000",
-      address: "Puri Road, Odisha",
-      state: "Odisha",
-      district: "Puri",
-      city: "Bhubaneswar",
-      status: "APPROVED",
-      type: "CLINIC"
-    }
-  ]
+  facilities: []
 };
 
 // Load saved data if exists
@@ -788,7 +759,7 @@ const storage = {
       adminPasswordHash: data.adminPasswordHash || null,
       status: data.status || "APPROVED",
       licenseNumber: data.licenseNumber ? data.licenseNumber.trim() : null,
-      rooms: Array.isArray(data.rooms) && data.rooms.length > 0 ? data.rooms : defaultHospitalRooms,
+      rooms: Array.isArray(data.rooms) ? data.rooms : [],
       createdAt: new Date().toISOString()
     };
     if (!memoryStore.facilities) memoryStore.facilities = [];
@@ -799,12 +770,12 @@ const storage = {
   },
 
   async getFacilityRooms(facilityIdOrName) {
-    if (!facilityIdOrName) return defaultHospitalRooms;
+    if (!facilityIdOrName) return [];
     const fac = (memoryStore.facilities || []).find(
       (f) => f.id === facilityIdOrName || f.name.toLowerCase() === String(facilityIdOrName).toLowerCase()
     );
-    if (!fac || !Array.isArray(fac.rooms) || fac.rooms.length === 0) {
-      return defaultHospitalRooms;
+    if (!fac || !Array.isArray(fac.rooms)) {
+      return [];
     }
     return fac.rooms;
   },
@@ -812,7 +783,7 @@ const storage = {
   async addFacilityRoom(facilityId, roomData) {
     const fac = (memoryStore.facilities || []).find((f) => f.id === facilityId || f.name.toLowerCase() === String(facilityId).toLowerCase());
     if (!fac) return null;
-    if (!Array.isArray(fac.rooms)) fac.rooms = [...defaultHospitalRooms];
+    if (!Array.isArray(fac.rooms)) fac.rooms = [];
     const newRoom = {
       id: "room-" + Date.now().toString(36),
       roomNumber: roomData.roomNumber ? roomData.roomNumber.trim() : `Room ${fac.rooms.length + 1}`,

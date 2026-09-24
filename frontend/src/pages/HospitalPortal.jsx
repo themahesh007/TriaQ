@@ -414,23 +414,7 @@ export default function HospitalPortal({ onNavigateHome }) {
           {!isRegistering ? (
             /* --- 1. LOGIN FORM --- */
             <div className="space-y-4">
-              {/* Quick Fill Demo */}
-              <div className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 space-y-1.5">
-                <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
-                  Quick Facility Demo Credentials:
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginEmail("admin@apollo.org");
-                    setLoginPassword("Apollo@123");
-                  }}
-                  className="btn-tactile w-full py-2 px-3 rounded-lg bg-white hover:bg-emerald-50 text-[12px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs flex items-center justify-center gap-2"
-                >
-                  <IconHospital className="w-4 h-4 text-emerald-600" />
-                  <span>Apollo PHC Hub (admin@apollo.org / Apollo@123)</span>
-                </button>
-              </div>
+
 
               {loginError && (
                 loginError.toLowerCase().includes("pending") ? (
@@ -463,7 +447,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                     required
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="admin@apollo.org"
+                    placeholder="admin@hospital.org"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                   />
                 </div>
@@ -791,7 +775,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                   {session.facility?.type || "HOSPITAL"}
                 </span>
                 <span className="text-[11px] font-mono text-slate-400">
-                  Code: {session.facility?.code || "APOLLO-01"}
+                  Code: {session.facility?.code || session.facility?.id}
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight">

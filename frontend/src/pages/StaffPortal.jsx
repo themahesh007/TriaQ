@@ -63,7 +63,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [regRole, setRegRole] = useState("DOCTOR"); // DOCTOR | NURSE | ADMIN
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
-  const [regFacility, setRegFacility] = useState("Apollo PHC Hub, Delhi");
+  const [regFacility, setRegFacility] = useState("");
   const [regFacilityId, setRegFacilityId] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
@@ -710,6 +710,7 @@ export default function StaffPortal({ onNavigateHome }) {
                     }}
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold bg-white text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 cursor-pointer shadow-2xs"
                   >
+                    <option value="">-- Select Your Registered Hospital / Clinic --</option>
                     {registeredFacilities.map((fac) => (
                       <option key={fac.id} value={fac.name}>
                         {fac.name} ({fac.city ? `${fac.city}, ${fac.state}` : fac.type || "HOSPITAL"})
@@ -722,7 +723,7 @@ export default function StaffPortal({ onNavigateHome }) {
                     required
                     value={regFacility}
                     onChange={(e) => setRegFacility(e.target.value)}
-                    placeholder="Apollo PHC Hub, Delhi"
+                    placeholder="Select or enter hospital name"
                     className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                   />
                 )}
@@ -1097,18 +1098,19 @@ export default function StaffPortal({ onNavigateHome }) {
                             setOriginalSummary(item.summary || "");
                             setDisposition(item.disposition || (item.riskTag === "RED" ? "Admit to Emergency Ward" : "Routine OPD Treatment"));
                             setPrescription(item.prescription || "");
-                            // Smart room pre-selection based on triage urgency
+                            // Room pre-selection strictly from manually entered facility layout
                             if (item.assignedRoom) {
                               setAssignedRoomChoice(item.assignedRoom);
-                            } else if (item.riskTag === "RED") {
-                              const emerg = facilityRooms.find(r => r.category === "EMERGENCY" || (r.name && r.name.toLowerCase().includes("emergency")));
-                              setAssignedRoomChoice(emerg ? emerg.name : "Room 01 - Emergency Trauma");
-                            } else if (item.riskTag === "YELLOW" || item.riskTag === "AMBER") {
-                              const acute = facilityRooms.find(r => r.category === "SPECIALIST" || (r.name && r.name.toLowerCase().includes("cardiac")));
-                              setAssignedRoomChoice(acute ? acute.name : "Room 02 - Acute Cardiac / Resus");
+                            } else if (facilityRooms.length > 0) {
+                              if (item.riskTag === "RED") {
+                                const emerg = facilityRooms.find(r => r.category === "EMERGENCY" || (r.name && r.name.toLowerCase().includes("emergency")));
+                                setAssignedRoomChoice(emerg ? `${emerg.roomNumber} - ${emerg.name}` : (facilityRooms[0] ? `${facilityRooms[0].roomNumber} - ${facilityRooms[0].name}` : ""));
+                              } else {
+                                const opd = facilityRooms.find(r => r.category === "OPD" || (r.name && r.name.toLowerCase().includes("opd")));
+                                setAssignedRoomChoice(opd ? `${opd.roomNumber} - ${opd.name}` : (facilityRooms[0] ? `${facilityRooms[0].roomNumber} - ${facilityRooms[0].name}` : ""));
+                              }
                             } else {
-                              const opd = facilityRooms.find(r => r.category === "OPD" || (r.name && r.name.toLowerCase().includes("opd")));
-                              setAssignedRoomChoice(opd ? opd.name : "Room 03 - General Medicine OPD");
+                              setAssignedRoomChoice("");
                             }
                           }}
                           className={`bg-white rounded-xl p-3.5 border transition-all cursor-pointer ${
@@ -1424,7 +1426,7 @@ export default function StaffPortal({ onNavigateHome }) {
                             type="text"
                             value={assignedRoomChoice}
                             onChange={(e) => setAssignedRoomChoice(e.target.value)}
-                            placeholder="e.g. Room 01 - Emergency Trauma"
+                            placeholder="Enter room manually (e.g. Room 1 or OPD 2)"
                             className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-[13px] font-bold text-slate-900 outline-none focus:border-emerald-600 shadow-2xs"
                           />
                         </div>
@@ -1438,49 +1440,45 @@ export default function StaffPortal({ onNavigateHome }) {
                             onChange={(e) => setAssignedRoomChoice(e.target.value)}
                             className="w-full p-2.5 rounded-xl border border-slate-300 bg-white text-[13px] font-bold text-slate-900 outline-none focus:border-emerald-600 shadow-2xs cursor-pointer"
                           >
-                            <option value="">-- Choose Hospital Ward / Room --</option>
-                            {facilityRooms.map((rm) => (
-                              <option key={rm.id || rm.roomNumber} value={`${rm.roomNumber} - ${rm.name}`}>
-                                {rm.roomNumber} - {rm.name} ({rm.category || "OPD"})
-                              </option>
-                            ))}
-                            {facilityRooms.length === 0 && (
+                            {facilityRooms.length === 0 ? (
+                              <option value="">-- No custom rooms configured by hospital admin yet --</option>
+                            ) : (
                               <>
-                                <option value="Room 01 - Emergency Trauma">Room 01 - Emergency Trauma (High Urgency)</option>
-                                <option value="Room 02 - Acute Cardiac / Resus">Room 02 - Acute Cardiac / Resus</option>
-                                <option value="Room 03 - General Medicine OPD">Room 03 - General Medicine OPD (Routine)</option>
-                                <option value="Room 04 - Pediatric / Minor Care OPD">Room 04 - Pediatric / Minor Care OPD</option>
-                                <option value="Room 05 - Daycare & Observation">Room 05 - Daycare & Observation</option>
+                                <option value="">-- Choose Hospital Ward / Room --</option>
+                                {facilityRooms.map((rm) => (
+                                  <option key={rm.id || rm.roomNumber} value={`${rm.roomNumber} - ${rm.name}`}>
+                                    {rm.roomNumber} - {rm.name} ({rm.category || "OPD"})
+                                  </option>
+                                ))}
                               </>
                             )}
                           </select>
                         </div>
                       </div>
 
-                      {/* Quick Presets by Severity */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
-                        <span className="font-bold text-slate-500">Urgency Routing:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssignedRoomChoice("Room 01 - Emergency Trauma");
-                            setDisposition("Admit to Emergency Ward");
-                          }}
-                          className="px-2 py-0.5 rounded-md font-bold bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 cursor-pointer"
-                        >
-                          🔴 Emergency Ward (Room 1/2)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssignedRoomChoice("Room 03 - General Medicine OPD");
-                            setDisposition("Routine OPD Treatment");
-                          }}
-                          className="px-2 py-0.5 rounded-md font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 cursor-pointer"
-                        >
-                          🟢 OPD Consult (Room 3/4)
-                        </button>
-                      </div>
+                      {/* Quick Selection only from actual hospital layout */}
+                      {facilityRooms.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+                          <span className="font-bold text-slate-500">Quick Select:</span>
+                          {facilityRooms.map((rm) => (
+                            <button
+                              key={rm.id || rm.roomNumber}
+                              type="button"
+                              onClick={() => {
+                                setAssignedRoomChoice(`${rm.roomNumber} - ${rm.name}`);
+                                if (rm.category === "EMERGENCY" || rm.urgency === "RED") {
+                                  setDisposition("Admit to Emergency Ward");
+                                } else {
+                                  setDisposition("Routine OPD Treatment");
+                                }
+                              }}
+                              className="px-2 py-0.5 rounded-md font-bold bg-white text-slate-800 border border-slate-300 hover:bg-emerald-50 hover:border-emerald-400 cursor-pointer"
+                            >
+                              {rm.roomNumber}: {rm.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* DEDICATED CLINICAL DECISION ACTION BAR (PERMANENTLY VISIBLE TO ALL STAFF) */}
