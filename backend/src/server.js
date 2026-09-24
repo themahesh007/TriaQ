@@ -1503,7 +1503,15 @@ app.get("/api/triage-notes/:id/pdf", async (req, res) => {
     if (!note) {
       return res.status(404).json({ error: "Triage note not found" });
     }
-    const pdfBuffer = await generateTriageReceiptPDF(note);
+    const allFacs = await storage.getAllFacilities();
+    const matchingFac = allFacs.find(f => f.name.toLowerCase() === (note.facility || "").toLowerCase()) || {};
+    const pdfBuffer = await generateTriageReceiptPDF({
+      ...note,
+      facility: matchingFac.name || note.facility,
+      facilityAddress: matchingFac.address || (matchingFac.city ? `${matchingFac.city}, ${matchingFac.district}, ${matchingFac.state}` : "Main Medical Campus"),
+      facilityPhone: matchingFac.phone,
+      facilityEmail: matchingFac.adminEmail
+    });
     const filename = `TriaQ_Slip_${(note.patient?.tokenId || note.tokenId || "Pass").replace(/\\s+/g, "_")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);

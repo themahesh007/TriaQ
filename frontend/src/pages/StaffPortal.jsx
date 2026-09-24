@@ -483,6 +483,15 @@ export default function StaffPortal({ onNavigateHome }) {
           <span className="text-[12.5px] font-black text-slate-800 uppercase tracking-wider">
             Staff Clinical Station
           </span>
+          {staffSession && (
+            <>
+              <span className="text-slate-300">•</span>
+              <span className="text-[12px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-2xs">
+                <IconHospital className="w-3.5 h-3.5 text-emerald-700" />
+                <span>{staffSession.staff?.facility || staffSession.facility?.name || "Healthcare Facility"}</span>
+              </span>
+            </>
+          )}
         </div>
 
         {staffSession && (
@@ -949,6 +958,40 @@ export default function StaffPortal({ onNavigateHome }) {
       ) : (
         /* STAFF DASHBOARD VIEW */
         <div className="space-y-6">
+          {/* Hospital / Clinic Identity Banner */}
+          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-5 text-white shadow-sm flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  🏥 Healthcare Workstation
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">
+                  Logged in: {staffSession.staff?.name} ({staffSession.staff?.role})
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
+                <IconHospital className="w-7 h-7 text-emerald-400 shrink-0" />
+                <span>{staffSession.staff?.facility || staffSession.facility?.name || "Healthcare Facility"}</span>
+              </h1>
+              <p className="text-[12.5px] text-slate-300 font-medium">
+                Official Clinical Workstation • Live OPD Priority Queue & Patient Intake Management
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[110px]">
+                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Live Queue</span>
+                <span className="text-2xl font-black text-emerald-400">{filteredQueue.length}</span>
+                <span className="block text-[10px] text-slate-400">Waiting Cases</span>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[110px]">
+                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Facility Rooms</span>
+                <span className="text-2xl font-black text-teal-300">{facilityRooms.length}</span>
+                <span className="block text-[10px] text-slate-400">Layout Wards</span>
+              </div>
+            </div>
+          </div>
+
           {/* Dashboard Control Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
             <div className="flex items-center gap-2">

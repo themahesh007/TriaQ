@@ -26,16 +26,16 @@ function generateTriageReceiptPDF(data) {
         .fill("#064E3B");
 
       doc
-        .fontSize(14)
+        .fontSize(13.5)
         .fillColor("#FFFFFF")
         .font("Helvetica-Bold")
-        .text("TRIAQ CLINICAL TRIAGE PASS", 30, 32, { align: "center" });
+        .text(String(facility).toUpperCase(), 30, 31, { align: "center" });
 
       doc
-        .fontSize(8.5)
+        .fontSize(8)
         .fillColor("#A7F3D0")
-        .font("Helvetica")
-        .text(facility, 30, 49, { align: "center" });
+        .font("Helvetica-Bold")
+        .text("OFFICIAL CLINICAL TRIAGE & CONSULTATION TOKEN PASS", 30, 48, { align: "center" });
 
       // Receipt Number Monospace Box
       let y = 80;
@@ -222,11 +222,15 @@ function generateTriageReceiptPDF(data) {
           { width: doc.page.width - 80 }
         );
 
-      // Hospital Helpline Contact
+      // Official Hospital Address & Contact Details Footer
+      const facAddress = data.facilityAddress || data.address || "Main Healthcare Campus";
+      const facPhone = data.facilityPhone || data.phone ? `+91 ${data.facilityPhone || data.phone}` : "+91-1800-TRIAQ";
+
       doc
-        .fontSize(6.5)
-        .fillColor("#64748B")
-        .text("PHC Triage Helpdesk: +91-11-2338-9000 • Keep this receipt for OPD consultation", 30, doc.page.height - 25, {
+        .fontSize(7)
+        .fillColor("#1E293B")
+        .font("Helvetica-Bold")
+        .text(`${String(facility).toUpperCase()} • ${facAddress} • Helpline: ${facPhone}`, 30, doc.page.height - 26, {
           align: "center",
           width: doc.page.width - 60
         });

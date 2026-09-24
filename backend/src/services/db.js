@@ -128,6 +128,8 @@ async function initDatabaseSchema() {
         ALTER TABLE triaq_facilities ADD COLUMN IF NOT EXISTS rooms JSONB;
 
         ALTER TABLE triaq_staff ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'APPROVED';
+        ALTER TABLE triaq_patients ALTER COLUMN token_id DROP NOT NULL;
+        ALTER TABLE triaq_patients DROP CONSTRAINT IF EXISTS triaq_patients_token_id_key;
 
         CREATE TABLE IF NOT EXISTS triaq_facility_token_counters (
           facility_id TEXT PRIMARY KEY,

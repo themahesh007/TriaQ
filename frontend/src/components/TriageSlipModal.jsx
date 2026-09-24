@@ -1,7 +1,28 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export default function TriageSlipModal({ note, onClose }) {
   if (!note) return null;
+
+  const [facilityInfo, setFacilityInfo] = useState(null);
+  const facilityName = note.facility || note.patient?.facility || "Healthcare Centre";
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/facilities`)
+      .then((r) => r.json())
+      .then((list) => {
+        if (Array.isArray(list)) {
+          const match = list.find((f) =>
+            f.id === note.facilityId ||
+            f.name.toLowerCase() === facilityName.toLowerCase() ||
+            facilityName.toLowerCase().includes(f.name.toLowerCase())
+          );
+          if (match) setFacilityInfo(match);
+        }
+      })
+      .catch(() => {});
+  }, [note, facilityName]);
 
   const handlePrint = () => {
     window.print();
@@ -84,16 +105,22 @@ export default function TriageSlipModal({ note, onClose }) {
 
         {/* PRINTABLE SLIP CONTENT */}
         <div className="p-6 overflow-y-auto space-y-4 font-sans text-slate-900">
-          {/* Slip Header */}
+          {/* Official Hospital / Clinic Top Header */}
           <div className="text-center pb-3 border-b-2 border-slate-900 space-y-1">
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-2xl">🏛️</span>
-              <span className="text-[15px] font-black uppercase tracking-wider text-slate-900">
-                PUBLIC HEALTH FACILITY • OPD TRIAGE
-              </span>
+            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10.5px] font-black uppercase tracking-wider mb-1">
+              <span>🏥</span>
+              <span>{facilityInfo?.type || (facilityName.toLowerCase().includes("clinic") ? "CLINIC" : "HOSPITAL")} OPD TRIAGE</span>
             </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-950 uppercase tracking-tight">
+              {facilityInfo?.name || facilityName}
+            </h1>
+            {facilityInfo?.licenseNumber && (
+              <p className="text-[11.5px] font-mono font-bold text-slate-600">
+                License / Reg No: <span className="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{facilityInfo.licenseNumber}</span>
+              </p>
+            )}
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-              Human-in-the-Loop Clinical Triage Token Slip
+              Official Clinical Consultation & Triage Token Pass
             </p>
           </div>
 
@@ -197,6 +224,47 @@ export default function TriageSlipModal({ note, onClose }) {
             <p className="text-[13px] font-medium leading-relaxed text-slate-800 whitespace-pre-line">
               {note.summary || note.rawSymptomText || "No symptoms recorded."}
             </p>
+          </div>
+
+          {/* Official Hospital Name, Address & Contact Details Footer */}
+          <div className="p-3.5 rounded-xl border border-slate-300 bg-slate-50/90 space-y-2">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+              <span className="text-[12px] font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <span>🏥</span>
+                <span>{facilityInfo?.name || facilityName}</span>
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 uppercase">
+                Authorized Healthcare Centre
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[12px] text-slate-700 font-medium">
+              <div className="flex items-start gap-1.5">
+                <span className="text-slate-400 shrink-0">📍</span>
+                <div>
+                  <span className="font-bold text-slate-900 block text-[11px] uppercase">Facility Address:</span>
+                  <span className="leading-snug">
+                    {facilityInfo?.address || 
+                     (facilityInfo?.city ? `${facilityInfo.city}, ${facilityInfo.district}, ${facilityInfo.state}` : "Main Medical Campus")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-1.5">
+                <span className="text-slate-400 shrink-0">📞</span>
+                <div>
+                  <span className="font-bold text-slate-900 block text-[11px] uppercase">Helpdesk & Contact:</span>
+                  <span className="font-mono text-slate-900 font-bold block">
+                    {facilityInfo?.phone ? `+91 ${facilityInfo.phone}` : "+91-1800-TRIAQ"}
+                  </span>
+                  {facilityInfo?.adminEmail && (
+                    <span className="text-[11px] text-slate-500 block truncate">
+                      ✉️ {facilityInfo.adminEmail}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Barcode & Verification Footer */}
