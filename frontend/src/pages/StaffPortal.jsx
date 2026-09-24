@@ -958,36 +958,60 @@ export default function StaffPortal({ onNavigateHome }) {
       ) : (
         /* STAFF DASHBOARD VIEW */
         <div className="space-y-6">
-          {/* Hospital / Clinic Identity Banner */}
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-5 text-white shadow-sm flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10.5px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  🏥 Healthcare Workstation
+          {/* Executive Hospital Workstation Header */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-lg shadow-xs">
+                  ✚
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">
-                  Logged in: {staffSession.staff?.name} ({staffSession.staff?.role})
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      {staffSession.staff?.facility || staffSession.facility?.name || "Healthcare Facility"}
+                    </h1>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                      Station Active
+                    </span>
+                  </div>
+                  <p className="text-[12.5px] text-slate-500 font-medium">
+                    Outpatient Department (OPD) Clinical Station • Live Patient Queue & Intake Management
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[11px] text-slate-400 font-bold uppercase block">Attending Provider</span>
+                <span className="text-[13px] font-bold text-slate-800 block">
+                  {staffSession.staff?.name} ({staffSession.staff?.role})
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-2">
-                <IconHospital className="w-7 h-7 text-emerald-400 shrink-0" />
-                <span>{staffSession.staff?.facility || staffSession.facility?.name || "Healthcare Facility"}</span>
-              </h1>
-              <p className="text-[12.5px] text-slate-300 font-medium">
-                Official Clinical Workstation • Live OPD Priority Queue & Patient Intake Management
-              </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[110px]">
-                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Live Queue</span>
-                <span className="text-2xl font-black text-emerald-400">{filteredQueue.length}</span>
-                <span className="block text-[10px] text-slate-400">Waiting Cases</span>
+            {/* Structured Operational KPIs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-500 uppercase block">Waiting Queue</span>
+                <span className="text-2xl font-black text-slate-900">{filteredQueue.length}</span>
+                <span className="text-[10px] text-slate-400 block">Patients in Line</span>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[110px]">
-                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Facility Rooms</span>
-                <span className="text-2xl font-black text-teal-300">{facilityRooms.length}</span>
-                <span className="block text-[10px] text-slate-400">Layout Wards</span>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-500 uppercase block">Priority Cases</span>
+                <span className="text-2xl font-black text-amber-700">
+                  {filteredQueue.filter(q => q.riskTag === 'RED' || q.riskTag === 'YELLOW' || q.riskTag === 'AMBER').length}
+                </span>
+                <span className="text-[10px] text-slate-400 block">Elevated / Urgent</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-500 uppercase block">Active Rooms</span>
+                <span className="text-2xl font-black text-slate-900">{facilityRooms.length}</span>
+                <span className="text-[10px] text-slate-400 block">Configured Wards</span>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
+                <span className="text-[11px] font-bold text-slate-500 uppercase block">Duty Shift</span>
+                <span className="text-base font-black text-emerald-800 mt-1 block">General OPD</span>
+                <span className="text-[10px] text-slate-400 block">Active Intake</span>
               </div>
             </div>
           </div>
@@ -1125,7 +1149,7 @@ export default function StaffPortal({ onNavigateHome }) {
                         className="px-4 py-2 rounded-xl text-[12px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
                       >
                         <span>➕</span>
-                        <span>Load Sample Case to Test Actions</span>
+                        <span>Load Demo Patient Record (Preview)</span>
                       </button>
                     </div>
                   ) : (
@@ -1229,7 +1253,7 @@ export default function StaffPortal({ onNavigateHome }) {
                       className="mt-2 px-5 py-2.5 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition cursor-pointer shadow-xs inline-flex items-center gap-2"
                     >
                       <span>➕</span>
-                      <span>Load Sample Patient Case for Review</span>
+                      <span>Preview Sample Case Record</span>
                     </button>
                   </div>
                 ) : (
@@ -1572,7 +1596,7 @@ export default function StaffPortal({ onNavigateHome }) {
                           disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("APPROVE")}
                           className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                          title="Accept AI risk evaluation and queue for OPD consultation"
+                          title="Approve Triage & Queue for OPD Consultation"
                         >
                           <IconCheckCircle className="w-4 h-4" />
                           <span>Approve</span>

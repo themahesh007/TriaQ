@@ -199,24 +199,24 @@ function generateTriageReceiptPDF(data) {
         .font("Helvetica")
         .text(symptomsText, 35, y, { width: doc.page.width - 70, height: 60, ellipsis: true });
 
-      // Medical Safety Disclaimer Box
+      // Patient Guidance & Official Notice Box
       const footerY = doc.page.height - 90;
       doc
         .rect(30, footerY, doc.page.width - 60, 55)
-        .fillAndStroke("#FEF2F2", "#FCA5A5");
+        .fillAndStroke("#F8FAFC", "#CBD5E1");
 
       doc
         .fontSize(7.5)
-        .fillColor("#991B1B")
+        .fillColor("#1E293B")
         .font("Helvetica-Bold")
-        .text("IMPORTANT CLINICAL NOTICE", 40, footerY + 7);
+        .text("GENERAL PATIENT INSTRUCTIONS & CLINICAL GUIDANCE", 40, footerY + 7);
 
       doc
         .fontSize(7)
-        .fillColor("#7F1D1D")
+        .fillColor("#475569")
         .font("Helvetica")
         .text(
-          "This token is an administrative triage receipt and does NOT constitute a medical diagnosis or prescription. A qualified medical officer will examine your case in order of clinical priority. If you experience severe chest pain, extreme breathlessness, or collapse, alert emergency staff immediately.",
+          "1. Please proceed to the waiting area of your assigned room. Your token number will be announced.\n2. Present this token pass to the nursing officer upon entering the consultation room.\n3. In case of sudden acute pain, extreme breathlessness, or trauma, report directly to the Emergency Room.",
           40,
           footerY + 18,
           { width: doc.page.width - 80 }

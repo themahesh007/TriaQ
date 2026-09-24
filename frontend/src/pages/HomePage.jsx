@@ -19,7 +19,7 @@ export default function HomePage({ onNavigate }) {
       <div className="text-center space-y-3.5">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11.5px] font-black tracking-wider uppercase shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          Clinical Triage Platform • AI & Human In The Loop
+          Hospital Clinical Triage & OPD Queue Management System
         </div>
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
           Welcome to <span className="text-emerald-700">TriaQ</span>

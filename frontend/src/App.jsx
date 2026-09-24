@@ -110,7 +110,7 @@ export default function App() {
             </button>
           </div>
           <p className="text-[11.5px] text-slate-400 max-w-xl mx-auto">
-            Strictly non-diagnostic prototype. AI organizes patient information for qualified human medical review only. Designed for PHCs & Government Health Centers.
+            Hospital Outpatient Information System • Clinical Triage & Queue Management • Built for Hospitals, Clinics & Primary Healthcare Centers
           </p>
         </div>
       </footer>
