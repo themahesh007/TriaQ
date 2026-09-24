@@ -299,18 +299,10 @@ function generateReceiptNumber() {
 const storage = {
   // --- PATIENTS ---
   async createPatient(data = {}) {
-    const targetFacility = data.facility || "Apollo PHC Hub, Delhi";
-    let tokenId = data.tokenId;
-
-    if (!tokenId) {
-      const cloudToken = await db.getNextSequentialTokenNumber(targetFacility);
-      if (cloudToken) {
-        tokenId = cloudToken;
-      } else {
-        tokenCounter += 1;
-        tokenId = `TOKEN NUMBER ${String(tokenCounter).padStart(2, "0")}`;
-      }
-    }
+    const targetFacility = data.facility || null;
+    // Token is strictly NOT assigned at registration or login.
+    // Sequential token is assigned ONLY when patient actually submits symptoms!
+    const tokenId = data.tokenId || null;
 
     const patient = {
       id: generateCuid(),
@@ -484,15 +476,35 @@ const storage = {
       patient = await this.createPatient({ id: data.patientId, facility: data.facility });
     }
 
+    const targetFacility = data.facility || patient.facility || "GLOBAL";
+
+    // GENERATE STRICTLY SEQUENTIAL TOKEN AT SYMPTOM SUBMISSION TIME
+    let assignedToken = null;
+    try {
+      assignedToken = await db.getNextSequentialTokenNumber(targetFacility);
+    } catch (e) {
+      console.error("Error generating cloud token:", e);
+    }
+    if (!assignedToken) {
+      tokenCounter += 1;
+      assignedToken = `TOKEN NUMBER ${String(tokenCounter).padStart(2, "0")}`;
+    }
+
+    // Attach valid sequential token to patient record
+    patient.tokenId = assignedToken;
+    patient.facility = targetFacility;
+    db.savePatientToCloud(patient).catch(console.error);
+
     const receiptNumber = generateReceiptNumber();
 
     const note = {
       id: generateCuid(),
       receiptNumber,
       patientId: patient.id,
+      tokenId: assignedToken,
       patient: {
         id: patient.id,
-        tokenId: patient.tokenId,
+        tokenId: assignedToken,
         name: decryptPatientProfile(patient).name,
         phone: decryptPatientProfile(patient).phone,
         age: decryptPatientProfile(patient).age,

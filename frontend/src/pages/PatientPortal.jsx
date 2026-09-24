@@ -159,6 +159,7 @@ export default function PatientPortal({ onNavigateHome }) {
   const [symptomText, setSymptomText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
+  const baseTextRef = useRef("");
   const [micError, setMicError] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const [reportImageBase64, setReportImageBase64] = useState(null);
@@ -485,6 +486,11 @@ export default function PatientPortal({ onNavigateHome }) {
 
       localStorage.setItem("triaq_patient_session", JSON.stringify(data));
       setPatientSession(data);
+      if (data.patient?.phone) {
+        setContactPhone(data.patient.phone);
+      } else if (cleanPhone) {
+        setContactPhone(cleanPhone);
+      }
       setCurrentStep("intake");
     } catch (err) {
       setAuthError(err.message);
@@ -509,12 +515,11 @@ export default function PatientPortal({ onNavigateHome }) {
       return;
     }
 
-    const activePhone = contactPhone.trim() || phone;
-    if (activePhone && !isValidIndianPhone(activePhone)) {
+    const cleanContact = cleanIndianPhone(contactPhone);
+    if (!cleanContact || !isValidIndianPhone(cleanContact)) {
       setIntakeSavedNotice("Please enter a valid 10-digit Indian Contact Number (starting with 6, 7, 8, or 9).");
       return;
     }
-    const cleanedContact = activePhone ? cleanIndianPhone(activePhone) : "";
 
     setLoading(true);
     setIntakeSavedNotice("");
@@ -530,7 +535,7 @@ export default function PatientPortal({ onNavigateHome }) {
           body: JSON.stringify({
             name: fullName.trim(),
             age: age.trim(),
-            phone: cleanedContact,
+            phone: cleanContact,
             address: address.trim(),
             conditions: conditions.trim(),
             medications: medications.trim()
@@ -590,6 +595,9 @@ export default function PatientPortal({ onNavigateHome }) {
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      // Lock current base text so we never duplicate or repeat words
+      baseTextRef.current = symptomText;
+
       recognition.onstart = () => {
         setIsRecording(true);
         setMicError("");
@@ -597,22 +605,25 @@ export default function PatientPortal({ onNavigateHome }) {
       };
 
       recognition.onresult = (event) => {
-        let finalStr = "";
-        let interimStr = "";
+        let sessionFinal = "";
+        let sessionInterim = "";
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Calculate session total from 0 to avoid partial chunk repetition
+        for (let i = 0; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalStr += transcript + " ";
+            sessionFinal += transcript + " ";
           } else {
-            interimStr += transcript;
+            sessionInterim += transcript;
           }
         }
 
-        if (finalStr.trim()) {
-          setSymptomText((prev) => (prev ? `${prev.trim()} ${finalStr.trim()}` : finalStr.trim()));
-        }
-        setInterimTranscript(interimStr);
+        const base = (baseTextRef.current || "").trim();
+        const finalClean = sessionFinal.trim();
+        const combined = base ? (finalClean ? `${base} ${finalClean}` : base) : finalClean;
+
+        setSymptomText(combined);
+        setInterimTranscript(sessionInterim.trim());
       };
 
       recognition.onerror = (event) => {
@@ -712,7 +723,7 @@ export default function PatientPortal({ onNavigateHome }) {
         facility: selectedFacility,
         fullName: fullName || "Patient",
         age,
-        phone: contactPhone || phone,
+        phone: contactPhone,
         address
       });
       setCurrentStep("confirmation");
@@ -761,9 +772,15 @@ export default function PatientPortal({ onNavigateHome }) {
 
         {patientSession && (
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-bold text-slate-600">
-              Token: {patientSession.patient?.tokenId || "Active"}
-            </span>
+            {(receiptData?.tokenId || patientSession.patient?.tokenId) ? (
+              <span className="text-[11.5px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                Token: {receiptData?.tokenId || patientSession.patient?.tokenId}
+              </span>
+            ) : (
+              <span className="text-[12px] font-bold text-slate-600">
+                Patient: {fullName || patientSession.patient?.name || "Active Session"}
+              </span>
+            )}
             <button
               type="button"
               onClick={handleLogout}
@@ -1221,11 +1238,12 @@ export default function PatientPortal({ onNavigateHome }) {
                   </span>
                   <input
                     type="tel"
+                    required
                     maxLength={10}
-                    value={contactPhone || phone}
-                    onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, ""))}
+                    value={contactPhone}
+                    onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="e.g. 9876543210"
-                    className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
+                    className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 tracking-wider"
                   />
                 </div>
               </div>
