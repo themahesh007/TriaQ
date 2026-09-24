@@ -44,19 +44,7 @@ export default function MasterPortal({ onNavigateHome }) {
   const [notification, setNotification] = useState("");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
-  // Facility management modal states
-  const [showAddFacilityModal, setShowAddFacilityModal] = useState(false);
-  const [facName, setFacName] = useState("");
-  const [facType, setFacType] = useState("HOSPITAL"); // HOSPITAL | CLINIC
-  const [facState, setFacState] = useState("");
-  const [facDistrict, setFacDistrict] = useState("");
-  const [facCity, setFacCity] = useState("");
-  const [facPhone, setFacPhone] = useState("");
-  const [facCode, setFacCode] = useState("");
-  const [facAddress, setFacAddress] = useState("");
-  const [facAdminEmail, setFacAdminEmail] = useState("");
-  const [facAdminPassword, setFacAdminPassword] = useState("");
-  const [showFacPw, setShowFacPw] = useState(false);
+  // QR Standee modal state
   const [showQrModalFacility, setShowQrModalFacility] = useState(null);
 
   const fetchMasterData = useCallback(async () => {
@@ -191,51 +179,7 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   };
 
-  // Facility Management Handlers
-  const handleCreateFacility = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/master/facilities`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${masterSession.token}`
-        },
-        body: JSON.stringify({
-          name: facName.trim(),
-          type: facType,
-          state: facState.trim(),
-          district: facDistrict.trim(),
-          city: facCity.trim(),
-          phone: facPhone ? facPhone.replace(/\D/g, "") : undefined,
-          code: facCode.trim() || undefined,
-          address: facAddress.trim() || undefined,
-          adminEmail: facAdminEmail.trim(),
-          adminPassword: facAdminPassword
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to register facility");
 
-      setNotification(`✓ Healthcare Facility "${facName}" registered successfully!`);
-      setShowAddFacilityModal(false);
-      setFacName("");
-      setFacState("");
-      setFacDistrict("");
-      setFacCity("");
-      setFacPhone("");
-      setFacCode("");
-      setFacAddress("");
-      setFacAdminEmail("");
-      setFacAdminPassword("");
-      fetchMasterData();
-    } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteFacility = async (facilityId, facilityName) => {
     if (!window.confirm(`Are you sure you want to remove healthcare facility "${facilityName}"?`)) return;
@@ -557,39 +501,29 @@ export default function MasterPortal({ onNavigateHome }) {
                     <span>Healthcare Facilities & Clinics ({facilities.length})</span>
                   </h3>
                   <p className="text-[12.5px] text-slate-500 font-medium">
-                    Verify and approve incoming hospital registrations, provision network clinics, and monitor QR reception standees.
+                    Review and verify incoming hospital registrations with 1-click Approve or Reject, and monitor active reception QR standees.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddFacilityModal(true)}
-                  className="btn-tactile py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-2 cursor-pointer"
-                >
-                  <span>+ Add Hospital / Clinic</span>
-                </button>
               </div>
 
-              {/* PENDING HOSPITAL REGISTRATION APPROVAL QUEUE */}
-              {pendingFacilities.length > 0 && (
-                <div className="p-5 rounded-2xl border-2 border-amber-300 bg-amber-50/40 space-y-4 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-3">
-                    <div>
-                      <h4 className="font-black text-amber-950 text-base flex items-center gap-2">
-                        <IconShield className="w-5 h-5 text-amber-600" />
-                        <span>Pending Hospital Verification Queue ({pendingFacilities.length})</span>
-                      </h4>
-                      <p className="text-[12px] text-amber-800 font-medium">
-                        These healthcare institutions registered online. Review their state, district, city, contact number, and official admin email before approving.
-                      </p>
-                    </div>
-                    <span className="text-[11px] font-black uppercase px-2.5 py-1 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
-                      Requires Master Clearance
+              {/* HOSPITAL VERIFICATION & APPROVAL DESK */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <h4 className="font-black text-slate-900 text-sm uppercase tracking-wider flex items-center gap-2">
+                    <IconShield className="w-4 h-4 text-emerald-600" />
+                    <span>Hospital Verification Queue ({pendingFacilities.length} Pending)</span>
+                  </h4>
+                  {pendingFacilities.length > 0 && (
+                    <span className="text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                      Action Required ({pendingFacilities.length})
                     </span>
-                  </div>
+                  )}
+                </div>
 
+                {pendingFacilities.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {pendingFacilities.map((pf) => (
-                      <div key={pf.id} className="p-4 rounded-xl border border-amber-300 bg-white shadow-xs space-y-3">
+                      <div key={pf.id} className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/30 shadow-xs space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-[10.5px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 uppercase">
                             {pf.type || "HOSPITAL"}
@@ -601,7 +535,7 @@ export default function MasterPortal({ onNavigateHome }) {
 
                         <div>
                           <h5 className="font-black text-slate-900 text-base">{pf.name}</h5>
-                          <p className="text-[12.5px] text-slate-600 font-medium">
+                          <p className="text-[12.5px] text-slate-700 font-medium">
                             📍 {pf.city ? `${pf.city}, ${pf.district}, ${pf.state}` : pf.address}
                           </p>
                           <p className="text-[12px] text-slate-600 font-medium mt-0.5">
@@ -612,18 +546,18 @@ export default function MasterPortal({ onNavigateHome }) {
                           </p>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-2">
+                        <div className="pt-2 border-t border-amber-200 grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => handleApproveFacility(pf.id, pf.name)}
-                            className="btn-tactile py-2 px-3 rounded-xl font-black text-[12.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="btn-tactile py-2.5 px-3 rounded-xl font-black text-[12.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <span>✓ Approve Hospital</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => handleRejectFacility(pf.id, pf.name)}
-                            className="btn-tactile py-2 px-3 rounded-xl font-bold text-[12.5px] text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                            className="btn-tactile py-2.5 px-3 rounded-xl font-bold text-[12.5px] text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-300 transition flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <span>✕ Reject</span>
                           </button>
@@ -631,8 +565,18 @@ export default function MasterPortal({ onNavigateHome }) {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 space-y-1 shadow-2xs">
+                    <div className="flex items-center gap-2 text-emerald-900 font-black text-[13px]">
+                      <IconCheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>All Hospital Registrations Cleared — No Facilities Currently Pending Approval</span>
+                    </div>
+                    <p className="text-[12px] text-emerald-800 font-medium pl-6">
+                      When a healthcare institution registers online via the Hospital Portal, their verification card will appear here instantly with 1-click Approve or Reject options.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               {/* APPROVED ACTIVE FACILITIES */}
               <div>
@@ -706,197 +650,6 @@ export default function MasterPortal({ onNavigateHome }) {
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ADD FACILITY MODAL */}
-      {showAddFacilityModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-xl space-y-4 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <IconHospital className="w-5 h-5 text-emerald-600" />
-                <span>Register Healthcare Facility</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddFacilityModal(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer font-black"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFacility} className="space-y-3.5">
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Facility Type <span className="text-rose-600">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "HOSPITAL", label: "Hospital", desc: "Multi-dept / OPD Hub" },
-                    { id: "CLINIC", label: "Clinic", desc: "Private / PHC Center" }
-                  ].map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setFacType(t.id)}
-                      className={`p-2.5 rounded-xl border font-bold text-center cursor-pointer transition ${
-                        facType === t.id
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="block text-sm font-black">{t.label}</span>
-                      <span className={`block text-[10px] ${facType === t.id ? "text-slate-300" : "text-slate-400"}`}>
-                        {t.desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Facility Name <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={facName}
-                  onChange={(e) => setFacName(e.target.value)}
-                  placeholder={facType === "HOSPITAL" ? "Apollo PHC Hub, Delhi" : "City Health Clinic, Mumbai"}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              {/* State, District, City */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    State <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={facState}
-                    onChange={(e) => setFacState(e.target.value)}
-                    placeholder="e.g. Odisha"
-                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    District <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={facDistrict}
-                    onChange={(e) => setFacDistrict(e.target.value)}
-                    placeholder="e.g. Khordha"
-                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                    City <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={facCity}
-                    onChange={(e) => setFacCity(e.target.value)}
-                    placeholder="e.g. Bhubaneswar"
-                    className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium outline-none focus:border-emerald-600"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Contact Number
-                  </label>
-                  <input
-                    type="tel"
-                    maxLength={10}
-                    value={facPhone}
-                    onChange={(e) => setFacPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="9876543210"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Facility Code
-                  </label>
-                  <input
-                    type="text"
-                    value={facCode}
-                    onChange={(e) => setFacCode(e.target.value.toUpperCase())}
-                    placeholder="APOLLO-01"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-mono outline-none focus:border-emerald-600"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Facility Admin Email <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={facAdminEmail}
-                  onChange={(e) => setFacAdminEmail(e.target.value)}
-                  placeholder="admin@apollo.org"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Admin Initial Password <span className="text-rose-600">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showFacPw ? "text" : "password"}
-                    required
-                    minLength={8}
-                    value={facAdminPassword}
-                    onChange={(e) => setFacAdminPassword(e.target.value)}
-                    placeholder="Apollo@123"
-                    className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowFacPw(!showFacPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  >
-                    {showFacPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddFacilityModal(false)}
-                  className="px-4 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-tactile px-5 py-2 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
-                >
-                  {loading ? "Registering..." : "Confirm & Register Facility"}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 

@@ -65,6 +65,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [regPassword, setRegPassword] = useState("");
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regError, setRegError] = useState("");
+  const [submittedStaffPending, setSubmittedStaffPending] = useState(null);
 
   // Forced password change state
   const [requiresPwChange, setRequiresPwChange] = useState(false);
@@ -234,25 +235,25 @@ export default function StaffPortal({ onNavigateHome }) {
     }
 
     setLoading(true);
+    const staffPayload = {
+      name: regName.trim(),
+      email: regEmail.trim(),
+      password: regPassword,
+      role: regRole,
+      facility: regFacility.trim() || "Apollo PHC Hub, Delhi",
+      phone: cleanedPhone
+    };
     try {
       const res = await fetch(`${API_BASE}/api/staff/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: regName.trim(),
-          email: regEmail.trim(),
-          password: regPassword,
-          role: regRole,
-          facility: regFacility.trim() || "Apollo PHC Hub, Delhi",
-          phone: cleanedPhone
-        })
+        body: JSON.stringify(staffPayload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Staff registration failed");
 
-      localStorage.setItem("triaq_staff_session", JSON.stringify(data));
-      setStaffSession(data);
-      setNotification(`✓ Welcome, ${data.staff?.name || "Colleague"}! Staff account successfully registered and activated.`);
+      setSubmittedStaffPending(staffPayload);
+      setNotification(`✓ Registration submitted for ${staffPayload.name}! Awaiting Hospital HOD approval.`);
     } catch (err) {
       setRegError(err.message);
     } finally {
@@ -465,11 +466,98 @@ export default function StaffPortal({ onNavigateHome }) {
               </p>
             </div>
 
-            {regError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-                {regError}
+            {submittedStaffPending ? (
+              <div className="space-y-5 animate-fade-in">
+                {/* Amber Caution Alert Box */}
+                <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/90 text-amber-950 space-y-2.5 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">⚠️</span>
+                    <h4 className="font-black text-[14px] uppercase tracking-wide text-amber-900">
+                      CAUTION: Registration Submitted — Awaiting HOD Approval
+                    </h4>
+                  </div>
+                  <p className="text-[12.5px] leading-relaxed font-medium text-amber-900">
+                    Your medical credentials for <strong>{submittedStaffPending.name}</strong> ({submittedStaffPending.role}) have been registered under <strong>{submittedStaffPending.facility}</strong>.
+                    <strong> Under clinical safety governance and patient privacy protocols, your clinical station login remains strictly locked until your department Head of Department (HOD) verifies and approves your credentials in the Hospital Portal.</strong>
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-amber-100 border border-amber-200 text-[11.5px] font-bold text-amber-900 flex items-center gap-2">
+                    <span>📌</span>
+                    <span>Once approved by your HOD, you can sign in immediately with your email and password to review patient triage queues.</span>
+                  </div>
+                </div>
+
+                {/* Submitted Clinician Profile Summary */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                      Clinician Profile Summary
+                    </span>
+                    <span className="text-[10.5px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      ⏳ PENDING HOD CLEARANCE
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-[12.5px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Clinician Name:</span>
+                      <strong className="text-slate-900">{submittedStaffPending.name}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Clinical Role:</span>
+                      <span className="font-bold text-emerald-800">{submittedStaffPending.role}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Assigned Hospital:</span>
+                      <strong className="text-slate-900">{submittedStaffPending.facility}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Official Staff Email:</span>
+                      <span className="font-mono text-slate-900 text-[12px]">{submittedStaffPending.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Contact Number:</span>
+                      <span className="font-mono text-slate-900 text-[12px]">+91 {submittedStaffPending.phone}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navigation Actions */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEmail(submittedStaffPending.email);
+                      setSubmittedStaffPending(null);
+                      setIsStaffRegister(false);
+                      setLoginError("");
+                    }}
+                    className="btn-tactile w-full py-3 rounded-xl font-black text-[13.5px] text-white bg-slate-900 hover:bg-slate-800 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Proceed to Staff Login Desk →</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmittedStaffPending(null);
+                      setRegName("");
+                      setRegPhone("");
+                      setRegEmail("");
+                      setRegPassword("");
+                    }}
+                    className="w-full py-2.5 rounded-xl font-bold text-[12.5px] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Register Another Staff Member
+                  </button>
+                </div>
               </div>
-            )}
+            ) : (
+              <>
+                {regError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                    {regError}
+                  </div>
+                )}
 
             <form onSubmit={handleStaffRegister} className="space-y-4">
               {/* Clinical Role Selector */}
@@ -632,6 +720,8 @@ export default function StaffPortal({ onNavigateHome }) {
                 </button>
               </div>
             </form>
+            </>
+            )}
           </div>
         ) : (
           /* STAFF LOGIN VIEW */
@@ -682,9 +772,24 @@ export default function StaffPortal({ onNavigateHome }) {
             </div>
 
             {loginError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-                {loginError}
-              </div>
+              loginError.toLowerCase().includes("pending") || loginError.toLowerCase().includes("hod") ? (
+                <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-1.5 shadow-xs animate-fade-in">
+                  <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
+                    <span className="text-lg">⚠️</span>
+                    <span>CAUTION: Staff Account Pending HOD Clearance</span>
+                  </div>
+                  <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-6">
+                    {loginError}
+                  </p>
+                  <p className="text-[11px] font-bold text-amber-800 pl-6">
+                    Please contact your Hospital Administration or Department HOD to approve your account in the Hospital Portal.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                  {loginError}
+                </div>
+              )
             )}
 
             <form onSubmit={handleLogin} className="space-y-4">

@@ -58,7 +58,7 @@ export default function HospitalPortal({ onNavigateHome }) {
   const [regPassword, setRegPassword] = useState("");
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [regError, setRegError] = useState("");
-  const [regSuccessMessage, setRegSuccessMessage] = useState("");
+  const [submittedPendingFacility, setSubmittedPendingFacility] = useState(null);
 
   // Active Dashboard Tab: "qr" | "approvals" | "staff" | "queue"
   const [activeTab, setActiveTab] = useState("qr");
@@ -69,16 +69,7 @@ export default function HospitalPortal({ onNavigateHome }) {
   const [facilityQueue, setFacilityQueue] = useState([]);
   const [notification, setNotification] = useState("");
 
-  // Add Staff Modal / Form
-  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
-  const [staffRole, setStaffRole] = useState("DOCTOR"); // DOCTOR | NURSE
-  const [staffName, setStaffName] = useState("");
-  const [staffEmail, setStaffEmail] = useState("");
-  const [staffPassword, setStaffPassword] = useState("");
-  const [showStaffPassword, setShowStaffPassword] = useState(false);
-  const [staffDepartment, setStaffDepartment] = useState("General Medicine");
-  const [staffPhone, setStaffPhone] = useState("");
-  const [addStaffError, setAddStaffError] = useState("");
+
 
   // Handle Login
   const handleLogin = async (e) => {
@@ -107,34 +98,28 @@ export default function HospitalPortal({ onNavigateHome }) {
   const handleHospitalRegister = async (e) => {
     e.preventDefault();
     setRegError("");
-    setRegSuccessMessage("");
     setLoading(true);
+    const facilityPayload = {
+      name: regName.trim(),
+      type: regType,
+      state: regState.trim(),
+      district: regDistrict.trim(),
+      city: regCity.trim(),
+      phone: cleanIndianPhone(regPhone),
+      adminEmail: regEmail.trim().toLowerCase(),
+      adminPassword: regPassword
+    };
     try {
       const res = await fetch(`${API_BASE}/api/hospital/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: regName.trim(),
-          type: regType,
-          state: regState.trim(),
-          district: regDistrict.trim(),
-          city: regCity.trim(),
-          phone: cleanIndianPhone(regPhone),
-          adminEmail: regEmail.trim().toLowerCase(),
-          adminPassword: regPassword
-        })
+        body: JSON.stringify(facilityPayload)
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Hospital registration failed");
 
-      setRegSuccessMessage(data.message || `Registration for "${regName}" submitted successfully! Your hospital is pending Master clearance.`);
-      setRegName("");
-      setRegState("");
-      setRegDistrict("");
-      setRegCity("");
-      setRegPhone("");
-      setRegEmail("");
-      setRegPassword("");
+      setSubmittedPendingFacility(facilityPayload);
+      setNotification(`✓ Registration submitted for "${facilityPayload.name}"! Awaiting Master clearance.`);
     } catch (err) {
       setRegError(err.message);
     } finally {
@@ -249,43 +234,7 @@ export default function HospitalPortal({ onNavigateHome }) {
     }
   }, [session, fetchFacilityData]);
 
-  // Handle Add Doctor / Nurse
-  const handleAddStaff = async (e) => {
-    e.preventDefault();
-    setAddStaffError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/hospital/staff`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.token}`
-        },
-        body: JSON.stringify({
-          name: staffName.trim(),
-          email: staffEmail.trim(),
-          password: staffPassword,
-          role: staffRole,
-          department: staffDepartment,
-          phone: cleanIndianPhone(staffPhone)
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to add medical staff");
 
-      setNotification(`✓ ${staffRole === "DOCTOR" ? "Dr." : "Nurse"} ${staffName} successfully added to hospital roster!`);
-      setShowAddStaffModal(false);
-      setStaffName("");
-      setStaffEmail("");
-      setStaffPassword("");
-      setStaffPhone("");
-      await fetchFacilityData();
-    } catch (err) {
-      setAddStaffError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // QR Standee URL
   const qrCheckInUrl = useMemo(() => {
@@ -399,12 +348,6 @@ export default function HospitalPortal({ onNavigateHome }) {
             </button>
           </div>
 
-          {regSuccessMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-[12.5px] font-bold leading-relaxed">
-              {regSuccessMessage}
-            </div>
-          )}
-
           {!isRegistering ? (
             /* --- 1. LOGIN FORM --- */
             <div className="space-y-4">
@@ -427,9 +370,24 @@ export default function HospitalPortal({ onNavigateHome }) {
               </div>
 
               {loginError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-                  {loginError}
-                </div>
+                loginError.toLowerCase().includes("pending") ? (
+                  <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-1.5 shadow-xs animate-fade-in">
+                    <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
+                      <span className="text-lg">⚠️</span>
+                      <span>CAUTION: Facility Awaiting Master Approval</span>
+                    </div>
+                    <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-6">
+                      {loginError}
+                    </p>
+                    <p className="text-[11px] font-bold text-amber-800 pl-6">
+                      Please wait for the State Master Administrator to approve your hospital verification request.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                    {loginError}
+                  </div>
+                )
               )}
 
               <form onSubmit={handleLogin} className="space-y-4">
@@ -481,17 +439,108 @@ export default function HospitalPortal({ onNavigateHome }) {
               </form>
             </div>
           ) : (
-            /* --- 2. REGISTER NEW HOSPITAL FORM --- */
-            <div className="space-y-4">
-              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12px] font-medium leading-relaxed">
-                <strong>🛡️ Master Verification:</strong> To prevent fraudulent hospital listings, newly registered facilities require approval by the Master Administrator before logging in.
-              </div>
-
-              {regError && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-                  {regError}
+            /* --- 2. REGISTER NEW HOSPITAL VIEW (WITH DEDICATED PENDING CAUTION SCREEN) --- */
+            submittedPendingFacility ? (
+              <div className="space-y-5 animate-fade-in">
+                {/* Dedicated Amber Caution Banner */}
+                <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/90 text-amber-950 space-y-2.5 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">⚠️</span>
+                    <h4 className="font-black text-[14px] uppercase tracking-wide text-amber-900">
+                      CAUTION: Facility Registration Submitted — Master Verification Required
+                    </h4>
+                  </div>
+                  <p className="text-[12.5px] leading-relaxed font-medium text-amber-900">
+                    Your facility registration for <strong>{submittedPendingFacility.name}</strong> has been logged in the Master Registry.
+                    <strong> To safeguard patient health records and prevent unauthorized access, hospital portal login remains strictly locked until identity verification is completed and approved by the State Master Administration.</strong>
+                  </p>
+                  <div className="p-2.5 rounded-lg bg-amber-100 border border-amber-200 text-[11.5px] font-bold text-amber-900 flex items-center gap-2">
+                    <span>📌</span>
+                    <span>Once approved by Master, your reception QR standee and sequential OPD token queue will unlock immediately.</span>
+                  </div>
                 </div>
-              )}
+
+                {/* Submitted Facility Details Summary */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                      Application Summary
+                    </span>
+                    <span className="text-[10.5px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      ⏳ AWAITING MASTER APPROVAL
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 text-[12.5px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Facility Name:</span>
+                      <strong className="text-slate-900">{submittedPendingFacility.name}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Facility Type:</span>
+                      <span className="font-bold text-emerald-800">{submittedPendingFacility.type}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Regional Location:</span>
+                      <strong className="text-slate-900">
+                        {submittedPendingFacility.city}, {submittedPendingFacility.district}, {submittedPendingFacility.state}
+                      </strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Admin Email:</span>
+                      <span className="font-mono text-slate-900 text-[12px]">{submittedPendingFacility.adminEmail}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Contact Phone:</span>
+                      <span className="font-mono text-slate-900 text-[12px]">+91 {submittedPendingFacility.phone}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginEmail(submittedPendingFacility.adminEmail);
+                      setSubmittedPendingFacility(null);
+                      setIsRegistering(false);
+                      setLoginError("");
+                    }}
+                    className="btn-tactile w-full py-3 rounded-xl font-black text-[13.5px] text-white bg-slate-900 hover:bg-slate-800 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Proceed to Hospital Login Desk →</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmittedPendingFacility(null);
+                      setRegName("");
+                      setRegState("");
+                      setRegDistrict("");
+                      setRegCity("");
+                      setRegPhone("");
+                      setRegEmail("");
+                      setRegPassword("");
+                    }}
+                    className="w-full py-2.5 rounded-xl font-bold text-[12.5px] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    Register Another Hospital / Clinic
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12px] font-medium leading-relaxed">
+                  <strong>🛡️ Master Verification:</strong> Newly registered healthcare facilities require verification & approval by the State Master Administration before logging in.
+                </div>
+
+                {regError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
+                    {regError}
+                  </div>
+                )}
 
               <form onSubmit={handleHospitalRegister} className="space-y-3.5">
                 <div>
@@ -641,6 +690,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                 </button>
               </form>
             </div>
+            )
           )}
         </div>
       ) : (
@@ -935,21 +985,15 @@ export default function HospitalPortal({ onNavigateHome }) {
                     Active certified doctors and staff nurses authorized to conduct triage and consultations at {session.facility?.name}.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddStaffModal(true)}
-                  className="btn-tactile py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-2 cursor-pointer"
-                >
-                  <span>+ Add Doctor / Nurse</span>
-                </button>
+
               </div>
 
               {staffList.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 space-y-2">
                   <IconDoctor className="w-10 h-10 mx-auto text-slate-300" />
-                  <p className="font-bold text-slate-700">No Medical Staff Registered Yet</p>
+                  <p className="font-bold text-slate-700">No Active Medical Staff on Roster</p>
                   <p className="text-xs text-slate-400">
-                    Click "+ Add Doctor / Nurse" above to onboard your medical team.
+                    When Doctors or Nurses self-register under this hospital, verify and approve them in the "Staff Approvals" tab to grant access.
                   </p>
                 </div>
               ) : (
@@ -1071,163 +1115,6 @@ export default function HospitalPortal({ onNavigateHome }) {
         </div>
       )}
 
-      {/* ADD DOCTOR / NURSE MODAL */}
-      {showAddStaffModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-xl space-y-4 animate-scale-up">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <IconDoctor className="w-5 h-5 text-emerald-600" />
-                <span>Add Medical Staff</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddStaffModal(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer font-black"
-              >
-                ✕
-              </button>
-            </div>
-
-            {addStaffError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold">
-                {addStaffError}
-              </div>
-            )}
-
-            <form onSubmit={handleAddStaff} className="space-y-3.5">
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Medical Role <span className="text-rose-600">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: "DOCTOR", label: "Doctor", desc: "MD / MBBS" },
-                    { id: "NURSE", label: "Nurse", desc: "Staff RN" }
-                  ].map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => setStaffRole(r.id)}
-                      className={`p-2.5 rounded-xl border font-bold text-center cursor-pointer transition ${
-                        staffRole === r.id
-                          ? "bg-slate-900 text-white border-slate-900"
-                          : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="block text-sm font-black">{r.label}</span>
-                      <span className={`block text-[10px] ${staffRole === r.id ? "text-slate-300" : "text-slate-400"}`}>
-                        {r.desc}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Full Name <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={staffName}
-                  onChange={(e) => setStaffName(e.target.value)}
-                  placeholder={staffRole === "DOCTOR" ? "Dr. Anita Desai" : "Nurse Rajesh Kumar"}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Department
-                </label>
-                <select
-                  value={staffDepartment}
-                  onChange={(e) => setStaffDepartment(e.target.value)}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600 bg-white"
-                >
-                  <option value="General Medicine">General Medicine</option>
-                  <option value="Cardiology">Cardiology</option>
-                  <option value="Emergency & Trauma">Emergency & Trauma</option>
-                  <option value="Pediatrics">Pediatrics</option>
-                  <option value="Orthopedics">Orthopedics</option>
-                  <option value="ENT">ENT</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Official Email <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={staffEmail}
-                  onChange={(e) => setStaffEmail(e.target.value)}
-                  placeholder="anita.desai@hospital.org"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Password (min 8 characters) <span className="text-rose-600">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showStaffPassword ? "text" : "password"}
-                    required
-                    minLength={8}
-                    value={staffPassword}
-                    onChange={(e) => setStaffPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium outline-none focus:border-emerald-600"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowStaffPassword(!showStaffPassword)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  >
-                    {showStaffPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Contact Mobile (10 digits)
-                </label>
-                <input
-                  type="tel"
-                  maxLength={10}
-                  value={staffPhone}
-                  onChange={(e) => setStaffPhone(cleanIndianPhone(e.target.value))}
-                  placeholder="9876543210"
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-mono outline-none focus:border-emerald-600"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddStaffModal(false)}
-                  className="px-4 py-2 rounded-xl text-[13px] font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-tactile px-5 py-2 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
-                >
-                  {loading ? "Adding..." : "Confirm & Add to Roster"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
