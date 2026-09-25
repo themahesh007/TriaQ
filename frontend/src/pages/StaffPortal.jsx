@@ -115,6 +115,18 @@ export default function StaffPortal({ onNavigateHome }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [summaryViewMode, setSummaryViewMode] = useState("cards");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Admin tab states
   const [activeAdminTab, setActiveAdminTab] = useState("queue"); // queue | staff_manage
@@ -561,6 +573,21 @@ export default function StaffPortal({ onNavigateHome }) {
           </div>
         )}
       </div>
+
+      {/* Real-time Offline Resilience Banner */}
+      {!isOnline && (
+        <div className="bg-amber-500 text-slate-950 p-3.5 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
+          <div className="flex items-center gap-2.5 text-left">
+            <span className="text-xl">⚡</span>
+            <span>
+              <strong>Staff Station Offline:</strong> Internet connection lost. Clinical queue and triage reviews are cached in local browser memory and will auto-sync when connection restores.
+            </span>
+          </div>
+          <span className="bg-amber-950 text-amber-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap ml-2">
+            Offline
+          </span>
+        </div>
+      )}
 
       {/* LOGIN OR REGISTRATION SCREEN IF NOT AUTHENTICATED */}
       {!staffSession ? (

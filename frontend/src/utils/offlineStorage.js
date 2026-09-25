@@ -2,7 +2,8 @@
 
 const DB_NAME = "TriaQOfflineDB";
 const STORE_NAME = "intake_drafts";
-const DB_VERSION = 1;
+const QUEUE_STORE = "offline_submissions";
+const DB_VERSION = 2;
 
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -14,6 +15,9 @@ function openDB() {
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains(QUEUE_STORE)) {
+        db.createObjectStore(QUEUE_STORE, { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -33,7 +37,6 @@ export async function saveDraft(key, data) {
       store.put(data, key);
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => {
-        // Fallback to localStorage
         try {
           localStorage.setItem(`triaq_${key}`, JSON.stringify(data));
           resolve(true);
@@ -63,7 +66,7 @@ export async function loadDraft(key) {
       const store = tx.objectStore(STORE_NAME);
       const req = store.get(key);
       req.onsuccess = () => {
-        if (req.result) resolve(req.result);
+        if (req.result !== undefined && req.result !== null) resolve(req.result);
         else {
           try {
             const raw = localStorage.getItem(`triaq_${key}`);
@@ -73,7 +76,14 @@ export async function loadDraft(key) {
           }
         }
       };
-      req.onerror = () => resolve(null);
+      req.onerror = () => {
+        try {
+          const raw = localStorage.getItem(`triaq_${key}`);
+          resolve(raw ? JSON.parse(raw) : null);
+        } catch {
+          resolve(null);
+        }
+      };
     });
   } catch {
     try {
@@ -102,4 +112,125 @@ export async function deleteDraft(key) {
   } catch {
     return true;
   }
+}
+
+/**
+ * Queue an offline submission when network is unavailable
+ */
+export async function queueOfflineSubmission(submission) {
+  const offlineItem = {
+    id: "offline-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7),
+    createdAt: new Date().toISOString(),
+    status: "OFFLINE_QUEUED",
+    ...submission
+  };
+
+  try {
+    const db = await openDB();
+    await new Promise((resolve) => {
+      const tx = db.transaction(QUEUE_STORE, "readwrite");
+      tx.objectStore(QUEUE_STORE).put(offlineItem);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    // LocalStorage fallback
+    try {
+      const existing = JSON.parse(localStorage.getItem("triaq_offline_queue") || "[]");
+      existing.push(offlineItem);
+      localStorage.setItem("triaq_offline_queue", JSON.stringify(existing));
+    } catch (e) {
+      console.error("Failed to store offline queue in localStorage:", e);
+    }
+  }
+
+  return offlineItem;
+}
+
+/**
+ * Get all pending offline submissions
+ */
+export async function getQueuedSubmissions() {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(QUEUE_STORE, "readonly");
+      const req = tx.objectStore(QUEUE_STORE).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => {
+        try {
+          const raw = JSON.parse(localStorage.getItem("triaq_offline_queue") || "[]");
+          resolve(raw);
+        } catch {
+          resolve([]);
+        }
+      };
+    });
+  } catch {
+    try {
+      return JSON.parse(localStorage.getItem("triaq_offline_queue") || "[]");
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Remove a single submission from queue after successful sync
+ */
+export async function removeQueuedSubmission(id) {
+  try {
+    const db = await openDB();
+    await new Promise((resolve) => {
+      const tx = db.transaction(QUEUE_STORE, "readwrite");
+      tx.objectStore(QUEUE_STORE).delete(id);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {}
+
+  try {
+    const existing = JSON.parse(localStorage.getItem("triaq_offline_queue") || "[]");
+    const filtered = existing.filter((item) => item.id !== id);
+    localStorage.setItem("triaq_offline_queue", JSON.stringify(filtered));
+  } catch {}
+}
+
+/**
+ * Sync all queued submissions to backend API
+ */
+export async function syncAllQueuedSubmissions(apiBase) {
+  const queue = await getQueuedSubmissions();
+  if (!queue || queue.length === 0) return { synced: 0, failed: 0 };
+
+  let synced = 0;
+  let failed = 0;
+
+  for (const item of queue) {
+    try {
+      const res = await fetch(`${apiBase}/api/triage-notes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patientId: item.patientId,
+          symptomText: item.symptomText,
+          vitals: item.vitals,
+          facility: item.facility,
+          facilityId: item.facilityId,
+          reportImageBase64: item.reportImageBase64
+        })
+      });
+
+      if (res.ok) {
+        await removeQueuedSubmission(item.id);
+        synced++;
+      } else {
+        failed++;
+      }
+    } catch (err) {
+      failed++;
+    }
+  }
+
+  return { synced, failed };
 }

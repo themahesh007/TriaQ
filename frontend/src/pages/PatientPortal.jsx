@@ -2,6 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import {
+  saveDraft,
+  loadDraft,
+  deleteDraft,
+  queueOfflineSubmission,
+  getQueuedSubmissions,
+  syncAllQueuedSubmissions
+} from "../utils/offlineStorage";
+import {
   IconHospital,
   IconClinic,
   IconDoctor,
@@ -181,6 +189,9 @@ export default function PatientPortal({ onNavigateHome }) {
   const t = UI_TEXT[language] || UI_TEXT.en;
   const [consentChecked, setConsentChecked] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [offlineQueueCount, setOfflineQueueCount] = useState(0);
+  const [offlineSyncNotice, setOfflineSyncNotice] = useState("");
+  const [isSyncingOffline, setIsSyncingOffline] = useState(false);
   const [hasDraftRestored, setHasDraftRestored] = useState(false);
   const [answeredMap, setAnsweredMap] = useState({});
   const [inputDrafts, setInputDrafts] = useState({});
@@ -361,7 +372,7 @@ export default function PatientPortal({ onNavigateHome }) {
     });
   };
 
-  // Auto-save draft on changes
+  // Auto-save demographic drafts
   useEffect(() => {
     localStorage.setItem("triaq_draft_name", fullName);
     localStorage.setItem("triaq_draft_age", age);
@@ -371,11 +382,74 @@ export default function PatientPortal({ onNavigateHome }) {
     localStorage.setItem("triaq_draft_meds", medications);
   }, [fullName, age, contactPhone, address, conditions, medications]);
 
+  // Real-time offline / online listeners & background auto-sync
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      try {
+        const { synced } = await syncAllQueuedSubmissions(API_BASE);
+        if (synced > 0) {
+          setOfflineSyncNotice(`✓ Reconnected! Automatically synced ${synced} offline case(s) to the hospital server.`);
+          setOfflineQueueCount(0);
+          setTimeout(() => setOfflineSyncNotice(""), 8000);
+        }
+      } catch (err) {
+        console.error("Offline sync error:", err);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Initial check for offline queued items
+    getQueuedSubmissions().then((q) => {
+      if (q && q.length > 0) setOfflineQueueCount(q.length);
+    });
+
+    // Restore symptom draft from offline storage if present
+    loadDraft("patient_symptom_draft").then((draft) => {
+      if (draft && draft.symptomText) {
+        setSymptomText(draft.symptomText);
+        if (draft.bpSystolic) setBpSystolic(draft.bpSystolic);
+        if (draft.bpDiastolic) setBpDiastolic(draft.bpDiastolic);
+        if (draft.pulse) setPulse(draft.pulse);
+        if (draft.spo2) setSpo2(draft.spo2);
+        if (draft.temp) setTemp(draft.temp);
+        setHasDraftRestored(true);
+        setTimeout(() => setHasDraftRestored(false), 6000);
+      }
+    });
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Save symptom draft periodically to IndexedDB / localStorage
+  useEffect(() => {
+    if (symptomText.trim()) {
+      saveDraft("patient_symptom_draft", {
+        symptomText,
+        bpSystolic,
+        bpDiastolic,
+        pulse,
+        spo2,
+        temp,
+        updatedAt: new Date().toISOString()
+      });
+    }
+  }, [symptomText, bpSystolic, bpDiastolic, pulse, spo2, temp]);
+
   // Initial step determination if logged in
   useEffect(() => {
     if (patientSession) {
       if (receiptData) {
-        deleteDraft("patient_intake_draft");
+        deleteDraft("patient_symptom_draft");
         setCurrentStep("confirmation");
       } else {
         setCurrentStep("intake");
@@ -705,6 +779,53 @@ export default function PatientPortal({ onNavigateHome }) {
         combinedSymptomText = `${combinedSymptomText}\n\nAdditional Clinical Information Provided by Patient:\n${answersBlock}`;
       }
 
+      // Check if offline before attempting network fetch
+      if (!navigator.onLine) {
+        const queuedItem = await queueOfflineSubmission({
+          patientId: pId,
+          symptomText: combinedSymptomText,
+          vitals: vitalsObj,
+          facility: selectedFacility,
+          facilityId: selectedFacilityId || undefined,
+          reportImageBase64: reportImageBase64 || undefined
+        });
+
+        await deleteDraft("patient_symptom_draft");
+        const allQueued = await getQueuedSubmissions();
+        const queueIdx = allQueued.length || 1;
+        const offlineToken = `OFFLINE-TK-${String(queueIdx).padStart(2, "0")}`;
+        const offlineReceiptNo = `OFFLINE-REC-${String(Math.floor(1000 + Math.random() * 9000))}`;
+
+        const redKeywords = ["chest pain", "breathless", "unconscious", "haemorrhage", "bleeding", "stroke", "heart attack"];
+        const isCritical = redKeywords.some((kw) => combinedSymptomText.toLowerCase().includes(kw));
+
+        setReceiptData({
+          id: queuedItem.id,
+          receiptNumber: offlineReceiptNo,
+          tokenId: offlineToken,
+          patient: {
+            id: pId,
+            tokenId: offlineToken,
+            name: fullName || "Patient",
+            phone: contactPhone,
+            age: age || "N/A"
+          },
+          riskTag: isCritical ? "RED" : "YELLOW",
+          status: "OFFLINE_QUEUED",
+          isOfflineQueued: true,
+          summary: combinedSymptomText,
+          facility: selectedFacility,
+          fullName: fullName || "Patient",
+          age,
+          phone: contactPhone,
+          address,
+          createdAt: new Date().toISOString()
+        });
+        setOfflineQueueCount(allQueued.length);
+        setCurrentStep("confirmation");
+        return;
+      }
+
       const res = await fetch(`${API_BASE}/api/triage-notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -721,6 +842,7 @@ export default function PatientPortal({ onNavigateHome }) {
       const note = await res.json();
       if (!res.ok) throw new Error(note.error || "Failed to submit triage case");
 
+      await deleteDraft("patient_symptom_draft");
       setReceiptData({
         ...note,
         facility: selectedFacility,
@@ -731,7 +853,60 @@ export default function PatientPortal({ onNavigateHome }) {
       });
       setCurrentStep("confirmation");
     } catch (err) {
-      alert("Error submitting symptoms: " + err.message);
+      // If network fails (e.g. server down or connection dropped during submit)
+      const pId = patientSession?.patient?.id || patientSession?.id || "temp-patient";
+      let combinedSymptomText = symptomText.trim();
+      const vitalsObj = {
+        bpSystolic: bpSystolic ? Number(bpSystolic) : null,
+        bpDiastolic: bpDiastolic ? Number(bpDiastolic) : null,
+        pulse: pulse ? Number(pulse) : null,
+        spo2: spo2 ? Number(spo2) : null,
+        temp: temp ? Number(temp) : null
+      };
+
+      try {
+        const queuedItem = await queueOfflineSubmission({
+          patientId: pId,
+          symptomText: combinedSymptomText,
+          vitals: vitalsObj,
+          facility: selectedFacility,
+          facilityId: selectedFacilityId || undefined,
+          reportImageBase64: reportImageBase64 || undefined
+        });
+
+        await deleteDraft("patient_symptom_draft");
+        const allQueued = await getQueuedSubmissions();
+        const queueIdx = allQueued.length || 1;
+        const offlineToken = `OFFLINE-TK-${String(queueIdx).padStart(2, "0")}`;
+        const offlineReceiptNo = `OFFLINE-REC-${String(Math.floor(1000 + Math.random() * 9000))}`;
+
+        setReceiptData({
+          id: queuedItem.id,
+          receiptNumber: offlineReceiptNo,
+          tokenId: offlineToken,
+          patient: {
+            id: pId,
+            tokenId: offlineToken,
+            name: fullName || "Patient",
+            phone: contactPhone,
+            age: age || "N/A"
+          },
+          riskTag: "YELLOW",
+          status: "OFFLINE_QUEUED",
+          isOfflineQueued: true,
+          summary: combinedSymptomText,
+          facility: selectedFacility,
+          fullName: fullName || "Patient",
+          age,
+          phone: contactPhone,
+          address,
+          createdAt: new Date().toISOString()
+        });
+        setOfflineQueueCount(allQueued.length);
+        setCurrentStep("confirmation");
+      } catch (queueErr) {
+        alert("Submission Error: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -794,6 +969,85 @@ export default function PatientPortal({ onNavigateHome }) {
           </div>
         )}
       </div>
+
+      {/* Real-time Offline Resilience Banners */}
+      {!isOnline && (
+        <div className="bg-amber-500 text-slate-950 p-4 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
+          <div className="flex items-center gap-2.5 text-left">
+            <span className="text-xl">⚡</span>
+            <div>
+              <span className="font-black uppercase tracking-wider text-[10.5px] block text-amber-950">Offline Resilience Active</span>
+              <span>No internet connection. Your symptom drafts and intake submissions are safely saved in local offline storage and will auto-sync when online.</span>
+            </div>
+          </div>
+          <span className="bg-amber-950 text-amber-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap ml-2">
+            Offline
+          </span>
+        </div>
+      )}
+
+      {offlineSyncNotice && (
+        <div className="bg-emerald-600 text-white p-4 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-emerald-700">
+          <div className="flex items-center gap-2.5 text-left">
+            <span className="text-xl">✓</span>
+            <div>
+              <span className="font-black uppercase tracking-wider text-[10.5px] block text-emerald-200">Network Restored</span>
+              <span>{offlineSyncNotice}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOfflineSyncNotice("")}
+            className="text-emerald-200 hover:text-white font-black text-sm px-2 py-1 cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {hasDraftRestored && (
+        <div className="bg-teal-50 border border-teal-300 text-teal-900 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-2xs">
+          <span className="flex items-center gap-2">
+            <span>📝</span>
+            <span>Restored your unsaved symptom draft from local offline storage.</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => setHasDraftRestored(false)}
+            className="text-teal-700 hover:text-teal-900 font-bold cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {offlineQueueCount > 0 && isOnline && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-950 p-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs">
+          <span className="flex items-center gap-2">
+            <span>🔄</span>
+            <span>You have {offlineQueueCount} queued offline case(s) waiting to sync.</span>
+          </span>
+          <button
+            type="button"
+            disabled={isSyncingOffline}
+            onClick={async () => {
+              setIsSyncingOffline(true);
+              try {
+                const { synced } = await syncAllQueuedSubmissions(API_BASE);
+                if (synced > 0) {
+                  setOfflineSyncNotice(`✓ Successfully synced ${synced} offline case(s) to cloud database!`);
+                  setOfflineQueueCount(0);
+                }
+              } finally {
+                setIsSyncingOffline(false);
+              }
+            }}
+            className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] cursor-pointer"
+          >
+            {isSyncingOffline ? "Syncing..." : "Sync Now"}
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* STEP 1: AUTHENTICATION (PHONE/OTP or EMAIL/PASSWORD)                      */}
@@ -1829,6 +2083,49 @@ export default function PatientPortal({ onNavigateHome }) {
               </span>
             </div>
           </div>
+
+          {/* Offline Queue Information Card */}
+          {receiptData.isOfflineQueued && (
+            <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl text-xs text-amber-950 text-left space-y-2 shadow-2xs max-w-md mx-auto">
+              <div className="font-black flex items-center justify-between text-amber-950 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Saved Locally (Offline Queue)</span>
+                </span>
+                <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded text-[10.5px] uppercase font-black">
+                  Safe Draft
+                </span>
+              </div>
+              <p className="leading-relaxed text-amber-900">
+                Your case has been securely recorded on this device with a local pass. As soon as your internet reconnects, TriaQ will automatically dispatch it to the clinical queue.
+              </p>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={isSyncingOffline}
+                  onClick={async () => {
+                    setIsSyncingOffline(true);
+                    try {
+                      const { synced } = await syncAllQueuedSubmissions(API_BASE);
+                      if (synced > 0) {
+                        alert(`✓ Successfully synced ${synced} offline case(s) to the hospital server!`);
+                        setReceiptData((prev) => ({ ...prev, isOfflineQueued: false }));
+                        setOfflineQueueCount(0);
+                      } else {
+                        alert("Device is still offline or could not reach server. It will automatically sync as soon as you reconnect.");
+                      }
+                    } finally {
+                      setIsSyncingOffline(false);
+                    }
+                  }}
+                  className="w-full py-2.5 px-3 rounded-xl text-xs font-black text-white bg-amber-800 hover:bg-amber-900 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span>🔄</span>
+                  <span>{isSyncingOffline ? "Checking Connection..." : "Sync to Hospital Cloud (If Online)"}</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* PDF Download Button & Action Buttons */}
           <div className="space-y-3 max-w-md mx-auto pt-2">
