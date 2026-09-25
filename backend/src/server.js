@@ -21,7 +21,8 @@ const {
   requireRole
 } = require("./services/authService");
 const { sendPasswordResetOTP } = require("./services/emailService");
-const { generateTriageReceiptPDF } = require("./services/pdfService");
+const { generateTriageReceiptPDF, generateReferralLetterPDF } = require("./services/pdfService");
+const { sendReferralNotificationEmail } = require("./services/emailService");
 
 const app = express();
 const PORT = process.env.PORT || 3001;

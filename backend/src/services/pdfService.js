@@ -242,6 +242,153 @@ function generateTriageReceiptPDF(data) {
   });
 }
 
+
+/**
+ * Generates an official Medical Referral Letter PDF buffer
+ * @param {Object} data Referral details including patient, referring doctor & target hospital
+ * @returns {Promise<Buffer>}
+ */
+function generateReferralLetterPDF(data) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const buffers = [];
+
+      doc.on("data", (chunk) => buffers.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(buffers)));
+      doc.on("error", (err) => reject(err));
+
+      const refNo = data.id || `REF-${Date.now().toString().slice(-6)}`;
+      const dateStr = new Date(data.createdAt || Date.now()).toLocaleDateString("en-IN", {
+        day: "2-digit", month: "long", year: "numeric"
+      });
+      const timeStr = new Date(data.createdAt || Date.now()).toLocaleTimeString("en-IN", {
+        hour: "2-digit", minute: "2-digit"
+      });
+      const referringFacility = data.facility || "Community Health Center";
+      const targetFacility = data.targetFacility || "District Hospital (Secondary Care)";
+      const doctorName = data.doctorName || "Duty Medical Officer";
+      const doctorRole = data.doctorRole || "Attending Physician";
+
+      // 1. Header Banner
+      doc.rect(40, 35, doc.page.width - 80, 50).fill("#064E3B");
+
+      doc.fontSize(15).fillColor("#FFFFFF").font("Helvetica-Bold")
+        .text(String(referringFacility).toUpperCase(), 40, 45, { align: "center" });
+
+      doc.fontSize(8.5).fillColor("#A7F3D0").font("Helvetica-Bold")
+        .text("OFFICIAL PATIENT CLINICAL REFERRAL & TRANSFER LETTER", 40, 65, { align: "center" });
+
+      let y = 100;
+
+      // 2. Metadata Box
+      doc.rect(40, y, doc.page.width - 80, 48).fillAndStroke("#F8FAFC", "#CBD5E1");
+
+      doc.fontSize(8.5).fillColor("#64748B").font("Helvetica")
+        .text(`Referral Ref No: ${refNo}`, 50, y + 8);
+      doc.text(`Date of Referral: ${dateStr} at ${timeStr}`, doc.page.width - 240, y + 8, { width: 190, align: "right" });
+
+      doc.fontSize(10).fillColor("#0F172A").font("Helvetica-Bold")
+        .text(`To Receiving Facility: ${targetFacility}`, 50, y + 26);
+
+      y += 62;
+
+      // 3. Patient Information Section
+      doc.fontSize(10).fillColor("#064E3B").font("Helvetica-Bold")
+        .text("PATIENT DEMOGRAPHICS & INTAKE RECORD", 45, y);
+
+      doc.strokeColor("#E2E8F0").lineWidth(1).moveTo(45, y + 14).lineTo(doc.page.width - 45, y + 14).stroke();
+
+      y += 22;
+      doc.rect(40, y, doc.page.width - 80, 48).fillAndStroke("#FFFFFF", "#E2E8F0");
+
+      doc.fontSize(9).fillColor("#475569").font("Helvetica");
+      doc.text("Patient Name:", 55, y + 8);
+      doc.fillColor("#0F172A").font("Helvetica-Bold").text(data.patientName || "OPD Patient", 140, y + 8);
+
+      doc.fillColor("#475569").font("Helvetica").text("Token Number:", 330, y + 8);
+      doc.fillColor("#0F172A").font("Helvetica-Bold").text(data.patientToken || "--", 420, y + 8);
+
+      doc.fillColor("#475569").font("Helvetica").text("Age / Gender:", 55, y + 28);
+      doc.fillColor("#0F172A").font("Helvetica-Bold").text(data.patientAge ? `${data.patientAge} Yrs` : "--", 140, y + 28);
+
+      doc.fillColor("#475569").font("Helvetica").text("Triage Priority:", 330, y + 28);
+      const isRed = (data.riskTag || "").toUpperCase() === "RED";
+      doc.fillColor(isRed ? "#B91C1C" : "#D97706").font("Helvetica-Bold")
+        .text(isRed ? "CATEGORY 1 - URGENT EMERGENCY" : "CATEGORY 2 - PRIORITY ATTENTION", 420, y + 28);
+
+      y += 62;
+
+      // 4. Reason for Referral Box (Highlighted)
+      doc.fontSize(10).fillColor("#064E3B").font("Helvetica-Bold")
+        .text("CLINICAL REASON FOR ESCALATION / REFERRAL", 45, y);
+      doc.strokeColor("#E2E8F0").lineWidth(1).moveTo(45, y + 14).lineTo(doc.page.width - 45, y + 14).stroke();
+
+      y += 22;
+      doc.rect(40, y, doc.page.width - 80, 56).fillAndStroke("#FEF3C7", "#F59E0B");
+
+      doc.fontSize(9.5).fillColor("#78350F").font("Helvetica-Bold")
+        .text("Reason for Transfer:", 55, y + 8);
+
+      doc.fontSize(9.5).fillColor("#1E293B").font("Helvetica")
+        .text(data.referralReason || "Higher clinical evaluation, specialist diagnostics, and critical bed admission required.", 55, y + 24, {
+          width: doc.page.width - 110,
+          lineGap: 2
+        });
+
+      y += 72;
+
+      // 5. Clinical Summary & Presenting Symptoms
+      doc.fontSize(10).fillColor("#064E3B").font("Helvetica-Bold")
+        .text("CLINICAL PRESENTATION & RECORDED SYMPTOMS", 45, y);
+      doc.strokeColor("#E2E8F0").lineWidth(1).moveTo(45, y + 14).lineTo(doc.page.width - 45, y + 14).stroke();
+
+      y += 22;
+      doc.rect(40, y, doc.page.width - 80, 75).fillAndStroke("#FFFFFF", "#E2E8F0");
+
+      doc.fontSize(9).fillColor("#1E293B").font("Helvetica")
+        .text(data.symptoms || data.summary || "Symptoms evaluated during primary outpatient triage intake.", 55, y + 10, {
+          width: doc.page.width - 110,
+          lineGap: 3
+        });
+
+      y += 92;
+
+      // 6. Attending Doctor Signature Block
+      doc.rect(40, y, doc.page.width - 80, 80).fillAndStroke("#F8FAFC", "#E2E8F0");
+
+      doc.fontSize(8.5).fillColor("#64748B").font("Helvetica")
+        .text("Referring Medical Officer:", 55, y + 10);
+      doc.fontSize(10).fillColor("#0F172A").font("Helvetica-Bold")
+        .text(`${doctorName} (${doctorRole})`, 55, y + 24);
+      doc.fontSize(8.5).fillColor("#64748B").font("Helvetica")
+        .text(`Facility: ${referringFacility}`, 55, y + 40);
+
+      doc.fontSize(8.5).fillColor("#64748B").font("Helvetica")
+        .text("Attending Doctor Signature & Hospital Seal:", doc.page.width - 270, y + 10, { width: 220, align: "right" });
+
+      doc.strokeColor("#94A3B8").dash(3, { space: 2 }).moveTo(doc.page.width - 240, y + 55).lineTo(doc.page.width - 55, y + 55).stroke();
+      doc.undash();
+
+      doc.fontSize(7.5).fillColor("#94A3B8").font("Helvetica")
+        .text("[Official Signature & Stamp]", doc.page.width - 240, y + 60, { width: 185, align: "right" });
+
+      // 7. Footer Instructions
+      const footerY = doc.page.height - 50;
+      doc.fontSize(7.5).fillColor("#64748B").font("Helvetica")
+        .text("Notice: This referral letter transfers clinical presentation details for priority emergency/specialist triage at the receiving facility. Please present this letter directly at the reception or emergency desk.", 45, footerY, {
+          width: doc.page.width - 90,
+          align: "center"
+        });
+
+      doc.end();
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
 module.exports = {
-  generateTriageReceiptPDF
+  generateTriageReceiptPDF,
+  generateReferralLetterPDF
 };

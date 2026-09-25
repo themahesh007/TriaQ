@@ -131,6 +131,23 @@ async function initDatabaseSchema() {
         ALTER TABLE triaq_patients ALTER COLUMN token_id DROP NOT NULL;
         ALTER TABLE triaq_patients DROP CONSTRAINT IF EXISTS triaq_patients_token_id_key;
 
+        CREATE TABLE IF NOT EXISTS triaq_referrals (
+          id TEXT PRIMARY KEY,
+          triage_note_id TEXT,
+          target_facility TEXT,
+          referral_reason TEXT,
+          doctor_name TEXT,
+          doctor_role TEXT,
+          staff_id TEXT,
+          patient_token TEXT,
+          patient_name TEXT,
+          patient_age TEXT,
+          risk_tag TEXT,
+          facility TEXT,
+          status TEXT DEFAULT 'SENT',
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
         CREATE TABLE IF NOT EXISTS triaq_facility_token_counters (
           facility_id TEXT PRIMARY KEY,
           date_str TEXT NOT NULL,
@@ -573,6 +590,74 @@ async function getNextSequentialTokenNumber(facilityId = "GLOBAL") {
   } catch (err) {
     console.error("[Token Counter] DB error:", err.message);
     return null;
+  }
+}
+
+
+/**
+ * Save a new referral record to Supabase PostgreSQL
+ */
+async function saveReferralToCloud(referral) {
+  const p = getPool();
+  if (!p || !referral) return;
+  try {
+    await p.query(`
+      INSERT INTO triaq_referrals (
+        id, triage_note_id, target_facility, referral_reason, doctor_name, doctor_role,
+        staff_id, patient_token, patient_name, patient_age, risk_tag, facility, status, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      ON CONFLICT (id) DO UPDATE SET
+        target_facility = EXCLUDED.target_facility,
+        referral_reason = EXCLUDED.referral_reason,
+        status = EXCLUDED.status
+    `, [
+      referral.id,
+      referral.triageNoteId,
+      referral.targetFacility,
+      referral.referralReason,
+      referral.doctorName || null,
+      referral.doctorRole || "DOCTOR",
+      referral.staffId || null,
+      referral.patientToken || null,
+      referral.patientName || null,
+      referral.patientAge || null,
+      referral.riskTag || "AMBER",
+      referral.facility || null,
+      referral.status || "SENT",
+      referral.createdAt || new Date().toISOString()
+    ]);
+  } catch (err) {
+    console.error("[Supabase Database] Save referral error:", err.message);
+  }
+}
+
+/**
+ * Load referrals from Supabase PostgreSQL
+ */
+async function loadReferralsFromCloud() {
+  const p = getPool();
+  if (!p) return [];
+  try {
+    const res = await p.query("SELECT * FROM triaq_referrals ORDER BY created_at DESC");
+    return res.rows.map(r => ({
+      id: r.id,
+      triageNoteId: r.triage_note_id,
+      targetFacility: r.target_facility,
+      referralReason: r.referral_reason,
+      doctorName: r.doctor_name,
+      doctorRole: r.doctor_role,
+      staffId: r.staff_id,
+      patientToken: r.patient_token,
+      patientName: r.patient_name,
+      patientAge: r.patient_age,
+      riskTag: r.risk_tag,
+      facility: r.facility,
+      status: r.status,
+      createdAt: r.created_at
+    }));
+  } catch (err) {
+    console.error("[Supabase Database] Load referrals error:", err.message);
+    return [];
   }
 }
 

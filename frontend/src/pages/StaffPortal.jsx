@@ -82,6 +82,11 @@ export default function StaffPortal({ onNavigateHome }) {
   // Dashboard states
   const [queue, setQueue] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [showReferralModal, setShowReferralModal] = useState(false);
+  const [referralTargetFacility, setReferralTargetFacility] = useState("District Hospital (Secondary Care)");
+  const [referralReason, setReferralReason] = useState("");
+  const [referralSubmitting, setReferralSubmitting] = useState(false);
+  const [referralSuccessResult, setReferralSuccessResult] = useState(null);
   const [actionCompletedForNote, setActionCompletedForNote] = useState(null);
   const [isAdvancingToken, setIsAdvancingToken] = useState(false);
   const [editableSummary, setEditableSummary] = useState("");
@@ -1351,6 +1356,39 @@ export default function StaffPortal({ onNavigateHome }) {
                       </div>
                     )}
 
+                    
+                    {/* Structured Lab Report Metrics (Feature 2: OCR Extracted Values) */}
+                    {selectedNote.extractedReportData?.extractedLabs && Object.keys(selectedNote.extractedReportData.extractedLabs).length > 0 && (
+                      <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/60 space-y-2 shadow-2xs">
+                        <div className="flex items-center justify-between border-b border-indigo-200/70 pb-1.5">
+                          <span className="text-[11.5px] font-black uppercase text-indigo-950 tracking-wider flex items-center gap-1.5">
+                            <span>🧪</span> Extracted Pathology Lab Values (OCR Scanner)
+                          </span>
+                          <span className="text-[10px] font-bold text-indigo-800 bg-white px-2 py-0.5 rounded border border-indigo-200">
+                            Automated Pattern Extraction
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {Object.entries(selectedNote.extractedReportData.extractedLabs).map(([key, lab]) => (
+                            <div key={key} className="p-2.5 rounded-lg bg-white border border-indigo-100 shadow-2xs space-y-1">
+                              <span className="text-[10.5px] font-bold text-slate-500 block truncate">{lab.label || key}</span>
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-[14px] font-black text-slate-900">{lab.value} <span className="text-[10px] text-slate-500 font-normal">{lab.unit}</span></span>
+                                <span className={`text-[9.5px] font-black px-1.5 py-0.2 rounded ${
+                                  lab.status === 'HIGH' ? 'bg-rose-100 text-rose-800' :
+                                  lab.status === 'LOW' ? 'bg-amber-100 text-amber-900' :
+                                  'bg-emerald-100 text-emerald-800'
+                                }`}>
+                                  {lab.status}
+                                </span>
+                              </div>
+                              <span className="text-[9px] text-slate-400 block">Normal: {lab.normalRange}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Summary View & Editor */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -1627,7 +1665,23 @@ export default function StaffPortal({ onNavigateHome }) {
                         </button>
                       </div>
 
-                      {/* 4. ESCALATE SECONDARY ACTION */}
+                      
+                        {/* 4. REFERRAL BUTTON (Feature 3: Referral Automation) */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReferralSuccessResult(null);
+                            setReferralReason("");
+                            setShowReferralModal(true);
+                          }}
+                          className="btn-tactile w-full py-2.5 px-4 rounded-xl font-bold text-[13px] text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-300 transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
+                          title="Generate official referral letter for secondary/tertiary hospital"
+                        >
+                          <span>📤</span>
+                          <span>Refer to Higher Facility</span>
+                        </button>
+
+                        {/* 4. ESCALATE SECONDARY ACTION */}
                       <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2">
                         <button
                           type="button"

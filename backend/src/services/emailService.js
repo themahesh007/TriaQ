@@ -116,6 +116,64 @@ async function sendPasswordResetOTP(toEmail, otp, recipientName = "User") {
   }
 }
 
+
+/**
+ * Send official referral notification email with PDF attachment
+ */
+async function sendReferralNotificationEmail(targetEmail, referralData, pdfBuffer) {
+  const transporter = createTransporter();
+  const fromUser = process.env.GMAIL_USER || process.env.SMTP_USER || "referrals@triaq.health";
+
+  if (!transporter) {
+    console.log(`[Email Service] SMTP not configured. Referral recorded: ${referralData.id}`);
+    return { success: false, reason: "SMTP not configured" };
+  }
+
+  const subject = `🚨 Patient Referral: ${referralData.patientToken || referralData.patientName || "Urgent Case"} -> ${referralData.targetFacility}`;
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+      <div style="background: #064e3b; padding: 20px; text-align: center; color: #ffffff;">
+        <h2 style="margin: 0; font-size: 20px;">TriaQ Clinical Referral Transfer</h2>
+        <p style="margin: 5px 0 0; font-size: 13px; color: #a7f3d0;">Official Transfer to ${referralData.targetFacility}</p>
+      </div>
+      <div style="padding: 24px; color: #1e293b;">
+        <p><strong>Patient Token:</strong> ${referralData.patientToken || "--"}</p>
+        <p><strong>Patient Name:</strong> ${referralData.patientName || "OPD Patient"}</p>
+        <p><strong>Triage Urgency:</strong> ${referralData.riskTag || "PRIORITY"}</p>
+        <p><strong>Referring Facility:</strong> ${referralData.facility || "Local Health Center"}</p>
+        <p><strong>Referring Physician:</strong> ${referralData.doctorName || "Duty Medical Officer"}</p>
+        <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px; border-radius: 8px; margin: 15px 0;">
+          <strong>Clinical Reason for Referral:</strong><br/>
+          ${referralData.referralReason}
+        </div>
+        <p style="font-size: 13px; color: #64748b;">The complete official Referral Letter is attached as a PDF to this email.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"TriaQ Clinical Referrals" <${fromUser}>`,
+      to: targetEmail,
+      subject,
+      html: htmlContent,
+      attachments: pdfBuffer ? [
+        {
+          filename: `Referral-${referralData.patientToken || referralData.id}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf"
+        }
+      ] : []
+    });
+    console.log(`[Email Service] Referral notification dispatched to ${targetEmail}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (err) {
+    console.error("[Email Service] Failed to send referral email:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
   createTransporter,
   sendPasswordResetOTP

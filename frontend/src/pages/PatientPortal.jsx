@@ -180,6 +180,8 @@ export default function PatientPortal({ onNavigateHome }) {
   const [language, setLanguage] = useState("en");
   const t = UI_TEXT[language] || UI_TEXT.en;
   const [consentChecked, setConsentChecked] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [hasDraftRestored, setHasDraftRestored] = useState(false);
   const [answeredMap, setAnsweredMap] = useState({});
   const [inputDrafts, setInputDrafts] = useState({});
   const [showPrintSlipModal, setShowPrintSlipModal] = useState(false);
@@ -373,6 +375,7 @@ export default function PatientPortal({ onNavigateHome }) {
   useEffect(() => {
     if (patientSession) {
       if (receiptData) {
+        deleteDraft("patient_intake_draft");
         setCurrentStep("confirmation");
       } else {
         setCurrentStep("intake");
@@ -1743,6 +1746,9 @@ export default function PatientPortal({ onNavigateHome }) {
                       ⚠️ Please check this box to confirm consent before submitting.
                     </span>
                   )}
+                  <span className="text-[11px] text-slate-500 block pt-0.5">
+                    Protected under India's DPDP Act, 2023 • <a href="/PRIVACY.md" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold hover:text-emerald-800">Read Data Governance & Privacy Policy</a>
+                  </span>
                 </div>
               </label>
             </div>
