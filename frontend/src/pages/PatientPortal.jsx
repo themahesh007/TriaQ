@@ -600,6 +600,8 @@ export default function PatientPortal({ onNavigateHome }) {
 
     setLoading(true);
     setIntakeSavedNotice("");
+    setReceiptData(null);
+    setStatusData(null);
 
     try {
       if (patientSession?.token) {
@@ -615,7 +617,8 @@ export default function PatientPortal({ onNavigateHome }) {
             phone: cleanContact,
             address: address.trim(),
             conditions: conditions.trim(),
-            medications: medications.trim()
+            medications: medications.trim(),
+            facility: selectedFacility
           })
         });
       }
@@ -950,9 +953,9 @@ export default function PatientPortal({ onNavigateHome }) {
 
         {patientSession && (
           <div className="flex items-center gap-2">
-            {(receiptData?.tokenId || patientSession.patient?.tokenId) ? (
+            {(currentStep === "confirmation" || currentStep === "status") && (receiptData?.tokenId || statusData?.tokenId) ? (
               <span className="text-[11.5px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                Token: {receiptData?.tokenId || patientSession.patient?.tokenId}
+                Token: {receiptData?.tokenId || statusData?.tokenId}
               </span>
             ) : (
               <span className="text-[12px] font-bold text-slate-600">
@@ -1418,10 +1421,10 @@ export default function PatientPortal({ onNavigateHome }) {
               <label className="block text-[12px] font-bold text-slate-800 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <IconHospital className="w-4 h-4 text-emerald-600" />
-                  Select Healthcare Facility / Clinic for Token <span className="text-rose-600">*</span>
+                  Select Healthcare Facility / Clinic <span className="text-rose-600">*</span>
                 </span>
                 <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Sequential Queue Counter
+                  Step 1 • Demographics
                 </span>
               </label>
               <select
@@ -1444,7 +1447,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 )}
               </select>
               <p className="text-[11px] text-slate-500 font-medium">
-                Tokens generated online are synchronized live with walk-in patients scanning the QR standee at the hospital reception.
+                Your sequential token number will be generated only after you fill and submit your clinical symptoms in the next step.
               </p>
             </div>
           )}
