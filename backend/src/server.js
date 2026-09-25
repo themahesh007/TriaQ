@@ -467,7 +467,8 @@ app.get("/api/patients/status", async (req, res) => {
       submittedAt: latestNote.createdAt,
       summary: latestNote.summary,
       disposition: latestNote.disposition,
-      prescription: latestNote.prescription
+      prescription: latestNote.prescription,
+      referral: latestNote.referral || null
     });
   } catch (err) {
     console.error("Patient status error:", err);
@@ -1724,6 +1725,121 @@ if (fs.existsSync(publicDir) && fs.existsSync(path.join(publicDir, "index.html")
     res.sendFile(path.join(frontendDistDir, "index.html"));
   });
 }
+
+// ============================================================================
+// REFERRAL ROUTES (Feature 3: Automated Referral Notes)
+// ============================================================================
+
+/**
+ * POST /api/referrals
+ * Generate referral record, produce PDF letter, and dispatch email
+ */
+app.post("/api/referrals", async (req, res) => {
+  try {
+    const { triageNoteId, targetFacility, referralReason, doctorName, doctorRole, staffId } = req.body;
+
+    if (!triageNoteId || !targetFacility || !referralReason) {
+      return res.status(400).json({ error: "triageNoteId, targetFacility, and referralReason are required" });
+    }
+
+    const note = await storage.getTriageNoteById(triageNoteId);
+    if (!note) {
+      return res.status(404).json({ error: "Triage note not found" });
+    }
+
+    const patient = note.patient || {};
+    const patientToken = patient.tokenId || note.tokenId || "Token";
+    const patientName = patient.name || "Outpatient Case";
+    const patientAge = patient.age || "--";
+
+    // 1. Create referral in storage & Supabase
+    const referral = await storage.createReferral({
+      triageNoteId,
+      targetFacility,
+      referralReason,
+      doctorName,
+      doctorRole,
+      staffId,
+      patientToken,
+      patientName,
+      patientAge,
+      riskTag: note.riskTag || "AMBER",
+      facility: note.facility || "Local Healthcare Facility"
+    });
+
+    // 2. Update triage note with referral status
+    await storage.updateNoteReferral(note.id, referral, targetFacility);
+
+    // 3. Generate Referral PDF
+    const pdfBuffer = await generateReferralLetterPDF({
+      ...referral,
+      symptoms: note.summary || note.rawSymptomText
+    });
+
+    // 4. Dispatch Email asynchronously to patient & receiving facility
+    const targetEmailMap = {
+      "District Hospital (Secondary Care)": "referrals@districthospital.gov.in",
+      "Government Medical College & Hospital (Tertiary Care)": "referrals@medicalcollege.gov.in",
+      "Apex Trauma & Multispecialty Center": "admissions@apextrauma.gov.in"
+    };
+    const targetEmail = targetEmailMap[targetFacility] || process.env.REFERRAL_NOTIFICATION_EMAIL || process.env.GMAIL_USER || "triaqproject@gmail.com";
+
+    sendReferralNotificationEmail(targetEmail, referral, pdfBuffer).catch(() => {});
+    if (patient.email) {
+      sendReferralNotificationEmail(patient.email, referral, pdfBuffer).catch(() => {});
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: `Referral successfully recorded for ${targetFacility}`,
+      referralId: referral.id,
+      referral
+    });
+  } catch (error) {
+    console.error("Error creating referral:", error);
+    return res.status(500).json({ error: "Failed to process referral" });
+  }
+});
+
+/**
+ * GET /api/referrals
+ * Retrieve list of referrals
+ */
+app.get("/api/referrals", async (req, res) => {
+  try {
+    const list = await storage.getAllReferrals();
+    return res.json(list);
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to load referrals" });
+  }
+});
+
+/**
+ * GET /api/referrals/:id/pdf
+ * Download official Referral Letter PDF
+ */
+app.get("/api/referrals/:id/pdf", async (req, res) => {
+  try {
+    const referral = await storage.getReferralById(req.params.id);
+    if (!referral) {
+      return res.status(404).json({ error: "Referral not found" });
+    }
+
+    const note = await storage.getTriageNoteById(referral.triageNoteId);
+
+    const pdfBuffer = await generateReferralLetterPDF({
+      ...referral,
+      symptoms: note ? (note.summary || note.rawSymptomText) : ""
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="TriaQ-Referral-${referral.patientToken || referral.id}.pdf"`);
+    return res.send(pdfBuffer);
+  } catch (error) {
+    console.error("Error downloading referral PDF:", error);
+    return res.status(500).json({ error: "Failed to generate referral PDF" });
+  }
+});
 
 // Start listening if executed directly
 if (require.main === module) {

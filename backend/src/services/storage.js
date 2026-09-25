@@ -96,7 +96,8 @@ let memoryStore = {
   staff: [...initialStaff],
   triageNotes: [],
   auditLogs: [],
-  facilities: []
+  facilities: [],
+  referrals: []
 };
 
 // Load saved data if exists
@@ -256,6 +257,10 @@ async function initCloudSync() {
         memoryStore.auditLogs = [...cloudData.auditLogs, ...memoryStore.auditLogs.filter((a) => !aIds.has(a.id))];
       }
       if (cloudData.facilities) memoryStore.facilities = cloudData.facilities;
+      const cloudReferrals = await db.loadReferralsFromCloud();
+      if (Array.isArray(cloudReferrals) && cloudReferrals.length > 0) {
+        memoryStore.referrals = cloudReferrals;
+      }
       console.log(`[Supabase Cloud] Hydrated ${memoryStore.patients.length} patients, ${memoryStore.staff.length} staff, and ${memoryStore.triageNotes.length} triage notes from cloud database!`);
     } else {
       console.log("[Supabase Cloud] Empty cloud database. Seeding initial records to Supabase...");
@@ -305,7 +310,7 @@ const storage = {
     const tokenId = data.tokenId || null;
 
     const patient = {
-      id: generateCuid(),
+      id: data.id || generateCuid(),
       tokenId,
       email: data.email || null,
       passwordHash: data.passwordHash || null,
@@ -589,7 +594,9 @@ const storage = {
   },
 
   async getLatestNoteForPatient(patientId) {
-    return memoryStore.triageNotes.find((n) => n.patientId === patientId) || null;
+    const notes = memoryStore.triageNotes.filter((n) => n.patientId === patientId);
+    if (!notes.length) return null;
+    return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
   },
 
   async updateTriageDecision(id, updateData) {
@@ -838,6 +845,82 @@ const storage = {
     persistStore();
     db.deleteFacilityFromCloud(id).catch(console.error);
     return true;
+  },
+
+  
+  async createReferral({ triageNoteId, targetFacility, referralReason, doctorName, doctorRole, staffId, patientToken, patientName, patientAge, riskTag, facility }) {
+    const referral = {
+      id: `ref-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+      triageNoteId,
+      targetFacility,
+      referralReason,
+      doctorName: doctorName || "Duty Medical Officer",
+      doctorRole: doctorRole || "DOCTOR",
+      staffId: staffId || null,
+      patientToken: patientToken || null,
+      patientName: patientName || null,
+      patientAge: patientAge || null,
+      riskTag: riskTag || "AMBER",
+      facility: facility || "Healthcare Center",
+      status: "SENT",
+      createdAt: new Date().toISOString()
+    };
+
+    if (!Array.isArray(memoryStore.referrals)) {
+      memoryStore.referrals = [];
+    }
+    memoryStore.referrals.unshift(referral);
+    persistStore();
+
+    // Persist to Supabase Cloud
+    db.saveReferralToCloud(referral).catch(() => {});
+
+    // Create Audit Log
+    const auditEntry = {
+      id: generateCuid(),
+      triageNoteId,
+      reviewerId: staffId || "STAFF",
+      action: "PATIENT_REFERRED",
+      note: `Patient referred to ${targetFacility}. Reason: ${referralReason}`,
+      changedFields: { targetFacility, referralReason, status: "SENT" },
+      timestamp: new Date().toISOString()
+    };
+    memoryStore.auditLogs.unshift(auditEntry);
+    db.saveAuditLogToCloud(auditEntry).catch(() => {});
+
+    return referral;
+  },
+
+  async getAllReferrals(facility = null) {
+    if (!Array.isArray(memoryStore.referrals)) {
+      memoryStore.referrals = [];
+    }
+    if (!facility) return memoryStore.referrals;
+    return memoryStore.referrals.filter(r => (r.facility || "").toLowerCase() === facility.toLowerCase());
+  },
+
+  async getReferralById(id) {
+    if (!Array.isArray(memoryStore.referrals)) {
+      memoryStore.referrals = [];
+    }
+    return memoryStore.referrals.find(r => r.id === id) || null;
+  },
+
+  getTriageNoteById(id) {
+    return this.getNoteById(id);
+  },
+
+  async updateNoteReferral(noteId, referral, targetFacility) {
+    const note = memoryStore.triageNotes.find((n) => n.id === noteId);
+    if (note) {
+      note.referral = referral;
+      note.status = "REFERRED";
+      note.disposition = `Referred to ${targetFacility}`;
+      persistStore();
+      db.saveTriageNoteToCloud(note).catch(() => {});
+      return note;
+    }
+    return null;
   },
 
   async clearAllData() {

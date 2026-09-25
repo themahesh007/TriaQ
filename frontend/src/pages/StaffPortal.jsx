@@ -418,6 +418,37 @@ export default function StaffPortal({ onNavigateHome }) {
     }, 240);
   };
 
+  const handleSendReferral = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedNote) return;
+    if (!referralReason.trim()) {
+      alert("Please provide the clinical reason for the referral.");
+      return;
+    }
+    setReferralSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/referrals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          triageNoteId: selectedNote.id,
+          targetFacility: referralTargetFacility,
+          referralReason: referralReason.trim(),
+          doctorName: staffSession?.staff?.name || "Dr. Sharma"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create referral");
+      setReferralSuccessResult(data);
+      setNotification(`✓ Referral created for ${referralTargetFacility}! Official transfer letter ready.`);
+      await fetchDashboardData();
+    } catch (err) {
+      alert("Referral Error: " + err.message);
+    } finally {
+      setReferralSubmitting(false);
+    }
+  };
+
   const handleExportCSV = () => {
     window.open(`${API_BASE}/api/export-csv`, "_blank");
   };
@@ -1773,6 +1804,151 @@ export default function StaffPortal({ onNavigateHome }) {
           setPassword(newPassword);
         }}
       />
+
+      {/* Referral Automation Modal (Feature 3) */}
+      {showReferralModal && selectedNote && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 bg-teal-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🏥</span>
+                <div>
+                  <h3 className="font-black text-[16px] tracking-tight">Refer Patient to Higher Facility</h3>
+                  <p className="text-[12px] text-teal-200">
+                    Token: <strong>{selectedNote.patient?.tokenId || selectedNote.tokenId || "Token"}</strong> • {selectedNote.patient?.name || "Patient"}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReferralModal(false);
+                  setReferralSuccessResult(null);
+                }}
+                className="text-teal-200 hover:text-white text-lg font-bold px-2 py-1 rounded-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {referralSuccessResult ? (
+                <div className="space-y-4 text-center py-2">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+                    ✓
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 text-base">Referral Letter Generated!</h4>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Patient successfully referred to <strong>{referralTargetFacility}</strong>.
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      Referral ID: {referralSuccessResult.referralId}
+                    </p>
+                  </div>
+
+                  <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-left text-xs text-teal-950 space-y-1.5">
+                    <p><strong>1. On Patient's Phone/Portal:</strong> The patient will now see a bold &quot;Hospital Transfer &amp; Referral&quot; card with a PDF download button on their status screen.</p>
+                    <p><strong>2. Via Email:</strong> An official transfer notice with PDF was dispatched to the receiving center &amp; patient.</p>
+                    <p><strong>3. Print Physical Copy:</strong> Click below to print or download the official signed letter to hand to the patient right now.</p>
+                  </div>
+
+                  <div className="pt-2 flex flex-col gap-2">
+                    <a
+                      href={`${API_BASE}/api/referrals/${referralSuccessResult.referralId}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 px-4 rounded-xl font-black text-sm text-white bg-teal-900 hover:bg-teal-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      <span>📥 Download &amp; Print Official Referral Letter (PDF)</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowReferralModal(false);
+                        setReferralSuccessResult(null);
+                      }}
+                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                    >
+                      Close Window
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handleSendReferral} className="space-y-4 text-left">
+                  <div>
+                    <label className="block text-xs font-black uppercase text-slate-600 mb-1">
+                      Destination Facility (Receiving Hospital)
+                    </label>
+                    <select
+                      value={referralTargetFacility}
+                      onChange={(e) => setReferralTargetFacility(e.target.value)}
+                      className="w-full p-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-teal-600"
+                    >
+                      <option value="District Hospital (Secondary Care)">District Hospital (Secondary Care)</option>
+                      <option value="Government Medical College & Hospital (Tertiary Care)">Government Medical College & Hospital (Tertiary Care)</option>
+                      <option value="Apex Trauma & Multispecialty Center">Apex Trauma & Multispecialty Center</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black uppercase text-slate-600 mb-1">
+                      Quick Clinical Indications (Click to add)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {[
+                        "ICU / Ventilator Bed Required",
+                        "Emergency Surgical Evaluation",
+                        "Advanced Cardiac Cath Lab",
+                        "Pediatric Specialist Needed",
+                        "Severe Blood Loss / Transfusion"
+                      ].map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => setReferralReason((prev) => prev ? `${prev}; ${chip}` : chip)}
+                          className="text-[11px] font-semibold px-2 py-1 rounded-md bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 transition cursor-pointer"
+                        >
+                          + {chip}
+                        </button>
+                      ))}
+                    </div>
+
+                    <label className="block text-xs font-black uppercase text-slate-600 mb-1">
+                      Clinical Reason &amp; Justification for Escalation *
+                    </label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={referralReason}
+                      onChange={(e) => setReferralReason(e.target.value)}
+                      placeholder="e.g. Critical chest pain with abnormal vitals; requires urgent troponin, coronary angiography and tertiary CCU admission."
+                      className="w-full p-2.5 text-xs rounded-xl border border-slate-300 focus:outline-teal-600"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowReferralModal(false)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={referralSubmitting}
+                      className="px-5 py-2.5 rounded-xl text-xs font-black text-white bg-teal-900 hover:bg-teal-800 transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      {referralSubmitting ? "Generating Referral..." : "Generate Official Transfer Pass →"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

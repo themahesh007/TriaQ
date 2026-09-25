@@ -1948,6 +1948,43 @@ export default function PatientPortal({ onNavigateHome }) {
                 </div>
               )}
 
+              {statusData.referral && (
+                <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/90 space-y-2 shadow-sm text-left">
+                  <div className="flex items-center justify-between border-b border-teal-200 pb-2">
+                    <span className="text-[12px] font-black uppercase text-teal-950 tracking-wider flex items-center gap-1.5">
+                      <span>🚨</span> Hospital Transfer & Referral Issued
+                    </span>
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded bg-teal-200 text-teal-950 uppercase">
+                      Action Required
+                    </span>
+                  </div>
+                  <div className="text-[13px] text-slate-800 space-y-1">
+                    <p>
+                      Your attending physician has officially referred your case to:
+                      <strong className="block text-base font-black text-slate-950 mt-0.5">
+                        🏥 {statusData.referral.targetFacility}
+                      </strong>
+                    </p>
+                    <p className="text-[12px] text-slate-700">
+                      <strong>Reason for Escalation:</strong> {statusData.referral.referralReason}
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <a
+                      href={`${API_BASE}/api/referrals/${statusData.referral.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-teal-900 hover:bg-teal-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      <span>📥 Download Official Referral Letter (PDF)</span>
+                    </a>
+                    <p className="text-[11px] text-teal-800 mt-1 text-center font-medium">
+                      Please present this official referral pass directly upon arrival at the receiving facility emergency or intake counter.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="pt-2">
                 <a
                   href={`${API_BASE}/api/patients/receipt/${statusData.receiptNumber}/pdf`}

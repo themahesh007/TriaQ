@@ -673,5 +673,7 @@ module.exports = {
   deleteFacilityFromCloud,
   deleteStaffFromCloud,
   getNextSequentialTokenNumber,
-  getIstOpdDateStr
+  getIstOpdDateStr,
+  saveReferralToCloud,
+  loadReferralsFromCloud
 };

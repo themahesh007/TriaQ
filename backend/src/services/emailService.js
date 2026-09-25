@@ -176,5 +176,6 @@ async function sendReferralNotificationEmail(targetEmail, referralData, pdfBuffe
 
 module.exports = {
   createTransporter,
-  sendPasswordResetOTP
+  sendPasswordResetOTP,
+  sendReferralNotificationEmail
 };
