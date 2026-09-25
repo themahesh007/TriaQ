@@ -1778,9 +1778,16 @@ app.post("/api/referrals", async (req, res) => {
 
     // 4. Dispatch Email asynchronously to patient & receiving facility
     const targetEmailMap = {
-      "District Hospital (Secondary Care)": "referrals@districthospital.gov.in",
-      "Government Medical College & Hospital (Tertiary Care)": "referrals@medicalcollege.gov.in",
-      "Apex Trauma & Multispecialty Center": "admissions@apextrauma.gov.in"
+      "All India Institute of Medical Sciences (AIIMS) – Bhubaneswar": "referrals@aiimsbhubaneswar.edu.in",
+      "Sriram Chandra Bhanja (SCB) Medical College – Cuttack": "referrals@scbmch.ac.in",
+      "MKCG Medical College – Berhampur": "referrals@mkcgmch.org",
+      "Veer Surendra Sai Institute of Medical Sciences and Research (VIMSAR) – Burla, Sambalpur": "referrals@vimsar.ac.in",
+      "Sri Jagannath Medical College – Puri": "referrals@sjmchpuri.in",
+      "Fakir Mohan Medical College – Balasore": "referrals@fmmchbalasore.nic.in",
+      "Pandit Raghunath Murmu Medical College – Baripada, Mayurbhanj": "referrals@prmmchbaripada.nic.in",
+      "Saheed Laxman Nayak Medical College – Koraput": "referrals@slnmchkoraput.nic.in",
+      "Bhima Bhoi Medical College – Balangir": "referrals@bbmchbalangir.nic.in",
+      "Government Medical College – Sundargarh": "referrals@gmcsundargarh.nic.in"
     };
     const targetEmail = targetEmailMap[targetFacility] || process.env.REFERRAL_NOTIFICATION_EMAIL || process.env.GMAIL_USER || "triaqproject@gmail.com";
 

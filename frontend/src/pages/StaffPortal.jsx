@@ -21,6 +21,19 @@ import {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
+export const REFERRAL_HOSPITALS = [
+  "All India Institute of Medical Sciences (AIIMS) – Bhubaneswar",
+  "Sriram Chandra Bhanja (SCB) Medical College – Cuttack",
+  "MKCG Medical College – Berhampur",
+  "Veer Surendra Sai Institute of Medical Sciences and Research (VIMSAR) – Burla, Sambalpur",
+  "Sri Jagannath Medical College – Puri",
+  "Fakir Mohan Medical College – Balasore",
+  "Pandit Raghunath Murmu Medical College – Baripada, Mayurbhanj",
+  "Saheed Laxman Nayak Medical College – Koraput",
+  "Bhima Bhoi Medical College – Balangir",
+  "Government Medical College – Sundargarh"
+];
+
 // Helpers for Indian 10-digit Contact Number validation
 const cleanIndianPhone = (raw) => {
   if (!raw) return "";
@@ -83,7 +96,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [queue, setQueue] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
   const [showReferralModal, setShowReferralModal] = useState(false);
-  const [referralTargetFacility, setReferralTargetFacility] = useState("District Hospital (Secondary Care)");
+  const [referralTargetFacility, setReferralTargetFacility] = useState(REFERRAL_HOSPITALS[0]);
   const [referralReason, setReferralReason] = useState("");
   const [referralSubmitting, setReferralSubmitting] = useState(false);
   const [referralSuccessResult, setReferralSuccessResult] = useState(null);
@@ -1883,11 +1896,13 @@ export default function StaffPortal({ onNavigateHome }) {
                     <select
                       value={referralTargetFacility}
                       onChange={(e) => setReferralTargetFacility(e.target.value)}
-                      className="w-full p-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-teal-600"
+                      className="w-full p-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-teal-600 text-slate-900 cursor-pointer shadow-2xs"
                     >
-                      <option value="District Hospital (Secondary Care)">District Hospital (Secondary Care)</option>
-                      <option value="Government Medical College & Hospital (Tertiary Care)">Government Medical College & Hospital (Tertiary Care)</option>
-                      <option value="Apex Trauma & Multispecialty Center">Apex Trauma & Multispecialty Center</option>
+                      {REFERRAL_HOSPITALS.map((hospital) => (
+                        <option key={hospital} value={hospital}>
+                          🏥 {hospital}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
