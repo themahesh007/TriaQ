@@ -55,11 +55,51 @@ export default function StaffPortal({ onNavigateHome }) {
   const [staffSession, setStaffSession] = useState(() => {
     try {
       const saved = localStorage.getItem("triaq_staff_session");
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      // Immediately purge obsolete dummy demo session (Dr. Sharma at Apollo PHC Hub)
+      if (
+        (parsed?.staff?.facility && parsed.staff.facility.includes("Apollo")) ||
+        parsed?.staff?.name === "Dr. Sharma" ||
+        parsed?.staff?.email === "doctor@triaq.org"
+      ) {
+        localStorage.removeItem("triaq_staff_session");
+        return null;
+      }
+      return parsed;
     } catch {
       return null;
     }
   });
+
+  const [activeStationFacility, setActiveStationFacility] = useState(() => {
+    try {
+      const saved = localStorage.getItem("triaq_active_station");
+      if (saved && !saved.includes("Apollo")) return saved;
+      const s = localStorage.getItem("triaq_staff_session");
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (parsed?.staff?.facility && !parsed.staff.facility.includes("Apollo")) return parsed.staff.facility;
+      }
+    } catch {}
+    return "Ramesh Clinic";
+  });
+
+  // Safety sweep: ensure any legacy Apollo or mock tokens in storage are cleared on mount
+  useEffect(() => {
+    try {
+      const active = localStorage.getItem("triaq_active_station");
+      if (active && active.includes("Apollo")) {
+        localStorage.setItem("triaq_active_station", "Ramesh Clinic");
+        setActiveStationFacility("Ramesh Clinic");
+      }
+      const sess = localStorage.getItem("triaq_staff_session");
+      if (sess && (sess.includes("Apollo") || sess.includes("Dr. Sharma") || sess.includes("doctor@triaq.org"))) {
+        localStorage.removeItem("triaq_staff_session");
+        setStaffSession(null);
+      }
+    } catch {}
+  }, []);
 
   // Login inputs
   const [email, setEmail] = useState("");
@@ -133,7 +173,7 @@ export default function StaffPortal({ onNavigateHome }) {
   const [activeAdminTab, setActiveAdminTab] = useState("queue"); // queue | staff_manage
   const [allStaffList, setAllStaffList] = useState([]);
 
-  // Fetch registered hospitals and clinics for dynamic staff registration
+  // Fetch registered hospitals and clinics for dynamic staff registration and station selection
   useEffect(() => {
     fetch(`${API_BASE}/api/facilities`)
       .then((res) => res.json())
@@ -145,10 +185,20 @@ export default function StaffPortal({ onNavigateHome }) {
             setRegFacility(data[0].name);
             setRegFacilityId(data[0].id);
           }
+          // Auto-align activeStationFacility to existing registered facilities
+          setActiveStationFacility((curr) => {
+            if (curr && data.some((f) => f.name.toLowerCase() === curr.toLowerCase())) {
+              return curr;
+            }
+            if (staffSession?.staff?.facility && data.some((f) => f.name.toLowerCase() === staffSession.staff.facility.toLowerCase())) {
+              return staffSession.staff.facility;
+            }
+            return data[0].name;
+          });
         }
       })
       .catch((err) => console.error("Error fetching facilities:", err));
-  }, []);
+  }, [staffSession, regFacilityId]);
 
   // Fetch rooms for this hospital when staff is logged in
   useEffect(() => {
@@ -230,13 +280,13 @@ export default function StaffPortal({ onNavigateHome }) {
     setTimeout(() => setCallingToken(""), 5000);
   };
 
+  const currentHospitalName = activeStationFacility || staffSession?.staff?.facility || (registeredFacilities[0]?.name || "Ramesh Clinic");
+
   const fetchDashboardData = useCallback(async () => {
     if (!staffSession) return;
     try {
       const headers = { Authorization: `Bearer ${staffSession.token}` };
-      const facParam = staffSession?.staff?.facility && staffSession?.staff?.role !== "MASTER"
-        ? `&facility=${encodeURIComponent(staffSession.staff.facility)}`
-        : "";
+      const facParam = `&facility=${encodeURIComponent(currentHospitalName)}`;
       const notesRes = await fetch(`${API_BASE}/api/triage-notes?status=PENDING${facParam}`, { headers });
       if (notesRes.ok) {
         const notes = await notesRes.json();
@@ -333,7 +383,7 @@ export default function StaffPortal({ onNavigateHome }) {
       email: regEmail.trim(),
       password: regPassword,
       role: regRole,
-      facility: regFacility.trim() || "Apollo PHC Hub, Delhi",
+      facility: regFacility.trim() || (registeredFacilities[0]?.name || "Ramesh Clinic"),
       phone: cleanedPhone
     };
     try {
@@ -452,7 +502,7 @@ export default function StaffPortal({ onNavigateHome }) {
           triageNoteId: selectedNote.id,
           targetFacility: referralTargetFacility,
           referralReason: referralReason.trim(),
-          doctorName: staffSession?.staff?.name || "Dr. Sharma"
+          doctorName: staffSession?.staff?.name || "Attending Medical Officer"
         })
       });
       const data = await res.json();
@@ -1005,17 +1055,44 @@ export default function StaffPortal({ onNavigateHome }) {
                   ✚
                 </span>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                      {staffSession.staff?.facility || staffSession.facility?.name || "Healthcare Facility"}
-                    </h1>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <select
+                      value={currentHospitalName}
+                      onChange={(e) => {
+                        const newFac = e.target.value;
+                        setActiveStationFacility(newFac);
+                        try {
+                          localStorage.setItem("triaq_active_station", newFac);
+                          if (staffSession?.staff) {
+                            const updated = {
+                              ...staffSession,
+                              staff: { ...staffSession.staff, facility: newFac }
+                            };
+                            setStaffSession(updated);
+                            localStorage.setItem("triaq_staff_session", JSON.stringify(updated));
+                          }
+                        } catch {}
+                      }}
+                      className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight bg-transparent border-b-2 border-dashed border-emerald-500 hover:border-emerald-700 outline-none cursor-pointer py-0.5"
+                      title="Click to switch hospital workstation"
+                    >
+                      {registeredFacilities.length > 0 ? (
+                        registeredFacilities.map((fac) => (
+                          <option key={fac.id} value={fac.name} className="text-[14px] font-bold text-slate-900">
+                            {fac.name} ({fac.city || fac.district || "Active Desk"})
+                          </option>
+                        ))
+                      ) : (
+                        <option value={currentHospitalName}>{currentHospitalName}</option>
+                      )}
+                    </select>
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                       Station Active
                     </span>
                   </div>
                   <p className="text-[12.5px] text-slate-500 font-medium">
-                    Outpatient Department (OPD) Clinical Station • Live Patient Queue & Intake Management
+                    Outpatient Department (OPD) Clinical Station • Live Patient Queue &amp; Intake Management
                   </p>
                 </div>
               </div>
@@ -1023,7 +1100,10 @@ export default function StaffPortal({ onNavigateHome }) {
               <div className="text-right">
                 <span className="text-[11px] text-slate-400 font-bold uppercase block">Attending Provider</span>
                 <span className="text-[13px] font-bold text-slate-800 block">
-                  {staffSession.staff?.name} ({staffSession.staff?.role})
+                  {staffSession.staff?.name || "Medical Officer"} ({staffSession.staff?.role || "DOCTOR"})
+                </span>
+                <span className="text-[11px] font-bold text-emerald-700 block">
+                  📍 {currentHospitalName}
                 </span>
               </div>
             </div>
@@ -1181,7 +1261,7 @@ export default function StaffPortal({ onNavigateHome }) {
                   {filteredQueue.length === 0 ? (
                     <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-2">
                       <p className="font-bold text-[14px] text-slate-800">Queue is clear</p>
-                      <p className="text-[12px] text-slate-400">No pending triage cases for {staffSession?.staff?.facility || "this facility"}.</p>
+                      <p className="text-[12px] text-slate-400">No pending triage cases for {currentHospitalName}.</p>
                     </div>
                   ) : (
                     filteredQueue.map((item) => {
@@ -1298,7 +1378,7 @@ export default function StaffPortal({ onNavigateHome }) {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black uppercase text-slate-400">
-                            {selectedNote.facility || "Apollo PHC Hub"}
+                            {selectedNote.facility || currentHospitalName || "Hospital Station"}
                           </span>
                           <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                             Receipt: {selectedNote.receiptNumber || selectedNote.patient?.tokenId}

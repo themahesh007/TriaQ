@@ -782,7 +782,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                 {session.facility?.name}
               </h1>
               <p className="text-[13px] text-slate-300 font-medium">
-                📍 {session.facility?.address || "Main Medical Enclave, New Delhi"} • Admin: {session.facility?.adminEmail}
+                📍 {session.facility?.address || "Registered Clinical Location"} • Admin: {session.facility?.adminEmail || "Healthcare Admin"}
               </p>
             </div>
 

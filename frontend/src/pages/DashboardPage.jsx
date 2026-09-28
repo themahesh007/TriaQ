@@ -8,7 +8,7 @@ export default function DashboardPage({ onQueueUpdated }) {
   const [selectedNote, setSelectedNote] = useState(null);
   const [editableSummary, setEditableSummary] = useState("");
   const [originalSummary, setOriginalSummary] = useState("");
-  const [reviewerId, setReviewerId] = useState("Dr. Sharma");
+  const [reviewerId, setReviewerId] = useState("Attending Medical Officer");
   const [reviewerNote, setReviewerNote] = useState("");
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -245,7 +245,7 @@ export default function DashboardPage({ onQueueUpdated }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          reviewerId: reviewerId.trim() || "Dr. Sharma",
+          reviewerId: reviewerId.trim() || "Attending Medical Officer",
           editedSummary: action === "EDIT_APPROVE" ? editableSummary : undefined,
           note: reviewerNote.trim() || undefined,
           disposition: disposition || undefined,

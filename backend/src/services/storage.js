@@ -68,6 +68,13 @@ if (fs.existsSync(STORE_FILE)) {
 
 
 
+function getDefaultFacilityName() {
+  if (memoryStore.facilities && memoryStore.facilities.length > 0) {
+    return memoryStore.facilities[0].name;
+  }
+  return "Ramesh Clinic";
+}
+
 function persistStore() {
   try {
     fs.writeFileSync(STORE_FILE, JSON.stringify(memoryStore, null, 2), "utf8");
@@ -167,7 +174,7 @@ const storage = {
       encryptedConditions: encryptPII(data.conditions || null),
       consentGiven: data.consentGiven !== undefined ? data.consentGiven : true,
       consentTimestamp: new Date().toISOString(),
-      facility: data.facility || "Apollo PHC Hub, Delhi",
+      facility: data.facility || getDefaultFacilityName(),
       isActive: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -273,7 +280,7 @@ const storage = {
       passwordHash: data.passwordHash,
       name: data.name,
       role: data.role || "NURSE",
-      facility: data.facility || "Apollo PHC Hub, Delhi",
+      facility: data.facility || getDefaultFacilityName(),
       phone: data.phone ? String(data.phone).replace(/\D/g, "") : null,
       department: data.department || null,
       isActive: data.isActive !== undefined ? data.isActive : true,
@@ -374,7 +381,7 @@ const storage = {
       missingInfo: data.missingInfo || [],
       followUpQuestions: data.followUpQuestions || [],
       extractedReportData: data.extractedReportData || null,
-      facility: data.facility || patient.facility || "Apollo PHC Hub, Delhi",
+      facility: data.facility || patient.facility || getDefaultFacilityName(),
       status: "PENDING",
       editHistory: [],
       createdAt: new Date().toISOString(),

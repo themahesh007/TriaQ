@@ -15,43 +15,10 @@ const MASTER_HASH = bcrypt.hashSync("Master@123", DEFAULT_SALT);
 
 const initialStaff = [
   {
-    id: "staff-doc-1",
-    email: "doctor@triaq.org",
-    passwordHash: DOCTOR_HASH,
-    name: "Dr. Sharma",
-    role: "DOCTOR",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-nurse-1",
-    email: "nurse@triaq.org",
-    passwordHash: NURSE_HASH,
-    name: "Nurse Priya",
-    role: "NURSE",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-admin-1",
-    email: "admin@triaq.org",
-    passwordHash: ADMIN_HASH,
-    name: "Admin Officer",
-    role: "ADMIN",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-master-1",
-    email: "master@triaq.org",
-    passwordHash: MASTER_HASH,
-    name: "System Master",
+    id: "staff-master-real",
+    email: "triaqproject@gmail.com",
+    passwordHash: crypto.createHash("sha256").update("Triaq@2026").digest("hex"),
+    name: "Master Administrator",
     role: "MASTER",
     facility: "Global Central Hub",
     isActive: true,
@@ -62,8 +29,8 @@ const initialStaff = [
 ];
 
 const initialFacilities = [
-  { id: "fac-1", name: "Apollo PHC Hub, Delhi", phone: "+91-11-2338-9000", address: "Sector 14, Delhi" },
-  { id: "fac-2", name: "Rural Health Centre, Odisha", phone: "+91-674-239-0000", address: "Puri Road, Odisha" }
+  { id: "fac-ramesh", name: "Ramesh Clinic", phone: "+91-98765-43210", address: "Main Road, Ward 4", state: "Odisha", district: "Bhubaneswar", type: "Clinic", bedCapacity: 20, emergencyReady: true, registrationNumber: "REG-RAMESH-01", adminEmail: "ramesh.clinic@triaq.org" },
+  { id: "fac-aditya", name: "Aditya Clinic", phone: "+91-98765-43211", address: "Station Square", state: "Odisha", district: "Cuttack", type: "Clinic", bedCapacity: 35, emergencyReady: true, registrationNumber: "REG-ADITYA-01", adminEmail: "aditya.clinic@triaq.org" }
 ];
 
 async function resetAll() {
