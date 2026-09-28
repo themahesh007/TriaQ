@@ -31,7 +31,13 @@ import {
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 
-export default function PatientPortal({ onNavigateHome }) {
+export default function PatientPortal({
+  onNavigateHome,
+  onNavigateToIntake,
+  language: propLanguage,
+  onSelectLanguage: propSelectLanguage,
+  onOpenLanguageModal: propOpenModal
+}) {
   // Session & navigation states
   const [patientSession, setPatientSession] = useState(() => {
     try {
@@ -128,22 +134,33 @@ export default function PatientPortal({ onNavigateHome }) {
   const [statusData, setStatusData] = useState(null);
 
   // Multilingual, Dynamic Questions & Consent States
-  const [language, setLanguage] = useState(() => {
+  const [internalLanguage, setInternalLanguage] = useState(() => {
     try {
       return localStorage.getItem("triaq_patient_lang") || "en";
     } catch {
       return "en";
     }
   });
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
-  const handleSelectLanguage = (code) => {
-    setLanguage(code);
+  const language = propLanguage || internalLanguage;
+  const setLanguage = (code) => {
+    setInternalLanguage(code);
+    if (propSelectLanguage) propSelectLanguage(code);
     try {
       localStorage.setItem("triaq_patient_lang", code);
     } catch {}
   };
+
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const handleOpenLanguageModal = () => {
+    if (propOpenModal) {
+      propOpenModal();
+    } else {
+      setShowLanguageModal(true);
+    }
+  };
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
   const [consentChecked, setConsentChecked] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
@@ -913,7 +930,7 @@ export default function PatientPortal({ onNavigateHome }) {
           {/* Odisha Govt Style Floating Language Modal Trigger */}
           <button
             type="button"
-            onClick={() => setShowLanguageModal(true)}
+            onClick={handleOpenLanguageModal}
             className="btn-tactile text-[12px] font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 px-3 py-1.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
             title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ / भाषा बदलें"
           >
@@ -1036,10 +1053,10 @@ export default function PatientPortal({ onNavigateHome }) {
               📱
             </span>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Patient Check-In
+              {t.authTitle || "Patient Check-In"}
             </h2>
             <p className="text-[13px] text-slate-500 font-medium max-w-sm mx-auto">
-              Fast, free & lightweight check-in for OPD triage consultation. Works on 2G & 3G networks.
+              {t.authSubtitle || "Fast, free & lightweight check-in for OPD triage consultation. Works on 2G & 3G networks."}
             </p>
           </div>
 
@@ -1055,7 +1072,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 authTab === "otp" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              📱 Mobile & OTP
+              📱 {t.phoneOtpTab || "Mobile & OTP"}
             </button>
             <button
               type="button"
@@ -1067,7 +1084,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 authTab === "password" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              ✉️ Email & Password
+              ✉️ {t.passwordTab || "Email & Password"}
             </button>
           </div>
 
@@ -1083,7 +1100,7 @@ export default function PatientPortal({ onNavigateHome }) {
               <form onSubmit={handleLoginOTP} className="space-y-4">
                 <div>
                   <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                    <span>Contact Number (India)</span>
+                    <span>{t.enterPhoneLabel || "Contact Number (India)"}</span>
                     <span className="text-[11px] font-bold text-emerald-700">
                       {phone.length}/10 digits
                     </span>
@@ -1098,7 +1115,7 @@ export default function PatientPortal({ onNavigateHome }) {
                       maxLength={10}
                       value={phone}
                       onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                      placeholder="9876543210"
+                      placeholder={t.phonePlaceholder || "9876543210"}
                       className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-black text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                     <button
@@ -1107,11 +1124,11 @@ export default function PatientPortal({ onNavigateHome }) {
                       disabled={loading}
                       className="px-3.5 py-2.5 rounded-xl text-[12px] font-black bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-600 hover:text-white transition cursor-pointer shrink-0"
                     >
-                      {otpSent ? "Resend OTP" : "Send OTP"}
+                      {otpSent ? (language === "or" ? "ପୁଣି OTP ପଠାନ୍ତୁ" : language === "hi" ? "पुनः OTP भेजें" : "Resend OTP") : (t.sendOtpBtn || "Send OTP")}
                     </button>
                   </div>
                   <p className="text-[10.5px] text-slate-400 mt-1 font-medium">
-                    Enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9)
+                    {language === "or" ? "ଏକ ବୈଧ ୧୦-ଅଙ୍କ ବିଶିଷ୍ଟ ଭାରତୀୟ ମୋବାଇଲ୍ ନମ୍ବର ଦିଅନ୍ତୁ (୬, ୭, ୮ କିମ୍ବା ୯ ରୁ ଆରମ୍ଭ)" : language === "hi" ? "मान्य 10-अंकीय भारतीय मोबाइल नंबर दर्ज करें (6, 7, 8 या 9 से शुरू)" : "Enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9)"}
                   </p>
                 </div>
 
@@ -1121,26 +1138,26 @@ export default function PatientPortal({ onNavigateHome }) {
                     <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-1 shadow-2xs">
                       <div className="flex items-center justify-between font-black text-emerald-900 text-[12px]">
                         <span className="flex items-center gap-1.5">
-                          <span>📩</span> SMS Delivered to Contact Number
+                          <span>📩</span> {language === "or" ? "ମୋବାଇଲ୍ ନମ୍ବରକୁ SMS ପଠାଗଲା" : language === "hi" ? "मोबाइल नंबर पर SMS भेजा गया" : "SMS Delivered to Contact Number"}
                         </span>
                         <span className="text-[10.5px] bg-white font-mono px-2 py-0.5 rounded border border-emerald-200">
                           +91-{phone}
                         </span>
                       </div>
                       <p className="text-[12.5px] font-bold text-emerald-800">
-                        Your TriaQ OTP Code is:{" "}
+                        {language === "or" ? "ଆପଣଙ୍କ TriaQ OTP କୋଡ୍ ହେଉଛି: " : language === "hi" ? "आपका TriaQ OTP कोड है: " : "Your TriaQ OTP Code is: "}
                         <span className="font-mono text-base font-black text-emerald-950 bg-white px-2 py-0.5 rounded border border-emerald-300 inline-block shadow-2xs">
                           {demoOtpCode}
                         </span>
                       </p>
                       <p className="text-[10.5px] text-emerald-700 font-medium">
-                        Valid for 5 minutes. Enter code below or click verify to proceed.
+                        {language === "or" ? "୫ ମିନିଟ୍ ପାଇଁ ବୈଧ। ତଳେ କୋଡ୍ ଦିଅନ୍ତୁ କିମ୍ବା ଯାଞ୍ଚ କରି ଆଗକୁ ବଢ଼ନ୍ତୁ।" : language === "hi" ? "5 मिनट के लिए मान्य। नीचे कोड दर्ज करें या जारी रखें।" : "Valid for 5 minutes. Enter code below or click verify to proceed."}
                       </p>
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-[12px] font-bold text-slate-700 block">
-                        Enter 6-Digit OTP Code
+                        {t.verifyOtpLabel || "Enter 6-Digit OTP Code"}
                       </label>
                       <input
                         type="text"
@@ -1159,7 +1176,7 @@ export default function PatientPortal({ onNavigateHome }) {
                   disabled={loading || !otpSent}
                   className="w-full py-3.5 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs"
                 >
-                  {loading ? "Verifying..." : "Verify & Continue →"}
+                  {loading ? (language === "or" ? "ଯାଞ୍ଚ କରାଯାଉଛି..." : language === "hi" ? "सत्यापित किया जा रहा है..." : "Verifying...") : (t.verifyOtpBtn || "Verify & Continue →")}
                 </button>
               </form>
 
@@ -1350,18 +1367,39 @@ export default function PatientPortal({ onNavigateHome }) {
       {/* ========================================================================= */}
       {currentStep === "intake" && (
         <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
               <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
-                Step 1 of 2 • Offline-Safe
+                {t.offlineSafeBadge || "Step 1 of 2 • Offline-Safe"}
               </span>
               <h2 className="text-xl font-black text-slate-900">
-                Tell us about yourself
+                {t.demographicsTitle || "Tell us about yourself"}
               </h2>
             </div>
-            <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
-              Draft saved locally
-            </span>
+            
+            <div className="flex items-center gap-2">
+              {/* Language Switcher Pills right on Demographics Box */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+                {LANGUAGES.map((lang) => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => setLanguage(lang.code)}
+                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                      language === lang.code
+                        ? "bg-[#111827] text-white shadow-xs"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+
+              <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 hidden sm:inline-block">
+                {t.draftSavedLocally || "Draft saved locally"}
+              </span>
+            </div>
           </div>
 
           {intakeSavedNotice && (
@@ -1379,7 +1417,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 </span>
                 <div>
                   <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 block">
-                    Facility QR Check-In Verified
+                    {t.facilityQrVerified || "Facility QR Check-In Verified"}
                   </span>
                   <span className="text-[15px] font-black text-slate-900">
                     {selectedFacility}
@@ -1387,7 +1425,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 </div>
               </div>
               <span className="text-[11px] font-black uppercase px-3 py-1 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300">
-                🔒 QR Locked
+                {t.qrLocked || "🔒 QR Locked"}
               </span>
             </div>
           ) : (
@@ -1395,10 +1433,10 @@ export default function PatientPortal({ onNavigateHome }) {
               <label className="block text-[12px] font-bold text-slate-800 flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <IconHospital className="w-4 h-4 text-emerald-600" />
-                  Select Healthcare Facility / Clinic <span className="text-rose-600">*</span>
+                  {t.selectFacilityLabel || "Select Healthcare Facility / Clinic"} <span className="text-rose-600">*</span>
                 </span>
                 <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  Step 1 • Demographics
+                  {t.selectFacilityStep || "Step 1 • Demographics"}
                 </span>
               </label>
               <select
@@ -1413,15 +1451,15 @@ export default function PatientPortal({ onNavigateHome }) {
                 {facilities.length > 0 ? (
                   facilities.map((f) => (
                     <option key={f.id} value={f.name}>
-                      {f.name} ({f.type === "CLINIC" ? "Clinic" : "Hospital"}{f.city ? ` - ${f.city}` : ""})
+                      {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
                     </option>
                   ))
                 ) : (
-                  <option value="">-- No registered facilities available --</option>
+                  <option value="">{t.noFacilitiesAvailable || "-- No registered facilities available --"}</option>
                 )}
               </select>
               <p className="text-[11px] text-slate-500 font-medium">
-                Your sequential token number will be generated only after you fill and submit your clinical symptoms in the next step.
+                {t.demographicsSubtitle || "Your sequential token number will be generated only after you fill and submit your clinical symptoms in the next step."}
               </p>
             </div>
           )}
@@ -1430,21 +1468,21 @@ export default function PatientPortal({ onNavigateHome }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Full Name <span className="text-rose-600">*</span>
+                  {t.fullNameLabel || "Full Name"} <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Ramesh Sharma"
+                  placeholder={t.fullNamePlaceholder || "e.g. Ramesh Sharma"}
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
               </div>
 
               <div>
                 <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Age (in years) <span className="text-rose-600">*</span>
+                  {t.ageLabel || "Age (in years)"} <span className="text-rose-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -1453,7 +1491,7 @@ export default function PatientPortal({ onNavigateHome }) {
                   max={125}
                   value={age}
                   onChange={(e) => setAge(e.target.value)}
-                  placeholder="e.g. 42"
+                  placeholder={t.agePlaceholder || "e.g. 42"}
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
               </div>
@@ -1462,8 +1500,8 @@ export default function PatientPortal({ onNavigateHome }) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>Contact Number</span>
-                  <span className="text-[11px] font-bold text-emerald-700">10-digit India</span>
+                  <span>{t.contactPhoneLabel || "Contact Number"}</span>
+                  <span className="text-[11px] font-bold text-emerald-700">{t.tenDigitIndia || "10-digit India"}</span>
                 </label>
                 <div className="flex gap-2">
                   <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
@@ -1476,7 +1514,7 @@ export default function PatientPortal({ onNavigateHome }) {
                     maxLength={10}
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="e.g. 9876543210"
+                    placeholder={t.phonePlaceholder || "e.g. 9876543210"}
                     className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 tracking-wider"
                   />
                 </div>
@@ -1484,13 +1522,13 @@ export default function PatientPortal({ onNavigateHome }) {
 
               <div>
                 <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Ward / Village / Address (Optional)
+                  {t.addressLabel || "Ward / Village / Address (Optional)"}
                 </label>
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
-                  placeholder="e.g. Ward 4, Sector 12"
+                  placeholder={t.addressPlaceholder || "e.g. Ward 4, Sector 12"}
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
               </div>
@@ -1498,26 +1536,26 @@ export default function PatientPortal({ onNavigateHome }) {
 
             <div>
               <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Existing Conditions (Optional)
+                {t.existingConditionsLabel || "Existing Conditions (Optional)"}
               </label>
               <input
                 type="text"
                 value={conditions}
                 onChange={(e) => setConditions(e.target.value)}
-                placeholder="e.g. Diabetes, Asthma, High Blood Pressure, None"
+                placeholder={t.existingConditionsPlaceholder || "e.g. Diabetes, Asthma, High Blood Pressure, None"}
                 className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
 
             <div>
               <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Current Medications (Optional)
+                {t.currentMedsLabel || "Current Medications (Optional)"}
               </label>
               <input
                 type="text"
                 value={medications}
                 onChange={(e) => setMedications(e.target.value)}
-                placeholder="e.g. Metformin 500mg, Inhaler, None"
+                placeholder={t.currentMedsPlaceholder || "e.g. Metformin 500mg, Inhaler, None"}
                 className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
               />
             </div>
@@ -1528,7 +1566,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 onClick={handleCheckStatus}
                 className="text-[12px] font-bold text-slate-500 hover:text-slate-800"
               >
-                Check past status →
+                {t.checkPastStatus || "Check past status →"}
               </button>
 
               <button
@@ -1536,7 +1574,7 @@ export default function PatientPortal({ onNavigateHome }) {
                 disabled={loading}
                 className="px-6 py-3 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer shadow-xs active:scale-98"
               >
-                Next: Describe Symptoms →
+                {t.proceedToSymptomsBtn || "Next: Describe Symptoms →"}
               </button>
             </div>
           </form>

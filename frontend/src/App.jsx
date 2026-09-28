@@ -7,6 +7,7 @@ import PatientPortal from "./pages/PatientPortal";
 import StaffPortal from "./pages/StaffPortal";
 import HospitalPortal from "./pages/HospitalPortal";
 import MasterPortal from "./pages/MasterPortal";
+import LanguageSelectorModal from "./components/LanguageSelectorModal";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -24,6 +25,23 @@ export default function App() {
 
   const [activePortal, setActivePortalState] = useState(getInitialPortal);
   const [pendingCount, setPendingCount] = useState(0);
+
+  // Global Language state (supports English, Odia, Hindi across patient portal and first dashboard)
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem("triaq_patient_lang") || "en";
+    } catch {
+      return "en";
+    }
+  });
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+
+  const handleSelectLanguage = (code) => {
+    setLanguage(code);
+    try {
+      localStorage.setItem("triaq_patient_lang", code);
+    } catch {}
+  };
 
   const setActivePortal = (portal) => {
     setActivePortalState(portal);
@@ -63,16 +81,25 @@ export default function App() {
       {/* 1. Persistent Top Safety Banner */}
       <Banner />
 
-      {/* 2. Upgraded Multi-Tier Navbar */}
+      {/* 2. Upgraded Multi-Tier Navbar with Language Selector for First Dashboard */}
       <Navbar
         activePortal={activePortal}
         setActivePortal={setActivePortal}
         pendingCount={pendingCount}
+        language={language}
+        onOpenLanguageModal={() => setShowLanguageModal(true)}
       />
 
       {/* 3. Main Multi-Portal Content */}
       <main className="flex-1 w-full pb-14">
-        {activePortal === "home" && <HomePage onNavigate={setActivePortal} />}
+        {activePortal === "home" && (
+          <HomePage 
+            onNavigate={setActivePortal} 
+            language={language}
+            onSelectLanguage={handleSelectLanguage}
+            onOpenLanguageModal={() => setShowLanguageModal(true)}
+          />
+        )}
         {activePortal === "intake" && (
           <IntakePage onNavigateHome={() => setActivePortal("home")} />
         )}
@@ -80,6 +107,9 @@ export default function App() {
           <PatientPortal
             onNavigateHome={() => setActivePortal("home")}
             onNavigateToIntake={() => setActivePortal("intake")}
+            language={language}
+            onSelectLanguage={handleSelectLanguage}
+            onOpenLanguageModal={() => setShowLanguageModal(true)}
           />
         )}
         {activePortal === "hospital-portal" && (
@@ -92,6 +122,14 @@ export default function App() {
           <MasterPortal onNavigateHome={() => setActivePortal("home")} />
         )}
       </main>
+
+      {/* Floating Odisha Govt Style Language Selector Modal (Available globally across First Dashboard & Patient Portal) */}
+      <LanguageSelectorModal
+        isOpen={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+        currentLanguage={language}
+        onSelectLanguage={handleSelectLanguage}
+      />
 
       {/* 4. Clinical Governance Footer */}
       <footer className="border-t border-slate-200/90 py-6 bg-white text-center text-[12px] text-slate-500 shadow-2xs">

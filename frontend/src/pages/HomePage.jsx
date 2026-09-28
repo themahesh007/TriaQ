@@ -1,4 +1,5 @@
 import React from "react";
+import { TRANSLATIONS, LANGUAGES } from "../utils/translations";
 import {
   IconHospital,
   IconClinic,
@@ -12,20 +13,59 @@ import {
   IconArrowRight
 } from "../components/Icons";
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, language = "en", onSelectLanguage, onOpenLanguageModal }) {
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+
   return (
     <div className="max-w-[1180px] mx-auto px-4 py-8 md:py-14 space-y-12">
       {/* Top Clinical Header */}
       <div className="text-center space-y-3.5">
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11.5px] font-black tracking-wider uppercase shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          Hospital Clinical Triage & OPD Queue Management System
+          {t.homeSystemBadge || "Hospital Clinical Triage & OPD Queue Management System"}
         </div>
+
+        {/* Multilingual Selector for Patients on First Dashboard */}
+        <div className="flex items-center justify-center gap-2 pt-1 pb-1">
+          <div className="inline-flex items-center gap-1.5 p-1 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+            <span className="text-sm pl-2">🌐</span>
+            <span className="text-[12px] font-bold text-slate-700 hidden sm:inline">
+              {language === "or" ? "ଭାଷା ବାଛନ୍ତୁ:" : language === "hi" ? "भाषा चुनें:" : "Language:"}
+            </span>
+            <div className="flex items-center gap-1">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => onSelectLanguage && onSelectLanguage(lang.code)}
+                  className={`px-3 py-1.5 rounded-xl text-[12px] font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    language === lang.code
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <span>{lang.nativeName}</span>
+                </button>
+              ))}
+            </div>
+            {onOpenLanguageModal && (
+              <button
+                type="button"
+                onClick={onOpenLanguageModal}
+                className="text-[11px] font-bold text-emerald-800 hover:bg-emerald-50 px-2 py-1.5 rounded-lg cursor-pointer transition"
+                title="Open language modal"
+              >
+                ▼
+              </button>
+            )}
+          </div>
+        </div>
+
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
-          Welcome to <span className="text-emerald-700">TriaQ</span>
+          {language === "or" ? "TriaQ ରେ ଆପଣଙ୍କୁ ସ୍ୱାଗତମ୍" : language === "hi" ? "TriaQ में आपका स्वागत है" : <>Welcome to <span className="text-emerald-700">TriaQ</span></>}
         </h1>
         <p className="text-sm md:text-base text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
-          Intelligent non-diagnostic symptom intake, sequential OPD tokens, and clinical prioritization for Primary Health Centers (PHCs), multi-specialty hospitals & rural clinics.
+          {t.homeHeroSubtitle || "Intelligent non-diagnostic symptom intake, sequential OPD tokens, and clinical prioritization for Primary Health Centers (PHCs), multi-specialty hospitals & rural clinics."}
         </p>
       </div>
 
@@ -41,14 +81,14 @@ export default function HomePage({ onNavigate }) {
             </div>
             <div>
               <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
-                Public & OPD Intake
+                {t.patientCardSub || "Public & OPD Intake"}
               </span>
               <h2 className="text-2xl font-black text-slate-900 mt-0.5">
-                I'm a Patient
+                {t.patientCardTitle || "I'm a Patient"}
               </h2>
             </div>
             <p className="text-[13px] text-slate-600 leading-relaxed font-medium">
-              Check in with Phone OTP or Email, describe your symptoms, select your clinic or scan reception QR, and receive your <strong>sequential OPD Token</strong> instantly.
+              {t.patientCardDesc || "Check in with Phone OTP or Email, describe your symptoms, select your clinic or scan reception QR, and receive your sequential OPD Token instantly."}
             </p>
             <ul className="text-[12px] text-slate-500 space-y-1.5 font-medium pt-1">
               <li className="flex items-center gap-2">
@@ -72,7 +112,7 @@ export default function HomePage({ onNavigate }) {
               onClick={() => onNavigate("patient-portal")}
               className="btn-tactile w-full py-3.5 px-4 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>Book OPD Token →</span>
+              <span>{t.bookOpdTokenBtn || "Book OPD Token →"}</span>
             </button>
             <p className="text-[11px] text-center text-slate-400 font-medium">
               Check in online or scan at reception
