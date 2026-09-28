@@ -7,18 +7,18 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div 
-        className="bg-white w-full max-w-sm rounded-2xl shadow-2xl border border-slate-200 overflow-hidden transform transition-all scale-100 animate-in zoom-in-95 duration-150"
+        className="bg-white w-full max-w-sm rounded-md shadow-2xl border border-slate-300 overflow-hidden transform transition-all scale-100 animate-in zoom-in-95 duration-150 govt-panel"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header matching Odisha Government Portal style */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        {/* Header matching Official Government Portal style */}
+        <div className="px-5 py-3.5 bg-[#003366] text-white flex items-center justify-between border-b border-[#002244]">
           <div className="flex items-center gap-2">
             <span className="text-xl">🌐</span>
             <div>
-              <h3 className="font-bold text-[14.5px] leading-tight tracking-tight">
-                Select Language
+              <h3 className="font-bold text-[14px] leading-tight tracking-wide uppercase">
+                Select Portal Language
               </h3>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-amber-200">
                 {currentLanguage === "hi" ? "अपनी भाषा चुनें" : currentLanguage === "or" ? "ଆପଣଙ୍କ ଭାଷା ଚୟନ କରନ୍ତୁ" : "Choose your preferred language"}
               </p>
             </div>
@@ -26,13 +26,13 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center text-sm font-bold transition cursor-pointer"
+            className="w-7 h-7 rounded bg-black/20 hover:bg-black/40 text-white flex items-center justify-center text-sm font-bold transition cursor-pointer"
           >
             ✕
           </button>
         </div>
 
-        {/* Radio options list matching the user's uploaded screenshot */}
+        {/* Radio options list */}
         <div className="p-3 divide-y divide-slate-100">
           {LANGUAGES.map((lang) => {
             const isSelected = currentLanguage === lang.code;
@@ -45,9 +45,9 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
                   onSelectLanguage(lang.code);
                   onClose();
                 }}
-                className={`w-full py-3.5 px-4 rounded-xl flex items-center justify-between text-left transition-all cursor-pointer ${
+                className={`w-full py-3 px-4 rounded flex items-center justify-between text-left transition-all cursor-pointer ${
                   isSelected 
-                    ? "bg-emerald-50/80 text-emerald-950 font-bold" 
+                    ? "bg-blue-50 text-[#003366] font-bold border border-blue-200" 
                     : "hover:bg-slate-50 text-slate-800 font-medium"
                 }`}
               >
@@ -56,23 +56,23 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
                     {lang.code === "en" ? "🇬🇧" : lang.code === "or" ? "🇮🇳" : "🇮🇳"}
                   </span>
                   <div>
-                    <span className="text-[14.5px] block">
+                    <span className="text-[14px] block">
                       {lang.nativeName}
                     </span>
-                    <span className="text-[11px] text-slate-400 font-normal">
+                    <span className="text-[11px] text-slate-500 font-normal">
                       {lang.label}
                     </span>
                   </div>
                 </div>
 
-                {/* Circular radio button indicator exactly like screenshot */}
+                {/* Circular radio button indicator */}
                 <div 
                   className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isSelected ? "border-emerald-600" : "border-slate-300"
+                    isSelected ? "border-[#003366]" : "border-slate-300"
                   }`}
                 >
                   {isSelected && (
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-in zoom-in-50 duration-100" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#003366] animate-in zoom-in-50 duration-100" />
                   )}
                 </div>
               </button>
@@ -81,8 +81,8 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
         </div>
 
         {/* Footer info */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 text-[11px] text-slate-500 text-center font-medium">
-          Entire patient intake, token pass & receipts will update instantly
+        <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-600 text-center font-medium">
+          Content will update immediately across the portal
         </div>
       </div>
     </div>

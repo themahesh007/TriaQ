@@ -85,7 +85,7 @@ export default function ClinicalSummaryCard({ summary = "", language = "en", cla
   return (
     <div className={`space-y-4 font-sans ${className}`}>
       {/* BOX 1: THE ACTUAL SYMPTOMS (CHIEF COMPLAINTS) */}
-      <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border-2 border-emerald-500/30 shadow-xs space-y-2.5 transition-all hover:border-emerald-500/50">
+      <div className="bg-slate-50/90 rounded-md p-4 sm:p-5 border-2 border-emerald-500/30 shadow-xs space-y-2.5 transition-all hover:border-emerald-500/50">
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm shadow-2xs font-bold">
@@ -111,7 +111,7 @@ export default function ClinicalSummaryCard({ summary = "", language = "en", cla
       </div>
 
       {/* BOX 2: ADDITIONAL QUESTIONS & INTAKE QUESTIONNAIRE */}
-      <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border-2 border-indigo-500/25 shadow-xs space-y-2.5 transition-all hover:border-indigo-500/40">
+      <div className="bg-slate-50/90 rounded-md p-4 sm:p-5 border-2 border-indigo-500/25 shadow-xs space-y-2.5 transition-all hover:border-indigo-500/40">
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm shadow-2xs font-bold">

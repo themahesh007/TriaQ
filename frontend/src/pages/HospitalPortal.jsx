@@ -29,7 +29,7 @@ const cleanIndianPhone = (raw) => {
   return digits.slice(0, 10);
 };
 
-export default function HospitalPortal({ onNavigateHome }) {
+export default function HospitalPortal({ onNavigateHome, language = "en" }) {
   const [session, setSession] = useState(() => {
     try {
       const saved = localStorage.getItem("triaq_hospital_session");
@@ -364,127 +364,136 @@ export default function HospitalPortal({ onNavigateHome }) {
 
       {/* LOGIN OR REGISTER VIEW IF NOT LOGGED IN */}
       {!session ? (
-        <div className="max-w-lg mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="text-center space-y-1">
-            <span className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
-              <IconHospital className="w-6 h-6 text-emerald-600" />
-            </span>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Hospital & Clinic Portal
-            </h2>
-            <p className="text-[13px] text-slate-500 font-medium">
-              Manage reception QR standees, sequential OPD tokens, and your hospital's Doctors & Nurses roster.
-            </p>
-          </div>
-
-          {/* Toggle Tabs: Login vs Register */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(false);
-                setLoginError("");
-                setRegError("");
-              }}
-              className={`py-2 px-3 rounded-lg text-[13px] font-black transition cursor-pointer ${
-                !isRegistering
-                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Hospital Login
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIsRegistering(true);
-                setLoginError("");
-                setRegError("");
-              }}
-              className={`py-2 px-3 rounded-lg text-[13px] font-black transition cursor-pointer ${
-                isRegistering
-                  ? "bg-white text-slate-900 shadow-xs border border-slate-200"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              + Register Hospital
-            </button>
-          </div>
-
-          {!isRegistering ? (
-            /* --- 1. LOGIN FORM --- */
-            <div className="space-y-4">
-
-
-              {loginError && (
-                loginError.toLowerCase().includes("pending") ? (
-                  <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-1.5 shadow-xs animate-fade-in">
-                    <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
-                      <span className="text-lg">⚠️</span>
-                      <span>CAUTION: Facility Awaiting Master Approval</span>
-                    </div>
-                    <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-6">
-                      {loginError}
-                    </p>
-                    <p className="text-[11px] font-bold text-amber-800 pl-6">
-                      Please wait for the State Master Administrator to approve your hospital verification request.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-                    {loginError}
-                  </div>
-                )
-              )}
-
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Facility Administrator Email
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    placeholder="admin@hospital.org"
-                    className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showLoginPassword ? "text" : "password"}
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowLoginPassword(!showLoginPassword)}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                      title={showLoginPassword ? "Hide password" : "Show password"}
-                    >
-                      {showLoginPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-tactile w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
-                >
-                  {loading ? "Authenticating..." : "Sign In to Hospital Portal →"}
-                </button>
-              </form>
+        <div className="max-w-xl mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
+          {/* Official Government Header Ribbon */}
+          <div className="bg-[#003366] text-white px-5 py-3 border-b border-[#002244] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🏥</span>
+              <h3 className="font-bold text-[13px] tracking-wide uppercase">
+                Health Facility &amp; Clinical Administration
+              </h3>
             </div>
+            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#002244] text-amber-300 border border-amber-400/40">
+              Official Portal
+            </span>
+          </div>
+
+          <div className="p-6 space-y-5 bg-white">
+            <div className="space-y-1 border-b border-slate-200 pb-3">
+              <h2 className="text-xl font-bold text-[#003366] tracking-tight">
+                Hospital &amp; Healthcare Center Portal
+              </h2>
+              <p className="text-[12.5px] text-slate-600 font-medium">
+                Reception QR Standee generator, sequential OPD token dispatcher, and Doctor / Staff clearance roster.
+              </p>
+            </div>
+
+            {/* Toggle Tabs: Login vs Register */}
+            <div className="grid grid-cols-2 p-1 rounded bg-slate-100 border border-slate-300 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(false);
+                  setLoginError("");
+                  setRegError("");
+                }}
+                className={`py-2 px-3 rounded text-[13px] font-bold transition cursor-pointer ${
+                  !isRegistering
+                    ? "bg-[#003366] text-white shadow-xs"
+                    : "text-slate-700 hover:text-slate-900"
+                }`}
+              >
+                Facility Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegistering(true);
+                  setLoginError("");
+                  setRegError("");
+                }}
+                className={`py-2 px-3 rounded text-[13px] font-bold transition cursor-pointer ${
+                  isRegistering
+                    ? "bg-[#003366] text-white shadow-xs"
+                    : "text-slate-700 hover:text-slate-900"
+                }`}
+              >
+                + Register Facility
+              </button>
+            </div>
+
+            {!isRegistering ? (
+              /* --- 1. LOGIN FORM --- */
+              <div className="space-y-4">
+                {loginError && (
+                  loginError.toLowerCase().includes("pending") ? (
+                    <div className="p-3.5 rounded bg-amber-50 border border-amber-300 text-amber-950 space-y-1.5 shadow-2xs">
+                      <div className="flex items-center gap-2 font-bold text-[13px] text-amber-900">
+                        <span className="text-base">⚠️</span>
+                        <span>NOTICE: Facility Registration Under Verification</span>
+                      </div>
+                      <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-5">
+                        {loginError}
+                      </p>
+                      <p className="text-[11px] font-bold text-amber-800 pl-5">
+                        Please await verification approval from the State Health Registry Administrator.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded bg-rose-50 border border-rose-300 text-rose-800 text-[12.5px] font-bold text-center">
+                      {loginError}
+                    </div>
+                  )
+                )}
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                      Facility Administrator Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="admin@hospital.org"
+                      className="w-full p-2.5 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                      Facility Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showLoginPassword ? "text" : "password"}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full p-2.5 pr-10 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowLoginPassword(!showLoginPassword)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                        title={showLoginPassword ? "Hide password" : "Show password"}
+                      >
+                        {showLoginPassword ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
+                  >
+                    {loading ? "Authenticating..." : "Sign In to Hospital Portal →"}
+                  </button>
+                </form>
+              </div>
           ) : (
             /* --- 2. REGISTER NEW HOSPITAL VIEW (WITH DEDICATED PENDING CAUTION SCREEN) --- */
             submittedPendingFacility ? (
@@ -755,14 +764,15 @@ export default function HospitalPortal({ onNavigateHome }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="btn-tactile w-full py-3 rounded-xl font-black text-[14px] text-white bg-emerald-600 hover:bg-emerald-700 transition cursor-pointer shadow-xs active:scale-98"
+                  className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
                 >
-                  {loading ? "Registering Hospital..." : "Submit Hospital for Master Approval →"}
+                  {loading ? "Submitting Facility..." : "Submit Facility for Master Verification →"}
                 </button>
               </form>
             </div>
             )
           )}
+          </div>
         </div>
       ) : (
         /* LOGGED IN DASHBOARD */
@@ -830,12 +840,12 @@ export default function HospitalPortal({ onNavigateHome }) {
                   key={tab.id}
                   type="button"
                   onClick={() => setActiveTab(tab.id)}
-                  className={`btn-tactile px-4 py-2 rounded-xl font-black text-[13px] transition flex items-center gap-2 cursor-pointer relative ${
+                  className={`btn-tactile px-4 py-2 rounded font-bold text-[13px] transition flex items-center gap-2 cursor-pointer relative ${
                     activeTab === tab.id
-                      ? "bg-slate-900 text-white shadow-xs"
+                      ? "bg-[#003366] text-white shadow-xs"
                       : tab.hasBadge
-                      ? "bg-amber-50 text-amber-900 border-2 border-amber-400 hover:bg-amber-100"
-                      : "bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200"
+                      ? "bg-amber-50 text-amber-900 border border-amber-400 hover:bg-amber-100"
+                      : "bg-white text-slate-700 hover:text-slate-950 hover:bg-slate-100 border border-slate-300"
                   }`}
                 >
                   <TabIcon className="w-4 h-4" />
@@ -852,7 +862,7 @@ export default function HospitalPortal({ onNavigateHome }) {
           {activeTab === "qr" && (
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Standee Printable Card */}
-              <div className="md:col-span-5 bg-white rounded-2xl p-6 border-2 border-emerald-500/40 shadow-sm text-center space-y-4">
+              <div className="md:col-span-5 bg-white rounded-md p-6 border-2 border-emerald-500/40 shadow-sm text-center space-y-4">
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-[11px] font-black uppercase tracking-wider">
                     <IconHospital className="w-3.5 h-3.5" />
@@ -867,7 +877,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                 </div>
 
                 {/* QR Code Container */}
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 inline-block shadow-inner">
+                <div className="bg-slate-50 p-4 rounded-md border border-slate-200 inline-block shadow-inner">
                   {qrImageUrl ? (
                     <img
                       src={qrImageUrl}
@@ -907,7 +917,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
               {/* Sequential Token Guarantee & Instructions */}
               <div className="md:col-span-7 space-y-4">
-                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+                <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-4">
                   <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
                     <IconCheckCircle className="w-5 h-5 text-emerald-600" />
                     <span>How Live Sequential Tokens Work</span>
@@ -942,7 +952,7 @@ export default function HospitalPortal({ onNavigateHome }) {
                   </div>
                 </div>
 
-                <div className="bg-emerald-50 rounded-2xl p-5 border border-emerald-200 flex items-center justify-between">
+                <div className="bg-emerald-50 rounded-md p-5 border border-emerald-200 flex items-center justify-between">
                   <div>
                     <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">
                       Direct Web Check-in URL
@@ -958,7 +968,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
           {/* TAB 2: STAFF APPROVALS DESK (METHOD B) */}
           {activeTab === "approvals" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -1050,7 +1060,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
           {/* TAB 3: DOCTORS & NURSES ACTIVE ROSTER */}
           {activeTab === "staff" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-900">
@@ -1130,7 +1140,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
           {/* TAB: ROOMS & OPD WARDS MANAGEMENT */}
           {activeTab === "rooms" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-6">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -1153,7 +1163,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
               {/* Add Room Modal / Inline Form */}
               {showAddRoomModal && (
-                <div className="p-5 rounded-2xl border-2 border-emerald-400 bg-emerald-50/40 shadow-xs space-y-4 animate-fade-in">
+                <div className="p-5 rounded-md border-2 border-emerald-400 bg-emerald-50/40 shadow-xs space-y-4 animate-fade-in">
                   <div className="flex items-center justify-between">
                     <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5 uppercase tracking-wide">
                       <span>🏥</span> Add New Room or Ward
@@ -1323,7 +1333,7 @@ export default function HospitalPortal({ onNavigateHome }) {
 
           {/* TAB 3: LIVE FACILITY QUEUE */}
           {activeTab === "queue" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-lg font-black text-slate-900">
                   Live Patient Intake Queue ({facilityQueue.length})

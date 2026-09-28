@@ -25,7 +25,7 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-2xl border border-rose-200 shadow-sm text-center space-y-4">
+        <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-md border border-rose-200 shadow-sm text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto">
             ⚠️
           </div>
@@ -154,13 +154,22 @@ export default function App() {
             />
           )}
           {activePortal === "hospital-portal" && (
-            <HospitalPortal onNavigateHome={() => setActivePortal("home")} />
+            <HospitalPortal 
+              onNavigateHome={() => setActivePortal("home")} 
+              language={language} 
+            />
           )}
           {activePortal === "staff-portal" && (
-            <StaffPortal onNavigateHome={() => setActivePortal("home")} />
+            <StaffPortal 
+              onNavigateHome={() => setActivePortal("home")} 
+              language={language} 
+            />
           )}
           {activePortal === "master-portal" && (
-            <MasterPortal onNavigateHome={() => setActivePortal("home")} />
+            <MasterPortal 
+              onNavigateHome={() => setActivePortal("home")} 
+              language={language} 
+            />
           )}
         </main>
       </ErrorBoundary>

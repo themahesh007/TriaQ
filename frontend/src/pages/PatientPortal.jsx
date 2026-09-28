@@ -966,7 +966,7 @@ export default function PatientPortal({
 
       {/* Real-time Offline Resilience Banners */}
       {!isOnline && (
-        <div className="bg-amber-500 text-slate-950 p-4 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
+        <div className="bg-amber-500 text-slate-950 p-4 rounded-md font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
           <div className="flex items-center gap-2.5 text-left">
             <span className="text-xl">⚡</span>
             <div>
@@ -981,7 +981,7 @@ export default function PatientPortal({
       )}
 
       {offlineSyncNotice && (
-        <div className="bg-emerald-600 text-white p-4 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-emerald-700">
+        <div className="bg-emerald-600 text-white p-4 rounded-md font-bold text-xs flex items-center justify-between shadow-md border border-emerald-700">
           <div className="flex items-center gap-2.5 text-left">
             <span className="text-xl">✓</span>
             <div>
@@ -1047,46 +1047,56 @@ export default function PatientPortal({
       {/* STEP 1: AUTHENTICATION (PHONE/OTP or EMAIL/PASSWORD)                      */}
       {/* ========================================================================= */}
       {currentStep === "auth" && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="text-center space-y-1">
-            <span className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl mx-auto mb-2">
-              📱
+        <div className="max-w-md mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
+          <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between border-b border-[#0B2545]">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏛️</span>
+              <div>
+                <h3 className="font-bold text-[13.5px] leading-tight text-white tracking-wide">
+                  {t.authTitle || "Citizen OPD Token Booking Desk"}
+                </h3>
+                <p className="text-[10.5px] text-amber-300">
+                  Department of Health &amp; Family Welfare • Government of Odisha
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
+              ABDM Verified
             </span>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {t.authTitle || "Patient Check-In"}
-            </h2>
-            <p className="text-[13px] text-slate-500 font-medium max-w-sm mx-auto">
-              {t.authSubtitle || "Fast, free & lightweight check-in for OPD triage consultation. Works on 2G & 3G networks."}
-            </p>
           </div>
 
-          {/* Auth Tab Switcher */}
-          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 max-w-xs mx-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab("otp");
-                setAuthError("");
-              }}
-              className={`flex-1 py-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer ${
-                authTab === "otp" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              📱 {t.phoneOtpTab || "Mobile & OTP"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setAuthTab("password");
-                setAuthError("");
-              }}
-              className={`flex-1 py-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer ${
-                authTab === "password" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              ✉️ {t.passwordTab || "Email & Password"}
-            </button>
-          </div>
+          <div className="p-5 sm:p-7 space-y-5 bg-white">
+            <p className="text-[12.5px] text-slate-600 text-center font-medium">
+              {t.authSubtitle || "Institutional digital token booking for outpatient care and non-diagnostic clinical triage."}
+            </p>
+
+            {/* Auth Tab Switcher */}
+            <div className="flex bg-slate-100 p-0.5 rounded border border-slate-300">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab("otp");
+                  setAuthError("");
+                }}
+                className={`flex-1 py-1.5 rounded text-[12px] font-bold transition cursor-pointer ${
+                  authTab === "otp" ? "bg-[#003366] text-white shadow-xs" : "text-slate-700 hover:text-slate-900"
+                }`}
+              >
+                📱 {t.phoneOtpTab || "Mobile & OTP"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthTab("password");
+                  setAuthError("");
+                }}
+                className={`flex-1 py-1.5 rounded text-[12px] font-bold transition cursor-pointer ${
+                  authTab === "password" ? "bg-[#003366] text-white shadow-xs" : "text-slate-700 hover:text-slate-900"
+                }`}
+              >
+                ✉️ {t.passwordTab || "Email & Password"}
+              </button>
+            </div>
 
           {authError && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
@@ -1174,7 +1184,7 @@ export default function PatientPortal({
                 <button
                   type="submit"
                   disabled={loading || !otpSent}
-                  className="w-full py-3.5 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs"
+                  className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs text-center transition cursor-pointer disabled:opacity-40"
                 >
                   {loading ? (language === "or" ? "ଯାଞ୍ଚ କରାଯାଉଛି..." : language === "hi" ? "सत्यापित किया जा रहा है..." : "Verifying...") : (t.verifyOtpBtn || "Verify & Continue →")}
                 </button>
@@ -1305,7 +1315,7 @@ export default function PatientPortal({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 shadow-xs active:scale-98"
+                  className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs text-center transition cursor-pointer disabled:opacity-40"
                 >
                   {loading ? "Please wait..." : isSignup ? "Register & Check In →" : "Sign In & Continue →"}
                 </button>
@@ -1359,6 +1369,7 @@ export default function PatientPortal({
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
 
@@ -1366,41 +1377,39 @@ export default function PatientPortal({
       {/* STEP 2: INTAKE DEMOGRAPHICS (OFFLINE-SAFE DRAFT)                         */}
       {/* ========================================================================= */}
       {currentStep === "intake" && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
-            <div>
-              <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
-                {t.offlineSafeBadge || "Step 1 of 2 • Offline-Safe"}
-              </span>
-              <h2 className="text-xl font-black text-slate-900">
-                {t.demographicsTitle || "Tell us about yourself"}
-              </h2>
-            </div>
-            
+        <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
+          <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
             <div className="flex items-center gap-2">
-              {/* Language Switcher Pills right on Demographics Box */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="font-bold text-amber-300 uppercase tracking-wide">
+                📋 {t.demographicsStep || "Step 1 of 2 • Patient Demographics & Registration"}
+              </span>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <span className="text-slate-200 hidden sm:inline">Official OPD Desk</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded border border-blue-900/50 bg-[#133B5C] p-0.5">
                 {LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     type="button"
                     onClick={() => setLanguage(lang.code)}
-                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
                       language === lang.code
-                        ? "bg-[#111827] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-[#003366] text-amber-300 shadow-xs"
+                        : "text-slate-200 hover:bg-slate-700"
                     }`}
                   >
                     {lang.nativeName}
                   </button>
                 ))}
               </div>
-
-              <span className="text-[11px] font-bold text-slate-400 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200 hidden sm:inline-block">
-                {t.draftSavedLocally || "Draft saved locally"}
+              <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600 hidden sm:inline-block">
+                ✓ {t.draftSavedLocally || "Draft Saved"}
               </span>
             </div>
           </div>
+
+          <div className="p-5 sm:p-7 space-y-6 bg-white">
 
           {intakeSavedNotice && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12.5px] font-bold">
@@ -1572,12 +1581,13 @@ export default function PatientPortal({
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-3 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer shadow-xs active:scale-98"
+                className="btn-tactile px-6 py-2.5 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs cursor-pointer text-center"
               >
                 {t.proceedToSymptomsBtn || "Next: Describe Symptoms →"}
               </button>
             </div>
           </form>
+          </div>
         </div>
       )}
 
@@ -1585,46 +1595,43 @@ export default function PatientPortal({
       {/* STEP 3: SYMPTOMS & VITALS COLLECTION                                      */}
       {/* ========================================================================= */}
       {currentStep === "symptoms" && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
-            <div>
-              <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
-                {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms"}
-              </span>
-              <h2 className="text-xl font-black text-slate-900">
-                {t.symptomsTitle || "Describe your symptoms"}
-              </h2>
-            </div>
-            
+        <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
+          <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
             <div className="flex items-center gap-2">
-              {/* Language Switcher */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+              <span className="font-bold text-amber-300 uppercase tracking-wide">
+                🩺 {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms & Triage Intake"}
+              </span>
+              <span className="text-slate-300 hidden sm:inline">|</span>
+              <span className="text-slate-200 hidden sm:inline">Algorithmic Risk Prioritization</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="inline-flex rounded border border-blue-900/50 bg-[#133B5C] p-0.5">
                 {LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
                     type="button"
                     onClick={() => setLanguage(lang.code)}
-                    className={`px-2.5 py-1 rounded-lg text-[11.5px] font-bold transition-all cursor-pointer ${
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
                       language === lang.code
-                        ? "bg-[#111827] text-white shadow-xs"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        ? "bg-[#003366] text-amber-300 shadow-xs"
+                        : "text-slate-200 hover:bg-slate-700"
                     }`}
                   >
                     {lang.nativeName}
                   </button>
                 ))}
               </div>
-
               <button
                 type="button"
                 onClick={() => setCurrentStep("intake")}
-                className="text-[12px] font-bold text-slate-500 hover:underline cursor-pointer ml-2"
+                className="text-[11.5px] font-bold text-slate-200 hover:text-white underline cursor-pointer ml-1"
               >
                 ← {language === "or" ? "ବିବରଣୀ ସଂଶୋଧନ" : language === "hi" ? "विवरण बदलें" : "Edit details"}
               </button>
             </div>
           </div>
 
+          <div className="p-5 sm:p-7 space-y-6 bg-white">
           <form onSubmit={handleSubmitTriage} className="space-y-5">
             {/* Symptoms Input Area + Voice Mic */}
             <div className="space-y-2">
@@ -1804,7 +1811,7 @@ export default function PatientPortal({
             </div>
 
             {/* SOME ADDITIONAL QUESTIONS AREA */}
-            <div className="rounded-2xl p-5 border border-slate-200/90 bg-white shadow-xs space-y-4">
+            <div className="rounded-md p-5 border border-slate-200/90 bg-white shadow-xs space-y-4">
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
                 <div>
                   <h3 className="text-[16px] font-semibold text-slate-800 flex items-center gap-2">
@@ -2046,7 +2053,7 @@ export default function PatientPortal({
             <button
               type="submit"
               disabled={!consentChecked || symptomText.trim().length < 15 || dynamicQuestions.length > 0 || loading}
-              className="w-full py-3.5 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-98"
+              className="btn-tactile w-full py-3 px-4 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-xs"
             >
               {loading
                 ? (t.submittingBtn || (language === "or" ? "ମୂଲ୍ୟାଙ୍କନ ଓ ଟୋକନ୍ ତିଆରି ଚାଲିଛି..." : language === "hi" ? "मूल्यांकन एवं टोकन तैयार हो रहा है..." : "Evaluating & Generating Token..."))
@@ -2061,6 +2068,7 @@ export default function PatientPortal({
                 : (t.submitBtn || (language === "or" ? "କେସ୍ ଦାଖଲ କରନ୍ତୁ ଏବଂ PDF ରସିଦ ପାଆନ୍ତୁ →" : language === "hi" ? "केस सबमिट करें और PDF रसीद प्राप्त करें →" : "Submit Case & Generate PDF Receipt →"))}
             </button>
           </form>
+          </div>
         </div>
       )}
 
@@ -2068,10 +2076,22 @@ export default function PatientPortal({
       {/* STEP 4: CONFIRMATION & PDF TOKEN RECEIPT                                  */}
       {/* ========================================================================= */}
       {currentStep === "confirmation" && receiptData && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6 text-center">
-          <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-3xl mx-auto shadow-2xs">
-            ✓
+        <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs text-center">
+          <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex items-center justify-between text-[12px]">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-amber-300 uppercase tracking-wide">
+                🎫 Official OPD Token Pass &amp; Clinical Triage Receipt
+              </span>
+            </div>
+            <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
+              Issued
+            </span>
           </div>
+
+          <div className="p-6 sm:p-8 space-y-6 bg-white">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center justify-center text-2xl mx-auto shadow-2xs">
+              ✓
+            </div>
 
           <div className="space-y-1">
             <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
@@ -2086,7 +2106,7 @@ export default function PatientPortal({
           </div>
 
           {/* Receipt Monospace Card */}
-          <div className="p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 space-y-3 max-w-md mx-auto">
+          <div className="p-5 rounded-md border-2 border-emerald-500 bg-emerald-50/40 space-y-3 max-w-md mx-auto">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
               {t.officialTokenLabel || "Official OPD Consultation Token"}
             </span>
@@ -2125,7 +2145,7 @@ export default function PatientPortal({
 
           {/* Offline Queue Information Card */}
           {receiptData.isOfflineQueued && (
-            <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl text-xs text-amber-950 text-left space-y-2 shadow-2xs max-w-md mx-auto">
+            <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-md text-xs text-amber-950 text-left space-y-2 shadow-2xs max-w-md mx-auto">
               <div className="font-black flex items-center justify-between text-amber-950 text-sm">
                 <span className="flex items-center gap-1.5">
                   <span>⚡</span>
@@ -2178,7 +2198,7 @@ export default function PatientPortal({
                 download={`${receiptData.receiptNumber}.pdf`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-3 rounded-xl font-black text-[13px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98 text-center"
+                className="btn-tactile w-full py-2.5 px-3 rounded font-bold text-[13px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
               >
                 <span>📄</span>
                 <span>{t.downloadPdfPass || "Download PDF Pass"}</span>
@@ -2216,6 +2236,7 @@ export default function PatientPortal({
               </button>
             </div>
           </div>
+          </div>
         </div>
       )}
 
@@ -2223,7 +2244,7 @@ export default function PatientPortal({
       {/* STEP 5: PATIENT LIVE STATUS TRACKER                                       */}
       {/* ========================================================================= */}
       {currentStep === "status" && (
-        <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+        <div className="bg-white rounded-md p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">

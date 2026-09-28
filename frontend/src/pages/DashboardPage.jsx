@@ -406,7 +406,7 @@ export default function DashboardPage({ onQueueUpdated }) {
           <button
             type="button"
             onClick={() => setPriorityFilter("ALL")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-md border text-left transition-all cursor-pointer ${
               priorityFilter === "ALL" 
                 ? "ring-2 ring-slate-900 bg-white shadow-sm border-slate-900" 
                 : "bg-white hover:bg-slate-50 border-slate-200/90 shadow-xs"
@@ -419,7 +419,7 @@ export default function DashboardPage({ onQueueUpdated }) {
           <button
             type="button"
             onClick={() => setPriorityFilter("RED")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-md border text-left transition-all cursor-pointer ${
               priorityFilter === "RED" 
                 ? "ring-2 ring-rose-600 bg-rose-50 shadow-sm border-rose-500" 
                 : "bg-white hover:bg-rose-50/50 border-slate-200/90 shadow-xs"
@@ -435,7 +435,7 @@ export default function DashboardPage({ onQueueUpdated }) {
           <button
             type="button"
             onClick={() => setPriorityFilter("YELLOW")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-md border text-left transition-all cursor-pointer ${
               priorityFilter === "YELLOW" 
                 ? "ring-2 ring-amber-500 bg-amber-50 shadow-sm border-amber-500" 
                 : "bg-white hover:bg-amber-50/50 border-slate-200/90 shadow-xs"
@@ -448,7 +448,7 @@ export default function DashboardPage({ onQueueUpdated }) {
           <button
             type="button"
             onClick={() => setPriorityFilter("GREEN")}
-            className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+            className={`p-4 rounded-md border text-left transition-all cursor-pointer ${
               priorityFilter === "GREEN" 
                 ? "ring-2 ring-emerald-600 bg-emerald-50 shadow-sm border-emerald-500" 
                 : "bg-white hover:bg-emerald-50/50 border-slate-200/90 shadow-xs"
@@ -510,7 +510,7 @@ export default function DashboardPage({ onQueueUpdated }) {
           <div className="space-y-3 max-h-[660px] overflow-y-auto pr-1">
             {filteredQueue.length === 0 ? (
               <div 
-                className="bg-white rounded-2xl p-8 border border-slate-200/90 text-center space-y-2 shadow-xs"
+                className="bg-white rounded-md p-8 border border-slate-200/90 text-center space-y-2 shadow-xs"
               >
                 <span className="text-3xl block mb-1">🎉</span>
                 <p className="font-black text-[15px] text-slate-900">
@@ -615,7 +615,7 @@ export default function DashboardPage({ onQueueUpdated }) {
         <div className="lg:col-span-7">
           {!selectedNote ? (
             <div 
-              className="bg-white rounded-2xl p-12 border border-slate-200/90 text-center space-y-2 h-full min-h-[420px] flex flex-col items-center justify-center shadow-xs"
+              className="bg-white rounded-md p-12 border border-slate-200/90 text-center space-y-2 h-full min-h-[420px] flex flex-col items-center justify-center shadow-xs"
             >
               <span className="text-4xl mb-1">🩺</span>
               <p className="text-[16px] font-black text-slate-900">
@@ -627,7 +627,7 @@ export default function DashboardPage({ onQueueUpdated }) {
             </div>
           ) : (
             <div 
-              className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-5"
+              className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-5"
             >
               {/* Patient Header */}
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3.5">
@@ -1073,7 +1073,7 @@ export default function DashboardPage({ onQueueUpdated }) {
 
       {/* Bottom: Audit Log Panel (Card, Full Width) */}
       <div 
-        className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4"
+        className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-4"
       >
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
           <div>

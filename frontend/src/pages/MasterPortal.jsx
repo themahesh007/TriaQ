@@ -15,7 +15,7 @@ import {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-export default function MasterPortal({ onNavigateHome }) {
+export default function MasterPortal({ onNavigateHome, language = "en" }) {
   const [masterSession, setMasterSession] = useState(() => {
     try {
       const saved = localStorage.getItem("triaq_master_session");
@@ -244,95 +244,107 @@ export default function MasterPortal({ onNavigateHome }) {
 
       {/* 2FA LOGIN SCREEN */}
       {!masterSession ? (
-        <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-          <div className="text-center space-y-1">
-            <div className="w-12 h-12 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center text-2xl mx-auto mb-2 border border-rose-200 shadow-2xs">
-              🔐
+        <div className="max-w-md mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
+          {/* Official Government Header Ribbon */}
+          <div className="bg-[#0B2545] text-white px-5 py-3 border-b border-[#001833] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🔐</span>
+              <h3 className="font-bold text-[13px] tracking-wide uppercase">
+                State Health Governance &amp; Registry
+              </h3>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              Master System Access
-            </h2>
-            <p className="text-[12.5px] text-slate-500 font-medium">
-              Requires 2FA authenticator verification. For authorized system administrators & developers only.
-            </p>
+            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#001833] text-amber-300 border border-amber-400/40">
+              Tier-1 Root
+            </span>
           </div>
 
-          {loginError && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold text-center">
-              {loginError}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Admin Email
-              </label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="master@triaq.org"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-              />
+          <div className="p-6 space-y-5 bg-white">
+            <div className="space-y-1 border-b border-slate-200 pb-3">
+              <h2 className="text-xl font-bold text-[#0B2545] tracking-tight">
+                Nodal Master Administration Console
+              </h2>
+              <p className="text-[12px] text-slate-600 font-medium">
+                Mandatory 2FA authentication protocol. Restricted to authorized nodal administrators and verification officers only.
+              </p>
             </div>
 
-            <div>
-              <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                Master Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showMasterPw ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full p-2.5 pr-10 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowMasterPw(!showMasterPw)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                  title={showMasterPw ? "Hide password" : "Show password"}
-                >
-                  {showMasterPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
-                </button>
+            {loginError && (
+              <div className="p-3 rounded bg-rose-50 border border-rose-300 text-rose-800 text-[12.5px] font-bold text-center">
+                {loginError}
               </div>
-            </div>
+            )}
 
-            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-              <label className="text-[12px] font-black text-slate-800 flex items-center gap-1.5">
-                <span>📱</span> 2FA Authenticator Code
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                required
-                autoComplete="one-time-code"
-                value={totpCode}
-                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="Enter 6-digit code"
-                className="w-full p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xl tracking-widest text-slate-900 font-black outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 bg-white"
-              />
-            </div>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Nodal Administrator Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="master@triaq.org"
+                  className="w-full p-2.5 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-gradient-to-r from-rose-700 to-slate-900 hover:from-rose-800 hover:to-slate-950 transition cursor-pointer shadow-xs active:scale-98"
-            >
-              {loading ? "Authenticating..." : "Authorize Master Session →"}
-            </button>
-          </form>
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  Master Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showMasterPw ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full p-2.5 pr-10 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMasterPw(!showMasterPw)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                    title={showMasterPw ? "Hide password" : "Show password"}
+                  >
+                    {showMasterPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 rounded bg-slate-50 border border-slate-300 space-y-2">
+                <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
+                  <span>📱</span> Time-based One-Time Password (TOTP)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  required
+                  autoComplete="one-time-code"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="Enter 6-digit code"
+                  className="w-full p-2.5 rounded border border-slate-300 text-center font-mono text-xl tracking-widest text-slate-900 font-bold outline-none focus:border-[#003366] bg-white"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
+              >
+                {loading ? "Authenticating..." : "Authorize Master Session →"}
+              </button>
+            </form>
+          </div>
         </div>
       ) : (
         /* MASTER DASHBOARD VIEW */
         <div className="space-y-6">
           {/* Navigation Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/90 shadow-2xs">
-            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 flex-wrap gap-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-md border border-slate-300 shadow-xs govt-panel">
+            <div className="flex bg-slate-100 p-1 rounded border border-slate-300 flex-wrap gap-1">
               {[
                 {
                   id: "facilities",
@@ -348,8 +360,8 @@ export default function MasterPortal({ onNavigateHome }) {
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
-                    className={`btn-tactile px-3.5 py-1.5 rounded-lg text-[12px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                      activeTab === tab.id ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    className={`btn-tactile px-3.5 py-1.5 rounded text-[12px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      activeTab === tab.id ? "bg-[#003366] text-white shadow-xs" : "text-slate-700 hover:text-slate-900"
                     }`}
                   >
                     <TabIcon className="w-3.5 h-3.5" />
@@ -393,19 +405,19 @@ export default function MasterPortal({ onNavigateHome }) {
           {activeTab === "analytics" && analytics && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1">
+                <div className="p-4 rounded-md bg-white border border-slate-200 shadow-xs space-y-1">
                   <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider">Total Patients</span>
                   <span className="text-2xl font-black text-slate-900 block">{analytics.totalPatients}</span>
                 </div>
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 shadow-xs space-y-1">
+                <div className="p-4 rounded-md bg-rose-50 border border-rose-200 shadow-xs space-y-1">
                   <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider">🔴 Red Flags</span>
                   <span className="text-2xl font-black text-rose-700 block">{analytics.priorityDistribution.red} ({analytics.priorityDistribution.redPercentage}%)</span>
                 </div>
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 shadow-xs space-y-1">
+                <div className="p-4 rounded-md bg-amber-50 border border-amber-200 shadow-xs space-y-1">
                   <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider">🟡 Yellow Flags</span>
                   <span className="text-2xl font-black text-amber-800 block">{analytics.priorityDistribution.yellow}</span>
                 </div>
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 shadow-xs space-y-1">
+                <div className="p-4 rounded-md bg-emerald-50 border border-emerald-200 shadow-xs space-y-1">
                   <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">🟢 Green Flags</span>
                   <span className="text-2xl font-black text-emerald-800 block">{analytics.priorityDistribution.green}</span>
                 </div>
@@ -413,7 +425,7 @@ export default function MasterPortal({ onNavigateHome }) {
 
               {/* Performance Metrics & Facilities */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                <div className="bg-white rounded-md p-5 border border-slate-200 shadow-xs space-y-3">
                   <h3 className="text-base font-black text-slate-900">Clinical Turnaround & Performance</h3>
                   <div className="space-y-2.5 text-[13px] font-medium">
                     <div className="flex justify-between py-1 border-b border-slate-100">
@@ -435,7 +447,7 @@ export default function MasterPortal({ onNavigateHome }) {
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs space-y-3">
+                <div className="bg-white rounded-md p-5 border border-slate-200 shadow-xs space-y-3">
                   <h3 className="text-base font-black text-slate-900">Connected Healthcare Facilities</h3>
                   <div className="space-y-2 text-[12.5px]">
                     {(analytics.facilities || []).map((f) => (
@@ -459,7 +471,7 @@ export default function MasterPortal({ onNavigateHome }) {
 
           {/* TAB 5: SYSTEM AUDIT LOG */}
           {activeTab === "audit" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-base font-black text-slate-900">Immutable System Audit Trail</h3>
                 <span className="text-[11.5px] font-bold text-slate-400">Total logged entries: {auditLogs.length}</span>
@@ -489,7 +501,7 @@ export default function MasterPortal({ onNavigateHome }) {
 
           {/* TAB 6: HEALTHCARE FACILITIES & CLINICS */}
           {activeTab === "facilities" && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -660,7 +672,7 @@ export default function MasterPortal({ onNavigateHome }) {
       {/* QR STANDEE VIEW MODAL */}
       {showQrModalFacility && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 border-2 border-emerald-500/40 shadow-xl space-y-4 text-center animate-scale-up">
+          <div className="bg-white rounded-md max-w-sm w-full p-6 border-2 border-emerald-500/40 shadow-xl space-y-4 text-center animate-scale-up">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <span className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
                 Official Facility QR Standee

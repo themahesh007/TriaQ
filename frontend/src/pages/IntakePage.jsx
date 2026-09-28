@@ -614,7 +614,7 @@ export default function IntakePage({ onTriageCreated }) {
         <div className="lg:col-span-7 space-y-5">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Symptom Input Card */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
+            <div className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
               <div className="flex items-center justify-between">
                 <label className="text-[12px] font-black uppercase tracking-wider text-slate-600">
                   {t.sectionSymptom}
@@ -665,7 +665,7 @@ export default function IntakePage({ onTriageCreated }) {
             </div>
 
             {/* PATIENT VITAL SIGNS (OPTIONAL) */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
+            <div className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div>
                   <h3 className="text-[17px] font-black text-slate-900 flex items-center gap-2">
@@ -796,7 +796,7 @@ export default function IntakePage({ onTriageCreated }) {
 
             {/* SOME ADDITIONAL QUESTIONS AREA */}
             <div 
-              className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all"
+              className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all"
             >
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3.5">
                 <div>
@@ -947,7 +947,7 @@ export default function IntakePage({ onTriageCreated }) {
 
             {/* Optional Report Upload */}
             <div 
-              className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-3.5 hover:shadow-sm transition-all"
+              className="bg-white rounded-md p-6 border border-slate-200/90 shadow-xs space-y-3.5 hover:shadow-sm transition-all"
             >
               <label className="text-[12px] font-black uppercase tracking-wider block text-slate-600">
                 {t.uploadLabel}
@@ -1020,15 +1020,15 @@ export default function IntakePage({ onTriageCreated }) {
             )}
 
             {/* Consent & Direct Submit Bar */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:shadow-sm transition-all">
+            <div className="bg-white rounded-md p-6 border border-slate-300 shadow-xs space-y-4 govt-panel">
               <label className="flex items-start gap-3 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={consentChecked}
                   onChange={(e) => setConsentChecked(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded accent-emerald-600 cursor-pointer"
+                  className="mt-1 h-4 w-4 rounded accent-[#003366] cursor-pointer"
                 />
-                <span className="text-[13.5px] leading-relaxed text-slate-700 font-medium">
+                <span className="text-[13px] leading-relaxed text-slate-700 font-medium">
                   {t.consentText}
                 </span>
               </label>
@@ -1037,7 +1037,7 @@ export default function IntakePage({ onTriageCreated }) {
                 <button
                   type="button"
                   onClick={handleOpenResetModal}
-                  className="px-5 py-2.5 rounded-xl font-bold text-[13px] border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition cursor-pointer shadow-2xs"
+                  className="btn-tactile px-5 py-2 rounded font-bold text-[13px] border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 transition cursor-pointer shadow-xs"
                 >
                   {t.clearBtn}
                 </button>
@@ -1046,7 +1046,7 @@ export default function IntakePage({ onTriageCreated }) {
                 <button
                   type="submit"
                   disabled={!consentChecked || !symptomText.trim() || dynamicQuestions.length > 0 || submitting}
-                  className="px-7 py-3 rounded-xl font-black text-[14px] text-white transition-all shadow-sm hover:shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98"
+                  className="btn-tactile px-7 py-2.5 rounded font-bold text-[14px] text-white transition shadow-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-[#003366] hover:bg-[#002855]"
                 >
                   {submitting
                     ? t.submittingBtn
@@ -1070,7 +1070,7 @@ export default function IntakePage({ onTriageCreated }) {
         {/* Right Result Column — Shows the Flag According to Symptoms */}
         <div className="lg:col-span-5">
           {resultNote ? (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-md space-y-5 sticky top-24 transition-all">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-md space-y-5 sticky top-24 transition-all">
               {/* SUGGESTED TRIAGE FLAG HEADER */}
               <div className="p-4 rounded-xl border space-y-2" style={{ backgroundColor: getRiskBadge(resultNote.riskTag).bg, borderColor: getRiskBadge(resultNote.riskTag).color }}>
                 <div className="flex items-center justify-between">
@@ -1219,7 +1219,7 @@ export default function IntakePage({ onTriageCreated }) {
                 <button
                   type="button"
                   onClick={handleOpenResetModal}
-                  className="w-full py-3 rounded-xl font-black text-[13.5px] text-white transition-all shadow-sm hover:shadow-md cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98"
+                  className="btn-tactile w-full py-2.5 rounded font-bold text-[13.5px] text-white transition shadow-xs cursor-pointer bg-[#003366] hover:bg-[#002855]"
                 >
                   {t.newIntakeBtn}
                 </button>
@@ -1227,13 +1227,13 @@ export default function IntakePage({ onTriageCreated }) {
             </div>
           ) : (
             <div 
-              className="bg-white rounded-2xl p-8 border border-slate-200/90 text-center space-y-3 shadow-xs"
+              className="bg-white rounded-md p-8 border border-slate-300 text-center space-y-3 shadow-xs govt-panel"
             >
               <span className="text-4xl block mb-1">📋</span>
-              <h2 className="text-[18px] font-black text-slate-900">
+              <h2 className="text-[18px] font-bold text-[#003366]">
                 {t.resultAwaiting}
               </h2>
-              <p className="text-[13px] max-w-sm mx-auto text-slate-500 leading-relaxed font-medium">
+              <p className="text-[13px] max-w-sm mx-auto text-slate-600 leading-relaxed font-medium">
                 {t.resultAwaitingSub}
               </p>
             </div>
@@ -1243,46 +1243,41 @@ export default function IntakePage({ onTriageCreated }) {
 
       {/* CONFIRMATION MODAL POPUP (POPS UP ON SCREEN ASKING CANCEL OR YES) */}
       {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
           <div 
-            className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4 animate-scaleUp"
+            className="bg-white rounded-md max-w-md w-full border border-slate-300 shadow-2xl overflow-hidden govt-panel"
           >
-            <div className="flex items-center gap-3 border-b border-slate-200 pb-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-100 text-amber-800 text-xl font-bold">
-                ⚠️
-              </div>
-              <div>
-                <h3 className="text-[16px] font-black text-slate-900">
-                  {t.modalTitle}
-                </h3>
-                <p className="text-[11.5px] font-bold text-slate-400">
-                  TriaQ Session Governance
-                </p>
-              </div>
+            <div className="bg-[#003366] text-white px-5 py-3 border-b border-[#002244] flex items-center gap-2">
+              <span className="text-base">⚠️</span>
+              <h3 className="font-bold text-[13px] tracking-wide uppercase">
+                {t.modalTitle}
+              </h3>
             </div>
 
-            <p className="text-[13.5px] text-slate-600 leading-relaxed font-medium">
-              {t.modalDesc}
-            </p>
+            <div className="p-5 space-y-4">
+              <p className="text-[13px] text-slate-700 leading-relaxed font-medium">
+                {t.modalDesc}
+              </p>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
-              {/* CANCEL BUTTON */}
-              <button
-                type="button"
-                onClick={() => setShowConfirmModal(false)}
-                className="px-5 py-2.5 rounded-xl font-bold text-[12.5px] border border-slate-200 transition bg-white text-slate-700 hover:bg-slate-50 cursor-pointer shadow-2xs"
-              >
-                {t.modalCancel}
-              </button>
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+                {/* CANCEL BUTTON */}
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmModal(false)}
+                  className="btn-tactile px-4 py-2 rounded font-bold text-[12px] border border-slate-300 transition bg-white text-slate-700 hover:bg-slate-100 cursor-pointer shadow-xs"
+                >
+                  {t.modalCancel}
+                </button>
 
-              {/* YES BUTTON */}
-              <button
-                type="button"
-                onClick={confirmReset}
-                className="px-6 py-2.5 rounded-xl font-black text-[12.5px] text-white transition-all shadow-sm cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98"
-              >
-                {t.modalYes}
-              </button>
+                {/* YES BUTTON */}
+                <button
+                  type="button"
+                  onClick={confirmReset}
+                  className="btn-tactile px-5 py-2 rounded font-bold text-[12px] text-white transition shadow-xs cursor-pointer bg-[#003366] hover:bg-[#002855]"
+                >
+                  {t.modalYes}
+                </button>
+              </div>
             </div>
           </div>
         </div>

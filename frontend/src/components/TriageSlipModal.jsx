@@ -88,28 +88,28 @@ export default function TriageSlipModal({ note, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
       {/* Modal Container */}
-      <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-300 shadow-2xl overflow-hidden print-area-wrapper flex flex-col max-h-[94vh]">
+      <div className="bg-white rounded-md max-w-xl w-full border border-slate-300 shadow-2xl overflow-hidden print-area-wrapper flex flex-col max-h-[94vh] govt-panel">
         
         {/* Modal Action Bar (Hidden on print) */}
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 no-print">
+        <div className="px-4 py-3 border-b border-[#002244] flex items-center justify-between bg-[#003366] text-white no-print">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-            <span className="text-[13.5px] font-bold text-slate-800">
-              Official Outpatient Triage & Consultation Slip
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+            <span className="text-[13px] font-bold text-white tracking-wide uppercase">
+              Official Outpatient Triage &amp; Consultation Slip
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePrint}
-              className="px-4 py-1.5 rounded-xl font-bold text-[13px] text-white bg-slate-900 hover:bg-slate-800 transition shadow-xs cursor-pointer flex items-center gap-1.5 active:scale-95"
+              className="btn-tactile px-3.5 py-1.5 rounded font-bold text-[12px] text-slate-900 bg-amber-400 hover:bg-amber-300 transition shadow-xs cursor-pointer flex items-center gap-1.5"
             >
-              <span>Print Slip</span>
+              <span>🖨️ Print Slip</span>
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer font-bold"
+              className="w-7 h-7 rounded flex items-center justify-center text-white/80 hover:text-white hover:bg-black/20 transition cursor-pointer font-bold"
             >
               ✕
             </button>

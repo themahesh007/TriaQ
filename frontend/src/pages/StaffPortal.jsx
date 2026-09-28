@@ -51,7 +51,7 @@ const isValidIndianPhone = (clean) => {
   return /^[6-9]\d{9}$/.test(clean);
 };
 
-export default function StaffPortal({ onNavigateHome }) {
+export default function StaffPortal({ onNavigateHome, language = "en" }) {
   const [staffSession, setStaffSession] = useState(() => {
     try {
       const saved = localStorage.getItem("triaq_staff_session");
@@ -271,9 +271,9 @@ export default function StaffPortal({ onNavigateHome }) {
       setTimeout(() => window.speechSynthesis.speak(utterance), 250);
     }
 
-    const langBadge = (note.language === "or" || note.patient?.language === "or")
+    const langBadge = (language === "or")
       ? ` [ 🌐 ଟୋକନ୍ ${toOdiaDigits(cleanTokenNum)} ]`
-      : (note.language === "hi" || note.patient?.language === "hi")
+      : (language === "hi")
       ? ` [ 🌐 टोकन ${toHindiDigits(cleanTokenNum)} ]`
       : "";
     setNotification(`📢 Calling Token Number ${cleanTokenNum}${langBadge} to ${targetDestination}...`);
@@ -589,7 +589,7 @@ export default function StaffPortal({ onNavigateHome }) {
 
       {/* Real-time Offline Resilience Banner */}
       {!isOnline && (
-        <div className="bg-amber-500 text-slate-950 p-3.5 rounded-2xl font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
+        <div className="bg-amber-500 text-slate-950 p-3.5 rounded-md font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
           <div className="flex items-center gap-2.5 text-left">
             <span className="text-xl">⚡</span>
             <span>
@@ -606,7 +606,7 @@ export default function StaffPortal({ onNavigateHome }) {
       {!staffSession ? (
         isStaffRegister ? (
           /* STAFF REGISTRATION VIEW */
-          <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
+          <div className="max-w-md mx-auto bg-white rounded-md p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
             <div className="text-center space-y-1">
               <span className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
                 <IconClipboard className="w-6 h-6 text-emerald-700" />
@@ -902,18 +902,25 @@ export default function StaffPortal({ onNavigateHome }) {
           </div>
         ) : (
           /* STAFF LOGIN VIEW */
-          <div className="max-w-md mx-auto bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/90 shadow-sm space-y-6">
-            <div className="text-center space-y-1">
-              <span className="w-12 h-12 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center mx-auto mb-2 shadow-xs">
-                <IconDoctor className="w-6 h-6 text-slate-800" />
+          <div className="max-w-md mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
+            <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between border-b border-[#0B2545]">
+              <div className="flex items-center gap-2">
+                <IconGovtEmblem className="w-6 h-6 text-white" />
+                <div>
+                  <h3 className="font-bold text-[13.5px] leading-tight text-white tracking-wide">
+                    Hospital Staff Workstation
+                  </h3>
+                  <p className="text-[10.5px] text-amber-300">
+                    Clinical Desk • Doctors &amp; Nurses Console
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
+                Official Access
               </span>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                Hospital Staff Login
-              </h2>
-              <p className="text-[13px] text-slate-500 font-medium">
-                Authorized clinical login for Doctors, Nurses, and Facility Administrators.
-              </p>
             </div>
+
+            <div className="p-5 sm:p-7 space-y-5 bg-white">
 
             {/* Quick Fill Demo Credentials */}
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
@@ -1020,7 +1027,7 @@ export default function StaffPortal({ onNavigateHome }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 transition cursor-pointer shadow-xs active:scale-98"
+                className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs text-center transition cursor-pointer"
               >
                 {loading ? "Verifying..." : "Sign In to Workstation →"}
               </button>
@@ -1043,7 +1050,8 @@ export default function StaffPortal({ onNavigateHome }) {
               </div>
             </form>
           </div>
-        )
+        </div>
+      )
       ) : (
         /* STAFF DASHBOARD VIEW */
         <div className="space-y-6">
@@ -1149,7 +1157,7 @@ export default function StaffPortal({ onNavigateHome }) {
           </div>
 
           {/* Dashboard Control Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-md border border-slate-200/90 shadow-2xs">
             <div className="flex items-center gap-2">
               <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
                 <button
@@ -1316,13 +1324,13 @@ export default function StaffPortal({ onNavigateHome }) {
                               <span className="font-black text-[14.5px] text-slate-900">
                                 {item.patient?.tokenId || "Token"}
                               </span>
-                              {(item.language === "or" || item.patient?.language === "or") && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Patient selected Odia language">
+                              {language === "or" && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Selected language: Odia">
                                   🌐 ଟୋକନ୍ {toOdiaDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
                                 </span>
                               )}
-                              {(item.language === "hi" || item.patient?.language === "hi") && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Patient selected Hindi language">
+                              {language === "hi" && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Selected language: Hindi">
                                   🌐 टोकन {toHindiDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
                                 </span>
                               )}
@@ -1377,7 +1385,7 @@ export default function StaffPortal({ onNavigateHome }) {
               {/* Right Column: Case Details & Action Desk */}
               <div className="lg:col-span-7">
                 {!selectedNote ? (
-                  <div className="bg-white rounded-2xl p-12 border border-slate-200 text-center text-slate-400 space-y-3 min-h-[420px] flex flex-col items-center justify-center">
+                  <div className="bg-white rounded-md p-12 border border-slate-200 text-center text-slate-400 space-y-3 min-h-[420px] flex flex-col items-center justify-center">
                     <span className="text-4xl block">🩺</span>
                     <p className="font-bold text-[15px] text-slate-700">No Patient Case Selected</p>
                     <p className="text-[13px] text-slate-400 max-w-sm">
@@ -1385,7 +1393,7 @@ export default function StaffPortal({ onNavigateHome }) {
                     </p>
                   </div>
                 ) : (
-                  <div className={`bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5 transition-all duration-250 ${isAdvancingToken ? "animate-card-pop-out" : "animate-card-glide-in"}`}>
+                  <div className={`bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-5 transition-all duration-250 ${isAdvancingToken ? "animate-card-pop-out" : "animate-card-glide-in"}`}>
                     {/* Patient Header & PII Guard */}
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
                       <div>
@@ -1401,12 +1409,12 @@ export default function StaffPortal({ onNavigateHome }) {
                           <h2 className="text-2xl font-black text-slate-900 mt-0.5">
                             {selectedNote.patient?.tokenId || "Token Patient"}
                           </h2>
-                          {(selectedNote.language === "or" || selectedNote.patient?.language === "or") && (
+                          {language === "or" && (
                             <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
                               🌐 ଟୋକନ୍ ନମ୍ବର {toOdiaDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
                             </span>
                           )}
-                          {(selectedNote.language === "hi" || selectedNote.patient?.language === "hi") && (
+                          {language === "hi" && (
                             <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
                               🌐 टोकन संख्या {toHindiDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
                             </span>
@@ -1722,28 +1730,28 @@ export default function StaffPortal({ onNavigateHome }) {
                     </div>
 
                     {/* DEDICATED CLINICAL DECISION ACTION BAR (PERMANENTLY VISIBLE TO ALL STAFF) */}
-                    <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-50 via-emerald-50/30 to-teal-50/20 border-2 border-emerald-500/60 shadow-xs space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2">
+                    <div className="p-4 rounded-md bg-slate-50 border border-slate-300 shadow-xs space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2">
                         <div className="flex items-center gap-2">
-                          <IconCheckCircle className="w-5 h-5 text-emerald-600" />
-                          <h3 className="text-[13.5px] font-black text-slate-900 uppercase tracking-wide">
-                            Clinical Triage Actions
+                          <IconCheckCircle className="w-5 h-5 text-[#003366]" />
+                          <h3 className="text-[13.5px] font-black text-[#003366] uppercase tracking-wide">
+                            Official Clinical Disposition Actions
                           </h3>
                         </div>
-                        <span className="text-[11.5px] font-medium text-slate-500">
-                          Reviewing as: <strong className="text-emerald-900 font-black">{staffSession?.staff?.name || "Doctor / Staff"}</strong> ({userRole})
+                        <span className="text-[11.5px] font-medium text-slate-600">
+                          Reviewing Officer: <strong className="text-[#003366] font-black">{staffSession?.staff?.name || "Doctor / Staff"}</strong> ({userRole})
                         </span>
                       </div>
 
                       {/* Prominent banner & Next Token advance button when action completed */}
                       {actionCompletedForNote?.id === selectedNote.id && (
-                        <div className="p-3.5 rounded-xl bg-emerald-100/90 border border-emerald-300 text-emerald-950 space-y-2 animate-fade-in shadow-xs">
+                        <div className="p-3.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-2 animate-fade-in shadow-xs">
                           <div className="flex flex-wrap items-center justify-between gap-1">
                             <span className="text-[13px] font-black flex items-center gap-1.5 text-emerald-900">
                               <IconCheckCircle className="w-4 h-4 text-emerald-700" />
                               Token {actionCompletedForNote.token} Marked as {actionCompletedForNote.text}!
                             </span>
-                            <span className="text-[11px] font-bold text-emerald-800 bg-white/90 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <span className="text-[11px] font-bold text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
                               Signed: {actionCompletedForNote.reviewerName}
                             </span>
                           </div>
@@ -1754,10 +1762,10 @@ export default function StaffPortal({ onNavigateHome }) {
                             type="button"
                             onClick={handleAdvanceToNextToken}
                             disabled={isAdvancingToken}
-                            className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[14px] text-white bg-slate-900 hover:bg-slate-800 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                            className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span>Next Patient Token</span>
-                            <IconArrowRight className="w-4 h-4 text-emerald-400" />
+                            <IconArrowRight className="w-4 h-4 text-amber-300" />
                           </button>
                         </div>
                       )}
@@ -1768,7 +1776,7 @@ export default function StaffPortal({ onNavigateHome }) {
                           type="button"
                           disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("APPROVE")}
-                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13px] text-white bg-emerald-700 hover:bg-emerald-800 border border-emerald-900 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Approve Triage & Queue for OPD Consultation"
                         >
                           <IconCheckCircle className="w-4 h-4" />
@@ -1780,11 +1788,11 @@ export default function StaffPortal({ onNavigateHome }) {
                           type="button"
                           disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("EDIT_APPROVE")}
-                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-gradient-to-r from-teal-600 to-emerald-700 hover:from-teal-700 hover:to-emerald-800 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Save edited summary and record clinical disposition"
                         >
                           <IconClipboard className="w-4 h-4" />
-                          <span>Save & Edit</span>
+                          <span>Save &amp; Edit</span>
                         </button>
 
                         {/* 3. REJECT BUTTON */}
@@ -1792,7 +1800,7 @@ export default function StaffPortal({ onNavigateHome }) {
                           type="button"
                           disabled={loading || isAdvancingToken}
                           onClick={() => handleDecision("REJECT")}
-                          className="btn-tactile w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-rose-700 bg-white hover:bg-rose-50 border-2 border-rose-300 hover:border-rose-400 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                          className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13px] text-rose-700 bg-white hover:bg-rose-50 border border-rose-300 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                           title="Reject invalid or duplicate intake"
                         >
                           <IconXCircle className="w-4 h-4" />
@@ -1838,7 +1846,7 @@ export default function StaffPortal({ onNavigateHome }) {
             </div>
           ) : (
             /* ADMIN TAB: STAFF ACCOUNTS & MANAGEMENT */
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-4">
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h3 className="text-lg font-black text-slate-900">Hospital Staff Directory & Roles</h3>
                 <span className="text-[11px] font-bold text-slate-400">Facility Governance Desk</span>
@@ -1866,7 +1874,7 @@ export default function StaffPortal({ onNavigateHome }) {
           )}
 
           {/* BOTTOM IMMUTABLE AUDIT TRAIL */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-3">
+          <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-[16px] font-black text-slate-900">Recent Decisions & Audit Trail</h3>
               <span className="text-[11px] font-bold text-slate-400">{auditLogs.length} logged actions</span>
@@ -1912,7 +1920,7 @@ export default function StaffPortal({ onNavigateHome }) {
       {/* Referral Automation Modal (Feature 3) */}
       {showReferralModal && selectedNote && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
+          <div className="bg-white w-full max-w-lg rounded-md shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-teal-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <span className="text-2xl">🏥</span>
