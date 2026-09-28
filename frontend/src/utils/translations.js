@@ -52,7 +52,7 @@ export const TRANSLATIONS = {
     logout: "Logout",
     patient: "Patient",
     setLanguage: "Set Language",
-    selectLanguageModalTitle: "Select Language / ଭାଷା ଚୟନ କରନ୍ତୁ",
+    selectLanguageModalTitle: "Select Language",
 
     // Offline Banners
     offlineTitle: "Offline Resilience Active",
@@ -85,7 +85,7 @@ export const TRANSLATIONS = {
     homeSystemBadge: "Hospital Clinical Triage & OPD Queue Management System",
     homeWelcome: "Welcome to TriaQ",
     homeHeroSubtitle: "Intelligent non-diagnostic symptom intake, sequential OPD tokens, and clinical prioritization for Primary Health Centers (PHCs), multi-specialty hospitals & rural clinics.",
-    selectLanguagePrompt: "Select Language / ଭାଷା ଚୟନ କରନ୍ତୁ / भाषा चुनें",
+    selectLanguagePrompt: "Select Language:",
     patientCardTitle: "I'm a Patient",
     patientCardSub: "Public & OPD Intake",
     patientCardDesc: "Check in with Phone OTP or Email, describe your symptoms, select your clinic or scan reception QR, and receive your sequential OPD Token instantly.",

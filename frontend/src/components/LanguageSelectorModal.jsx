@@ -19,7 +19,7 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
                 Select Language
               </h3>
               <p className="text-[11px] text-slate-300">
-                ଭାଷା ଚୟନ କରନ୍ତୁ • भाषा चुनें
+                {currentLanguage === "hi" ? "अपनी भाषा चुनें" : currentLanguage === "or" ? "ଆପଣଙ୍କ ଭାଷା ଚୟନ କରନ୍ତୁ" : "Choose your preferred language"}
               </p>
             </div>
           </div>

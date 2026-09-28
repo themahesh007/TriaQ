@@ -932,7 +932,7 @@ export default function PatientPortal({
             type="button"
             onClick={handleOpenLanguageModal}
             className="btn-tactile text-[12px] font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 px-3 py-1.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
-            title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ / भाषा बदलें"
+            title={language === "hi" ? "भाषा बदलें" : language === "or" ? "ଭାଷା ବଦଳାନ୍ତୁ" : "Change Language"}
           >
             <span className="text-sm">🌐</span>
             <span className="font-bold text-emerald-950">

@@ -1053,7 +1053,7 @@ export default function StaffPortal({ onNavigateHome }) {
             <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-amber-300 uppercase tracking-wide">
-                  🏥 राष्ट्रीय स्वास्थ्य सेवा केंद्र / Government Health Facility Workstation
+                  🏥 Government Health Facility Workstation
                 </span>
                 <span className="text-slate-300 hidden sm:inline">|</span>
                 <span className="text-slate-200 hidden sm:inline">OPD Queue &amp; Clinical Management Console</span>
@@ -1061,7 +1061,7 @@ export default function StaffPortal({ onNavigateHome }) {
               <div className="flex items-center gap-2 text-[11px] font-bold ml-auto">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-700 text-white border border-emerald-500">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
-                  सक्रिय स्टेशन / Station Online
+                  Station Online
                 </span>
               </div>
             </div>
@@ -1070,7 +1070,7 @@ export default function StaffPortal({ onNavigateHome }) {
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
                 <div className="space-y-1">
                   <label className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 block">
-                    कार्यरत अस्पताल / क्लिनिक कार्यस्थल (Selected Health Facility Workstation):
+                    Selected Health Facility Workstation:
                   </label>
                   <div className="flex items-center gap-2 flex-wrap">
                     <select
@@ -1110,7 +1110,7 @@ export default function StaffPortal({ onNavigateHome }) {
                 </div>
 
                 <div className="text-right border-l-0 sm:border-l sm:border-slate-200 sm:pl-4">
-                  <span className="text-[10.5px] text-slate-500 font-bold uppercase block">कर्तव्यस्थ चिकित्सा अधिकारी / Attending Clinician</span>
+                  <span className="text-[10.5px] text-slate-500 font-bold uppercase block">Attending Clinician</span>
                   <span className="text-[13.5px] font-extrabold text-[#003366] block">
                     {staffSession.staff?.name || "Medical Officer"} ({staffSession.staff?.role || "DOCTOR"})
                   </span>
@@ -1123,24 +1123,24 @@ export default function StaffPortal({ onNavigateHome }) {
               {/* Structured Operational KPIs */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 <div className="bg-slate-50 p-3 rounded border border-slate-300">
-                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">कुल प्रतीक्षारत / Waiting</span>
+                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">Waiting Queue</span>
                   <span className="text-2xl font-black text-[#003366]">{filteredQueue.length}</span>
                   <span className="text-[10px] text-slate-500 block">Tokens in Queue</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded border border-slate-300">
-                  <span className="text-[10.5px] font-bold text-amber-800 uppercase block">आपातकालीन / Priority</span>
+                  <span className="text-[10.5px] font-bold text-amber-800 uppercase block">Priority Cases</span>
                   <span className="text-2xl font-black text-amber-800">
                     {filteredQueue.filter(q => q.riskTag === 'RED' || q.riskTag === 'YELLOW' || q.riskTag === 'AMBER').length}
                   </span>
                   <span className="text-[10px] text-amber-700 block">Immediate Attention</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded border border-slate-300">
-                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">सक्रिय कक्ष / Active Rooms</span>
+                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">Active Rooms</span>
                   <span className="text-2xl font-black text-slate-800">{facilityRooms.length}</span>
                   <span className="text-[10px] text-slate-500 block">Configured OPD Desks</span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded border border-slate-300">
-                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">ड्यूटी पाली / Shift</span>
+                  <span className="text-[10.5px] font-bold text-slate-600 uppercase block">Duty Shift</span>
                   <span className="text-base font-black text-emerald-800 mt-1 block">General OPD</span>
                   <span className="text-[10px] text-slate-500 block">Active Intake Shift</span>
                 </div>

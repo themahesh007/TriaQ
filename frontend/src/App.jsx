@@ -119,7 +119,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-emerald-100 selection:text-emerald-900">
       {/* 1. Persistent Top Safety Banner */}
-      <Banner />
+      <Banner language={language} />
 
       {/* 2. Upgraded Multi-Tier Navbar with Language Selector for First Dashboard */}
       <Navbar
@@ -194,7 +194,7 @@ export default function App() {
 
             <div className="space-y-1.5 text-[12px]">
               <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
-                आपातकालीन दूरभाष / Emergency &amp; Helplines
+                {language === "hi" ? "आपातकालीन दूरभाष" : language === "or" ? "ଜରୁରୀକାଳୀନ ହେଲ୍ପଲାଇନ୍" : "Emergency & Helplines"}
               </h4>
               <p className="text-slate-300">National Health Helpline: <strong className="text-white">1075</strong> (Toll Free)</p>
               <p className="text-slate-300">Odisha Swasthya Seva: <strong className="text-white">104</strong> (Medical Advice)</p>
@@ -204,7 +204,7 @@ export default function App() {
 
             <div className="space-y-2 text-[12px]">
               <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
-                प्रशासनिक लिंक / Governance &amp; Portals
+                {language === "hi" ? "प्रशासनिक लिंक" : language === "or" ? "ପ୍ରଶାସନିକ ଲିଙ୍କ" : "Governance & Portals"}
               </h4>
               <div className="flex flex-col gap-1.5">
                 <button
