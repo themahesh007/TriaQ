@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import LanguageSelectorModal from "../components/LanguageSelectorModal";
-import { TRANSLATIONS, LANGUAGES, getLocalizedToken } from "../utils/translations";
+import { TRANSLATIONS, LANGUAGES, getLocalizedToken, toOdiaDigits, toHindiDigits } from "../utils/translations";
 import {
   saveDraft,
   loadDraft,
@@ -1589,10 +1589,10 @@ export default function PatientPortal({
           <div className="flex flex-wrap items-center justify-between border-b border-slate-100 pb-3 gap-3">
             <div>
               <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
-                Step 2 of 2 • Clinical Symptoms
+                {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms"}
               </span>
               <h2 className="text-xl font-black text-slate-900">
-                Describe your symptoms
+                {t.symptomsTitle || "Describe your symptoms"}
               </h2>
             </div>
             
@@ -1610,7 +1610,7 @@ export default function PatientPortal({
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {lang.label}
+                    {lang.code === "or" ? "ଓଡ଼ିଆ" : lang.code === "hi" ? "हिन्दी" : "English"}
                   </button>
                 ))}
               </div>
@@ -1620,7 +1620,7 @@ export default function PatientPortal({
                 onClick={() => setCurrentStep("intake")}
                 className="text-[12px] font-bold text-slate-500 hover:underline cursor-pointer ml-2"
               >
-                ← Edit details
+                ← {language === "or" ? "ବିବରଣୀ ସଂଶୋଧନ" : language === "hi" ? "विवरण बदलें" : "Edit details"}
               </button>
             </div>
           </div>
@@ -1630,10 +1630,10 @@ export default function PatientPortal({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[12.5px] font-bold text-slate-800">
-                  What is bothering you? When did it start? <span className="text-rose-600">*</span>
+                  {language === "or" ? "ଆପଣଙ୍କର କ’ଣ ସମସ୍ୟା ବା କଷ୍ଟ ହେଉଛି? କେବେଠାରୁ ଆରମ୍ଭ ହେଲା?" : language === "hi" ? "आपको क्या परेशानी या लक्षण हैं? यह कब शुरू हुआ?" : "What is bothering you? When did it start?"} <span className="text-rose-600">*</span>
                 </label>
                 <span className="text-[11px] font-mono text-slate-400">
-                  {symptomText.length} chars (min 15)
+                  {language === "or" ? `${toOdiaDigits(symptomText.length)} ଅକ୍ଷର (ଅତିକମରେ ୧୫)` : language === "hi" ? `${toHindiDigits(symptomText.length)} अक्षर (न्यूनतम 15)` : `${symptomText.length} chars (min 15)`}
                 </span>
               </div>
 
@@ -1643,7 +1643,7 @@ export default function PatientPortal({
                   required
                   value={symptomText}
                   onChange={(e) => setSymptomText(e.target.value)}
-                  placeholder="e.g. Mild fever, dry cough and body ache for the past 2 days. No breathing difficulty..."
+                  placeholder={t.symptomsPlaceholder || "e.g. Mild fever, dry cough and body ache for the past 2 days. No breathing difficulty..."}
                   className="w-full p-3.5 pr-20 rounded-xl border border-slate-200 text-[13.5px] text-slate-900 font-medium leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/40 focus:bg-white transition"
                 />
 
@@ -1655,10 +1655,10 @@ export default function PatientPortal({
                       ? "bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-4 ring-rose-200"
                       : "bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300"
                   }`}
-                  title={isRecording ? "Click to finish voice recording" : "Speak symptoms via microphone"}
+                  title={isRecording ? (language === "or" ? "ଭଏସ୍ ରେକର୍ଡିଂ ବନ୍ଦ କରିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ" : language === "hi" ? "आवाज रिकॉर्डिंग बंद करने के लिए क्लिक करें" : "Click to finish voice recording") : (t.voiceRecordBtn || "Speak symptoms via microphone")}
                 >
                   <span className="text-base">🎙️</span>
-                  <span>{isRecording ? "Stop" : "Mic"}</span>
+                  <span>{isRecording ? (language === "or" ? "ବନ୍ଦ" : language === "hi" ? "रोकें" : "Stop") : (language === "or" ? "କହନ୍ତୁ (Mic)" : language === "hi" ? "बोलें (Mic)" : "Mic")}</span>
                 </button>
               </div>
 
@@ -1666,7 +1666,7 @@ export default function PatientPortal({
               {interimTranscript && (
                 <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-[12px] text-slate-700 italic flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
-                  <span>Transcribing: "{interimTranscript}..."</span>
+                  <span>{language === "or" ? "ଅନୁବାଦ ହେଉଛି:" : language === "hi" ? "अनुलेखन हो रहा है:" : "Transcribing:"} "{interimTranscript}..."</span>
                 </div>
               )}
 
@@ -1678,14 +1678,14 @@ export default function PatientPortal({
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
                     </span>
-                    <span>Listening in {language === "hi" ? "Hindi (हिन्दी)" : language === "or" ? "Odia (ଓଡ଼ିଆ)" : "Indian English"}... Speak your symptoms clearly.</span>
+                    <span>{language === "hi" ? "हिन्दी में सुना जा रहा है... अपने लक्षण स्पष्ट रूप से बोलें।" : language === "or" ? "ଓଡ଼ିଆରେ ଶୁଣାଯାଉଛି... ଆପଣଙ୍କ ଲକ୍ଷଣ ସ୍ପଷ୍ଟ ଭାବେ କୁହନ୍ତୁ।" : "Listening in Indian English... Speak your symptoms clearly."}</span>
                   </div>
                   <button
                     type="button"
                     onClick={toggleSpeechRecognition}
                     className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black hover:bg-rose-700 cursor-pointer shrink-0 shadow-2xs"
                   >
-                    Done Speaking ✓
+                    {language === "or" ? "କୁହା ସରିଲା ✓" : language === "hi" ? "बोलना समाप्त ✓" : "Done Speaking ✓"}
                   </button>
                 </div>
               )}
@@ -1710,7 +1710,7 @@ export default function PatientPortal({
               {/* Quick Template Buttons */}
               <div className="flex flex-wrap items-center gap-2 pt-1">
                 <span className="text-[11px] font-bold text-slate-500">{t.quickLabel}</span>
-                {t.templates.map((tpl, i) => (
+                {t.templates && t.templates.map((tpl, i) => (
                   <button
                     key={i}
                     type="button"
@@ -1730,20 +1730,24 @@ export default function PatientPortal({
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <span>🩺</span> Patient Vital Signs (Optional Triage Tracker)
+                  <span>🩺</span> {t.vitalsTitle || (language === "or" ? "ଶାରୀରିକ ମାପଦଣ୍ଡ (ଇଚ୍ଛାଧୀନ ଟ୍ରାକର୍)" : language === "hi" ? "शारीरिक माप (वैकल्पिक)" : "Patient Vital Signs (Optional Triage Tracker)")}
                 </span>
-                <span className="text-[11px] text-slate-400 font-medium">Auto-emergency alerts</span>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {language === "or" ? "ସ୍ୱୟଂଚାଳିତ ଜରୁରୀକାଳୀନ ସତର୍କତା" : language === "hi" ? "स्वचालित आपातकालीन चेतावनी" : "Auto-emergency alerts"}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-600 block mb-1">Blood Pressure</span>
+                  <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {language === "or" ? "ରକ୍ତଚାପ (Blood Pressure)" : language === "hi" ? "रक्तचाप (Blood Pressure)" : "Blood Pressure"}
+                  </span>
                   <div className="flex gap-1 items-center">
                     <input
                       type="number"
                       value={bpSystolic}
                       onChange={(e) => setBpSystolic(e.target.value)}
-                      placeholder="Sys (120)"
+                      placeholder={language === "or" ? "ସିସ୍ଟୋଲିକ୍ (୧୨୦)" : language === "hi" ? "सिस्टोलिक (120)" : "Sys (120)"}
                       className="w-full p-2 text-[12.5px] rounded-lg border border-slate-200 bg-white text-center font-bold"
                     />
                     <span className="text-slate-400">/</span>
@@ -1751,42 +1755,48 @@ export default function PatientPortal({
                       type="number"
                       value={bpDiastolic}
                       onChange={(e) => setBpDiastolic(e.target.value)}
-                      placeholder="Dia (80)"
+                      placeholder={language === "or" ? "ଡାଇସ୍ଟୋଲିକ୍ (୮୦)" : language === "hi" ? "डायस्टोलिक (80)" : "Dia (80)"}
                       className="w-full p-2 text-[12.5px] rounded-lg border border-slate-200 bg-white text-center font-bold"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-slate-600 block mb-1">Pulse (bpm)</span>
+                  <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {language === "or" ? "ନାଡ଼ିର ଗତି (Pulse bpm)" : language === "hi" ? "नाड़ी गति (Pulse bpm)" : "Pulse (bpm)"}
+                  </span>
                   <input
                     type="number"
                     value={pulse}
                     onChange={(e) => setPulse(e.target.value)}
-                    placeholder="e.g. 76"
+                    placeholder={language === "or" ? "ଯଥା: ୭୬" : language === "hi" ? "उदा. 76" : "e.g. 76"}
                     className="w-full p-2 text-[12.5px] rounded-lg border border-slate-200 bg-white text-center font-bold"
                   />
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-slate-600 block mb-1">SpO2 Oxygen (%)</span>
+                  <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {language === "or" ? "ଅକ୍ସିଜେନ୍ (SpO2 %)" : language === "hi" ? "ऑक्सीजन (SpO2 %)" : "SpO2 Oxygen (%)"}
+                  </span>
                   <input
                     type="number"
                     value={spo2}
                     onChange={(e) => setSpo2(e.target.value)}
-                    placeholder="e.g. 98"
+                    placeholder={language === "or" ? "ଯଥା: ୯୮" : language === "hi" ? "उदा. 98" : "e.g. 98"}
                     className="w-full p-2 text-[12.5px] rounded-lg border border-slate-200 bg-white text-center font-bold"
                   />
                 </div>
 
                 <div>
-                  <span className="text-[11px] font-bold text-slate-600 block mb-1">Temperature (°F)</span>
+                  <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                    {language === "or" ? "ତାପମାତ୍ରା (°F)" : language === "hi" ? "तापमान (°F)" : "Temperature (°F)"}
+                  </span>
                   <input
                     type="number"
                     step="0.1"
                     value={temp}
                     onChange={(e) => setTemp(e.target.value)}
-                    placeholder="e.g. 98.6"
+                    placeholder={language === "or" ? "ଯଥା: ୯୮.୬" : language === "hi" ? "उदा. 98.6" : "e.g. 98.6"}
                     className="w-full p-2 text-[12.5px] rounded-lg border border-slate-200 bg-white text-center font-bold"
                   />
                 </div>
@@ -1941,12 +1951,12 @@ export default function PatientPortal({
             {/* Optional Lab Report Photo */}
             <div className="space-y-2">
               <label className="text-[12px] font-bold text-slate-700 block">
-                Do you have a lab report or prescription photo? (Optional)
+                {t.uploadReportLabel || (language === "or" ? "ପରୀକ୍ଷା ରିପୋର୍ଟ କିମ୍ବା ପ୍ରେସକ୍ରିପସନ୍ ଫଟୋ ଅଛି କି? (ଇଚ୍ଛାଧୀନ)" : language === "hi" ? "क्या आपके पास जांच रिपोर्ट या पर्चे की फोटो है? (वैकल्पिक)" : "Do you have a lab report or prescription photo? (Optional)")}
               </label>
               <div className="flex items-center gap-3">
                 <label className="px-4 py-2 rounded-xl border border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/50 transition cursor-pointer text-[12.5px] font-bold text-slate-700 flex items-center gap-2">
                   <span>📄</span>
-                  <span>{reportFileName ? reportFileName : "Choose photo..."}</span>
+                  <span>{reportFileName ? reportFileName : (t.uploadReportBtn || (language === "or" ? "ଫଟୋ ବାଛନ୍ତୁ..." : language === "hi" ? "फोटो चुनें..." : "Choose photo..."))}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -1983,10 +1993,18 @@ export default function PatientPortal({
                 <span className="text-base mt-0.5">⚠️</span>
                 <div className="space-y-0.5">
                   <p className="font-black text-[13px] text-amber-950">
-                    Mandatory Step: {dynamicQuestions.length} Additional Question{dynamicQuestions.length > 1 ? "s" : ""} Required
+                    {language === "or"
+                      ? `ବାଧ୍ୟତାମୂଳକ ପଦକ୍ଷେପ: ${toOdiaDigits(dynamicQuestions.length)} ଟି ଅତିରିକ୍ତ ପ୍ରଶ୍ନର ଉତ୍ତର ଆବଶ୍ୟକ`
+                      : language === "hi"
+                      ? `अनिवार्य कदम: ${toHindiDigits(dynamicQuestions.length)} अतिरिक्त प्रश्न आवश्यक हैं`
+                      : `Mandatory Step: ${dynamicQuestions.length} Additional Question${dynamicQuestions.length > 1 ? "s" : ""} Required`}
                   </p>
                   <p className="font-medium text-amber-900">
-                    Please answer each question in the <strong>"Some Additional Questions"</strong> section above (choose a quick choice or type an answer and click Save) to unlock submission.
+                    {language === "or"
+                      ? "ସବମିଟ୍ କରିବା ପାଇଁ ଦୟାକରି ଉପରେ ଥିବା 'କିଛି ଅତିରିକ୍ତ ପ୍ରଶ୍ନ' ବିଭାଗରେ ପ୍ରତ୍ୟେକ ପ୍ରଶ୍ନର ଉତ୍ତର ଦିଅନ୍ତୁ (ଶୀଘ୍ର ବିକଳ୍ପ ବାଛନ୍ତୁ କିମ୍ବା ଉତ୍ତର ଲେଖି ସାଇତନ୍ତୁ)।"
+                      : language === "hi"
+                      ? "सबमिट करने के लिए कृपया ऊपर 'कुछ अतिरिक्त प्रश्न' अनुभाग में प्रत्येक प्रश्न का उत्तर दें (विकल्प चुनें या लिखकर सहेजें)।"
+                      : "Please answer each question in the 'Some Additional Questions' section above (choose a quick choice or type an answer and click Save) to unlock submission."}
                   </p>
                 </div>
               </div>
@@ -2011,11 +2029,14 @@ export default function PatientPortal({
                   </span>
                   {!consentChecked && (
                     <span className="text-[11.5px] font-bold text-amber-700 block">
-                      ⚠️ Please check this box to confirm consent before submitting.
+                      ⚠️ {language === "or" ? "ଦାଖଲ କରିବା ପୂର୍ବରୁ ଦୟାକରି ଏହି ସମ୍ମତି ବକ୍ସ ଚେକ୍ କରନ୍ତୁ।" : language === "hi" ? "सबमिट करने से पहले कृपया इस सहमति बॉक्स को टिक करें।" : "Please check this box to confirm consent before submitting."}
                     </span>
                   )}
                   <span className="text-[11px] text-slate-500 block pt-0.5">
-                    Protected under India's DPDP Act, 2023 • <a href="/PRIVACY.md" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold hover:text-emerald-800">Read Data Governance & Privacy Policy</a>
+                    {language === "or" ? "ଭାରତର DPDP ଆଇନ ୨୦୨୩ ଅଧୀନରେ ସୁରକ୍ଷିତ • " : language === "hi" ? "भारत के DPDP अधिनियम 2023 के तहत सुरक्षित • " : "Protected under India's DPDP Act, 2023 • "}
+                    <a href="/PRIVACY.md" target="_blank" rel="noreferrer" className="text-emerald-700 underline font-bold hover:text-emerald-800">
+                      {language === "or" ? "ଡାଟା ଗଭର୍ଣ୍ଣାନ୍ସ ଓ ଗୋପନୀୟତା ନୀତି ପଢ଼ନ୍ତୁ" : language === "hi" ? "डेटा गवर्नेंस एवं गोपनीयता नीति पढ़ें" : "Read Data Governance & Privacy Policy"}
+                    </a>
                   </span>
                 </div>
               </label>
@@ -2028,12 +2049,16 @@ export default function PatientPortal({
               className="w-full py-3.5 rounded-xl font-black text-[14.5px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-sm active:scale-98"
             >
               {loading
-                ? t.submittingBtn
+                ? (t.submittingBtn || (language === "or" ? "ମୂଲ୍ୟାଙ୍କନ ଓ ଟୋକନ୍ ତିଆରି ଚାଲିଛି..." : language === "hi" ? "मूल्यांकन एवं टोकन तैयार हो रहा है..." : "Evaluating & Generating Token..."))
                 : dynamicQuestions.length > 0
-                ? `Answer ${dynamicQuestions.length} Question${dynamicQuestions.length > 1 ? "s" : ""} Above to Submit`
+                ? (language === "or"
+                  ? `ସବମିଟ୍ କରିବାକୁ ଉପରେ ଥିବା ${toOdiaDigits(dynamicQuestions.length)} ଟି ପ୍ରଶ୍ନର ଉତ୍ତର ଦିଅନ୍ତୁ`
+                  : language === "hi"
+                  ? `सबमिट करने के लिए ऊपर दिए ${toHindiDigits(dynamicQuestions.length)} प्रश्नों के उत्तर दें`
+                  : `Answer ${dynamicQuestions.length} Question${dynamicQuestions.length > 1 ? "s" : ""} Above to Submit`)
                 : !consentChecked
-                ? "Check Declaration Consent to Submit"
-                : t.submitBtn}
+                ? (language === "or" ? "ସବମିଟ୍ କରିବାକୁ ସମ୍ମତି ବକ୍ସ ଚେକ୍ କରନ୍ତୁ" : language === "hi" ? "सबमिट करने के लिए सहमति बॉक्स पर टिक करें" : "Check Declaration Consent to Submit")
+                : (t.submitBtn || (language === "or" ? "କେସ୍ ଦାଖଲ କରନ୍ତୁ ଏବଂ PDF ରସିଦ ପାଆନ୍ତୁ →" : language === "hi" ? "केस सबमिट करें और PDF रसीद प्राप्त करें →" : "Submit Case & Generate PDF Receipt →"))}
             </button>
           </form>
         </div>
@@ -2050,27 +2075,27 @@ export default function PatientPortal({
 
           <div className="space-y-1">
             <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700">
-              Triage Intake Complete
+              {t.triageCompleteBadge || "Triage Intake Complete"}
             </span>
             <h2 className="text-2xl font-black text-slate-900">
-              Your Case Has Been Submitted
+              {t.caseSubmittedTitle || "Your Case Has Been Submitted"}
             </h2>
             <p className="text-[13px] text-slate-500 font-medium max-w-sm mx-auto">
-              Your clinical triage receipt has been generated. Doctors are reviewing cases in clinical priority order.
+              {t.caseSubmittedSubtitle || "Your clinical triage receipt has been generated. Doctors are reviewing cases in clinical priority order."}
             </p>
           </div>
 
           {/* Receipt Monospace Card */}
           <div className="p-5 rounded-2xl border-2 border-emerald-500 bg-emerald-50/40 space-y-3 max-w-md mx-auto">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-              Official OPD Consultation Token
+              {t.officialTokenLabel || "Official OPD Consultation Token"}
             </span>
             <div className="font-mono text-2xl sm:text-3xl font-black text-slate-900 tracking-wider select-all py-1.5 px-3 bg-white rounded-xl border border-emerald-200 shadow-2xs">
               {getLocalizedToken(receiptData.patient?.tokenId || receiptData.tokenId || "TOKEN NUMBER 01", language)}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[12px] text-slate-700 font-bold">
-              <span>Facility: <strong className="text-emerald-900 font-black">{receiptData.facility || selectedFacility}</strong></span>
+              <span>{language === "or" ? "ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର:" : language === "hi" ? "स्वास्थ्य केंद्र:" : "Facility:"} <strong className="text-emerald-900 font-black">{receiptData.facility || selectedFacility}</strong></span>
               <span>•</span>
               <span className="font-mono text-[11px] text-slate-500">{receiptData.receiptNumber || "OPD Pass"}</span>
             </div>
@@ -2086,14 +2111,14 @@ export default function PatientPortal({
                 }`}
               >
                 {receiptData.riskTag === "RED"
-                  ? "Urgent (RED)"
+                  ? (t.urgentRed || "Urgent (RED)")
                   : receiptData.riskTag === "YELLOW" || receiptData.riskTag === "AMBER"
-                  ? "Moderate (YELLOW)"
-                  : "Normal Priority (GREEN)"}
+                  ? (t.moderateYellow || "Moderate (YELLOW)")
+                  : (t.normalGreen || "Normal Priority (GREEN)")}
               </span>
 
               <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-white text-slate-600 border border-slate-200">
-                Awaiting Review
+                {t.awaitingReview || "Awaiting Review"}
               </span>
             </div>
           </div>
@@ -2104,14 +2129,18 @@ export default function PatientPortal({
               <div className="font-black flex items-center justify-between text-amber-950 text-sm">
                 <span className="flex items-center gap-1.5">
                   <span>⚡</span>
-                  <span>Saved Locally (Offline Queue)</span>
+                  <span>{language === "or" ? "ସ୍ଥାନୀୟ ଅଫଲାଇନ୍ ଡାଟାରେ ସାଇତା ହୋଇଛି" : language === "hi" ? "ऑफ़लाइन सुरक्षित रखा गया" : "Saved Locally (Offline Queue)"}</span>
                 </span>
                 <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded text-[10.5px] uppercase font-black">
-                  Safe Draft
+                  {language === "or" ? "ସୁରକ୍ଷିତ ଡ୍ରାଫ୍ଟ" : language === "hi" ? "सुरक्षित ड्राफ्ट" : "Safe Draft"}
                 </span>
               </div>
               <p className="leading-relaxed text-amber-900">
-                Your case has been securely recorded on this device with a local pass. As soon as your internet reconnects, TriaQ will automatically dispatch it to the clinical queue.
+                {language === "or"
+                  ? "ଆପଣଙ୍କ କେସ୍ ଏହି ଡିଭାଇସରେ ସୁରକ୍ଷିତ ରହିଛି। ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ହେବା ମାତ୍ରେ ଏହା ଆପେ ଆପେ ଡାକ୍ତରଖାନାକୁ ପଠାଯିବ।"
+                  : language === "hi"
+                  ? "आपका केस इस डिवाइस में सुरक्षित है। इंटरनेट कनेक्ट होते ही यह अपने आप अस्पताल को भेज दिया जाएगा।"
+                  : "Your case has been securely recorded on this device with a local pass. As soon as your internet reconnects, TriaQ will automatically dispatch it to the clinical queue."}
               </p>
               <div className="pt-1">
                 <button
@@ -2122,11 +2151,11 @@ export default function PatientPortal({
                     try {
                       const { synced } = await syncAllQueuedSubmissions(API_BASE);
                       if (synced > 0) {
-                        alert(`✓ Successfully synced ${synced} offline case(s) to the hospital server!`);
+                        alert(language === "or" ? `✓ ସଫଳତାର ସହ ${synced} ଟି ଅଫଲାଇନ୍ କେସ୍ ଡାକ୍ତରଖାନା ସର୍ଭରରେ ସିଙ୍କ୍ ହେଲା!` : language === "hi" ? `✓ सफलतापूर्वक ${synced} ऑफ़लाइन केस अस्पताल सर्वर में सिंक हो गए!` : `✓ Successfully synced ${synced} offline case(s) to the hospital server!`);
                         setReceiptData((prev) => ({ ...prev, isOfflineQueued: false }));
                         setOfflineQueueCount(0);
                       } else {
-                        alert("Device is still offline or could not reach server. It will automatically sync as soon as you reconnect.");
+                        alert(language === "or" ? "ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ମିଳିଲା ନାହିଁ। ଇଣ୍ଟରନେଟ୍ ଆସିବା ମାତ୍ରେ ଏହା ଆପେ ସିଙ୍କ୍ ହୋଇଯିବ।" : language === "hi" ? "इंटरनेट कनेक्ट नहीं हुआ। इंटरनेट आते ही यह अपने आप सिंक हो जाएगा।" : "Device is still offline or could not reach server. It will automatically sync as soon as you reconnect.");
                       }
                     } finally {
                       setIsSyncingOffline(false);
@@ -2135,7 +2164,7 @@ export default function PatientPortal({
                   className="w-full py-2.5 px-3 rounded-xl text-xs font-black text-white bg-amber-800 hover:bg-amber-900 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                 >
                   <span>🔄</span>
-                  <span>{isSyncingOffline ? "Checking Connection..." : "Sync to Hospital Cloud (If Online)"}</span>
+                  <span>{isSyncingOffline ? (language === "or" ? "ସିଙ୍କ୍ ଯାଞ୍ଚ ହେଉଛି..." : language === "hi" ? "कनेक्शन जांच रहे हैं..." : "Checking Connection...") : (t.syncNow || "Sync to Hospital Cloud (If Online)")}</span>
                 </button>
               </div>
             </div>
@@ -2152,7 +2181,7 @@ export default function PatientPortal({
                 className="w-full py-3 px-3 rounded-xl font-black text-[13px] text-white bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98 text-center"
               >
                 <span>📄</span>
-                <span>Download PDF Pass</span>
+                <span>{t.downloadPdfPass || "Download PDF Pass"}</span>
               </a>
 
               <button
@@ -2161,7 +2190,7 @@ export default function PatientPortal({
                 className="w-full py-3 px-3 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98"
               >
                 <span>🖨️</span>
-                <span>Print OPD Slip</span>
+                <span>{t.printOpdSlip || "Print OPD Slip"}</span>
               </button>
             </div>
 
@@ -2171,7 +2200,7 @@ export default function PatientPortal({
                 onClick={handleCheckStatus}
                 className="flex-1 py-2.5 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 cursor-pointer shadow-2xs"
               >
-                Check Live Status →
+                {t.checkLiveStatus || "Check Live Status →"}
               </button>
               <button
                 type="button"
@@ -2183,7 +2212,7 @@ export default function PatientPortal({
                 }}
                 className="flex-1 py-2.5 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 cursor-pointer shadow-2xs"
               >
-                Submit Another Case
+                {t.startNewIntake || "Submit Another Case"}
               </button>
             </div>
           </div>
@@ -2198,10 +2227,10 @@ export default function PatientPortal({
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
               <span className="text-[10.5px] font-black uppercase text-emerald-700 tracking-wider">
-                Live Case Status
+                {language === "or" ? "ଲାଇଭ୍ କେସ୍ ସ୍ଥିତି" : language === "hi" ? "लाइव केस स्थिति" : "Live Case Status"}
               </span>
               <h2 className="text-xl font-black text-slate-900">
-                Patient OPD Status
+                {t.liveQueueStatusTitle || "Patient OPD Status"}
               </h2>
             </div>
             <button
@@ -2209,7 +2238,7 @@ export default function PatientPortal({
               onClick={() => setCurrentStep("intake")}
               className="text-[12px] font-bold text-slate-500 hover:underline cursor-pointer"
             >
-              ← Back
+              ← {language === "or" ? "ପଛକୁ ଯାଆନ୍ତୁ" : language === "hi" ? "वापस जाएं" : "Back"}
             </button>
           </div>
 
@@ -2217,7 +2246,9 @@ export default function PatientPortal({
             <div className="space-y-4">
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 block">Token Receipt</span>
+                  <span className="text-[11px] font-bold text-slate-400 block">
+                    {language === "or" ? "ଟୋକନ୍ ରସିଦ ନମ୍ବର" : language === "hi" ? "टोकन रसीद संख्या" : "Token Receipt"}
+                  </span>
                   <span className="font-mono text-base font-black text-slate-900">{statusData.receiptNumber}</span>
                 </div>
                 <span
@@ -2230,19 +2261,19 @@ export default function PatientPortal({
                   }`}
                 >
                   {statusData.status === "APPROVED"
-                    ? "✓ Approved by Doctor"
+                    ? (language === "or" ? "✓ ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ଅନୁମୋଦିତ (Approved)" : language === "hi" ? "✓ डॉक्टर द्वारा स्वीकृत" : "✓ Approved by Doctor")
                     : statusData.status === "EDITED"
-                    ? "✓ Reviewed & Edited by Doctor"
+                    ? (language === "or" ? "✓ ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ସମୀକ୍ଷା ଓ ସଂଶୋଧିତ" : language === "hi" ? "✓ डॉक्टर द्वारा समीक्षा एवं संपादित" : "✓ Reviewed & Edited by Doctor")
                     : statusData.status === "REJECTED"
-                    ? "✕ Rejected (Please see Emergency Desk)"
-                    : "⏳ Awaiting Doctor Review"}
+                    ? (language === "or" ? "✕ ପ୍ରତ୍ୟାଖ୍ୟାତ (ଦୟାକରି ଜରୁରୀକାଳୀନ ଡେସ୍କକୁ ଯାଆନ୍ତୁ)" : language === "hi" ? "✕ अस्वीकृत (कृपया आपातकालीन डेस्क से संपर्क करें)" : "✕ Rejected (Please see Emergency Desk)")
+                    : (t.awaitingReview || "⏳ Awaiting Doctor Review")}
                 </span>
               </div>
 
               {statusData.disposition && (
                 <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 space-y-1">
                   <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider block">
-                    Doctor Clinical Disposition
+                    {language === "or" ? "ଡାକ୍ତରଙ୍କ କ୍ଲିନିକାଲ୍ ମତାମତ" : language === "hi" ? "डॉक्टर का क्लीनिकल परामर्श" : "Doctor Clinical Disposition"}
                   </span>
                   <p className="text-[13.5px] font-bold text-slate-900">{statusData.disposition}</p>
                 </div>
@@ -2251,7 +2282,7 @@ export default function PatientPortal({
               {statusData.prescription && (
                 <div className="p-4 rounded-xl border border-emerald-300 bg-white space-y-1 shadow-2xs">
                   <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider block">
-                    Doctor Prescription & Instructions (Rx)
+                    {t.doctorPrescriptionTitle || "Doctor Prescription & Instructions (Rx)"}
                   </span>
                   <p className="text-[13px] font-medium text-slate-800 whitespace-pre-line leading-relaxed">
                     {statusData.prescription}
@@ -2263,21 +2294,21 @@ export default function PatientPortal({
                 <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/90 space-y-2 shadow-sm text-left">
                   <div className="flex items-center justify-between border-b border-teal-200 pb-2">
                     <span className="text-[12px] font-black uppercase text-teal-950 tracking-wider flex items-center gap-1.5">
-                      <span>🚨</span> Hospital Transfer & Referral Issued
+                      <span>🚨</span> {t.hospitalTransferAlert || "Hospital Transfer & Referral Issued"}
                     </span>
                     <span className="text-[10px] font-black px-2 py-0.5 rounded bg-teal-200 text-teal-950 uppercase">
-                      Action Required
+                      {t.actionRequired || "Action Required"}
                     </span>
                   </div>
                   <div className="text-[13px] text-slate-800 space-y-1">
                     <p>
-                      Your attending physician has officially referred your case to:
+                      {t.referredToPrefix || "Your attending physician has officially referred your case to:"}
                       <strong className="block text-base font-black text-slate-950 mt-0.5">
                         🏥 {statusData.referral.targetFacility}
                       </strong>
                     </p>
                     <p className="text-[12px] text-slate-700">
-                      <strong>Reason for Escalation:</strong> {statusData.referral.referralReason}
+                      <strong>{t.reasonForEscalation || "Reason for Escalation:"}</strong> {statusData.referral.referralReason}
                     </p>
                   </div>
                   <div className="pt-2">
@@ -2287,10 +2318,10 @@ export default function PatientPortal({
                       rel="noreferrer"
                       className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-teal-900 hover:bg-teal-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <span>📥 Download Official Referral Letter (PDF)</span>
+                      <span>{t.downloadReferralPdf || "📥 Download Official Referral Letter (PDF)"}</span>
                     </a>
                     <p className="text-[11px] text-teal-800 mt-1 text-center font-medium">
-                      Please present this official referral pass directly upon arrival at the receiving facility emergency or intake counter.
+                      {t.presentReferralNotice || "Please present this official referral pass directly upon arrival at the receiving facility emergency or intake counter."}
                     </p>
                   </div>
                 </div>
@@ -2303,7 +2334,7 @@ export default function PatientPortal({
                   className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
                   <span>📄</span>
-                  <span>Download Receipt Again (PDF)</span>
+                  <span>{t.downloadReceiptAgain || "Download Receipt Again (PDF)"}</span>
                 </a>
               </div>
             </div>
