@@ -2360,7 +2360,7 @@ export default function PatientPortal({
         isOpen={showLanguageModal}
         onClose={() => setShowLanguageModal(false)}
         currentLanguage={language}
-        onSelectLanguage={handleSelectLanguage}
+        onSelectLanguage={setLanguage}
       />
     </div>
   );

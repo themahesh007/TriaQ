@@ -11,6 +11,46 @@ import LanguageSelectorModal from "./components/LanguageSelectorModal";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("TriaQ UI Error Caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-2xl border border-rose-200 shadow-sm text-center space-y-4">
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto">
+            ⚠️
+          </div>
+          <h2 className="text-xl font-bold text-slate-900">Application Notice</h2>
+          <p className="text-xs text-slate-600">
+            A temporary display error occurred. Please click below to restore the dashboard.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.hash = "";
+              window.location.reload();
+            }}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm cursor-pointer shadow-xs"
+          >
+            Reload Home Dashboard →
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   // Sync portal with URL hash for browser history / direct links
   const getInitialPortal = () => {
@@ -90,38 +130,40 @@ export default function App() {
         onOpenLanguageModal={() => setShowLanguageModal(true)}
       />
 
-      {/* 3. Main Multi-Portal Content */}
-      <main className="flex-1 w-full pb-14">
-        {activePortal === "home" && (
-          <HomePage 
-            onNavigate={setActivePortal} 
-            language={language}
-            onSelectLanguage={handleSelectLanguage}
-            onOpenLanguageModal={() => setShowLanguageModal(true)}
-          />
-        )}
-        {activePortal === "intake" && (
-          <IntakePage onNavigateHome={() => setActivePortal("home")} />
-        )}
-        {activePortal === "patient-portal" && (
-          <PatientPortal
-            onNavigateHome={() => setActivePortal("home")}
-            onNavigateToIntake={() => setActivePortal("intake")}
-            language={language}
-            onSelectLanguage={handleSelectLanguage}
-            onOpenLanguageModal={() => setShowLanguageModal(true)}
-          />
-        )}
-        {activePortal === "hospital-portal" && (
-          <HospitalPortal onNavigateHome={() => setActivePortal("home")} />
-        )}
-        {activePortal === "staff-portal" && (
-          <StaffPortal onNavigateHome={() => setActivePortal("home")} />
-        )}
-        {activePortal === "master-portal" && (
-          <MasterPortal onNavigateHome={() => setActivePortal("home")} />
-        )}
-      </main>
+      {/* 3. Main Multi-Portal Content with Error Boundary */}
+      <ErrorBoundary>
+        <main className="flex-1 w-full pb-14">
+          {activePortal === "home" && (
+            <HomePage 
+              onNavigate={setActivePortal} 
+              language={language}
+              onSelectLanguage={handleSelectLanguage}
+              onOpenLanguageModal={() => setShowLanguageModal(true)}
+            />
+          )}
+          {activePortal === "intake" && (
+            <IntakePage onNavigateHome={() => setActivePortal("home")} />
+          )}
+          {activePortal === "patient-portal" && (
+            <PatientPortal
+              onNavigateHome={() => setActivePortal("home")}
+              onNavigateToIntake={() => setActivePortal("intake")}
+              language={language}
+              onSelectLanguage={handleSelectLanguage}
+              onOpenLanguageModal={() => setShowLanguageModal(true)}
+            />
+          )}
+          {activePortal === "hospital-portal" && (
+            <HospitalPortal onNavigateHome={() => setActivePortal("home")} />
+          )}
+          {activePortal === "staff-portal" && (
+            <StaffPortal onNavigateHome={() => setActivePortal("home")} />
+          )}
+          {activePortal === "master-portal" && (
+            <MasterPortal onNavigateHome={() => setActivePortal("home")} />
+          )}
+        </main>
+      </ErrorBoundary>
 
       {/* Floating Odisha Govt Style Language Selector Modal (Available globally across First Dashboard & Patient Portal) */}
       <LanguageSelectorModal

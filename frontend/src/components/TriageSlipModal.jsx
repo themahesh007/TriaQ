@@ -3,26 +3,27 @@ import React, { useState, useEffect } from "react";
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export default function TriageSlipModal({ note, onClose }) {
-  if (!note) return null;
-
   const [facilityInfo, setFacilityInfo] = useState(null);
-  const facilityName = note.facility || note.patient?.facility || "Healthcare Centre";
+  const facilityName = note?.facility || note?.patient?.facility || "Healthcare Centre";
 
   useEffect(() => {
+    if (!note) return;
     fetch(`${API_BASE}/api/facilities`)
       .then((r) => r.json())
       .then((list) => {
         if (Array.isArray(list)) {
           const match = list.find((f) =>
             f.id === note.facilityId ||
-            f.name.toLowerCase() === facilityName.toLowerCase() ||
-            facilityName.toLowerCase().includes(f.name.toLowerCase())
+            f.name?.toLowerCase() === facilityName?.toLowerCase() ||
+            facilityName?.toLowerCase()?.includes(f.name?.toLowerCase())
           );
           if (match) setFacilityInfo(match);
         }
       })
       .catch(() => {});
   }, [note, facilityName]);
+
+  if (!note) return null;
 
   const handlePrint = () => {
     window.print();
