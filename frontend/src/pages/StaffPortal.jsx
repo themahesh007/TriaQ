@@ -234,7 +234,10 @@ export default function StaffPortal({ onNavigateHome }) {
     if (!staffSession) return;
     try {
       const headers = { Authorization: `Bearer ${staffSession.token}` };
-      const notesRes = await fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers });
+      const facParam = staffSession?.staff?.facility && staffSession?.staff?.role !== "MASTER"
+        ? `&facility=${encodeURIComponent(staffSession.staff.facility)}`
+        : "";
+      const notesRes = await fetch(`${API_BASE}/api/triage-notes?status=PENDING${facParam}`, { headers });
       if (notesRes.ok) {
         const notes = await notesRes.json();
         setQueue(notes);
@@ -369,24 +372,8 @@ export default function StaffPortal({ onNavigateHome }) {
     setLoading(true);
     setNotification("");
     try {
-      let tokenToUse = staffSession?.token;
-      let reviewerNameToUse = staffSession?.staff?.name || "Dr. Sharma";
-
-      // If Nurse is approving/rejecting, auto-authenticate with on-duty Doctor credentials
-      if (staffSession?.staff?.role === "NURSE" && (action === "APPROVE" || action === "EDIT_APPROVE" || action === "REJECT")) {
-        try {
-          const docAuthRes = await fetch(`${API_BASE}/api/staff/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: "doctor@triaq.org", password: "Doctor@123" })
-          });
-          if (docAuthRes.ok) {
-            const docData = await docAuthRes.json();
-            tokenToUse = docData.token;
-            reviewerNameToUse = `${docData.staff?.name} (via Nurse ${staffSession.staff?.name})`;
-          }
-        } catch {}
-      }
+      const tokenToUse = staffSession?.token;
+      const reviewerNameToUse = staffSession?.staff?.name || "Medical Officer";
 
       const res = await fetch(`${API_BASE}/api/triage-notes/${selectedNote.id}`, {
         method: "PATCH",
@@ -482,36 +469,6 @@ export default function StaffPortal({ onNavigateHome }) {
 
   const handleExportCSV = () => {
     window.open(`${API_BASE}/api/export-csv`, "_blank");
-  };
-
-  const handleCreateSampleCase = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/triage-notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          patientId: "patient-sample-" + Date.now(),
-          symptomText: "Sudden severe tightness in chest with breathlessness and cold sweat since 2 hours. Radiating to left arm.",
-          facility: staffSession?.staff?.facility || "Apollo PHC Hub, Delhi",
-          vitals: {
-            bpSystolic: 148,
-            bpDiastolic: 94,
-            pulse: 104,
-            spo2: 95,
-            temp: 98.6
-          }
-        })
-      });
-      if (res.ok) {
-        setNotification("✓ Sample patient case created and loaded into priority queue!");
-        await fetchDashboardData();
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const userRole = (staffSession?.staff?.role || "DOCTOR").toUpperCase();
@@ -1222,17 +1179,9 @@ export default function StaffPortal({ onNavigateHome }) {
                 {/* Queue List */}
                 <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1">
                   {filteredQueue.length === 0 ? (
-                    <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-3">
+                    <div className="bg-white rounded-xl p-8 border border-slate-200 text-center space-y-2">
                       <p className="font-bold text-[14px] text-slate-800">Queue is clear</p>
-                      <p className="text-[12px] text-slate-400">No matching triage cases pending review.</p>
-                      <button
-                        type="button"
-                        onClick={handleCreateSampleCase}
-                        className="px-4 py-2 rounded-xl text-[12px] font-black text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition cursor-pointer shadow-2xs inline-flex items-center gap-1.5"
-                      >
-                        <span>➕</span>
-                        <span>Load Demo Patient Record (Preview)</span>
-                      </button>
+                      <p className="text-[12px] text-slate-400">No pending triage cases for {staffSession?.staff?.facility || "this facility"}.</p>
                     </div>
                   ) : (
                     filteredQueue.map((item) => {
@@ -1339,16 +1288,8 @@ export default function StaffPortal({ onNavigateHome }) {
                     <span className="text-4xl block">🩺</span>
                     <p className="font-bold text-[15px] text-slate-700">No Patient Case Selected</p>
                     <p className="text-[13px] text-slate-400 max-w-sm">
-                      Select a patient from the queue on the left, or load a sample case to inspect vitals, edit summary, and test Approve, Save & Edit, and Reject actions.
+                      Select a patient from the active queue on the left to review vitals, symptoms, disposition, and issue medical approvals or referrals.
                     </p>
-                    <button
-                      type="button"
-                      onClick={handleCreateSampleCase}
-                      className="mt-2 px-5 py-2.5 rounded-xl text-[13px] font-black text-white bg-emerald-600 hover:bg-emerald-700 active:scale-98 transition cursor-pointer shadow-xs inline-flex items-center gap-2"
-                    >
-                      <span>➕</span>
-                      <span>Preview Sample Case Record</span>
-                    </button>
                   </div>
                 ) : (
                   <div className={`bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5 transition-all duration-250 ${isAdvancingToken ? "animate-card-pop-out" : "animate-card-glide-in"}`}>
@@ -1955,11 +1896,24 @@ export default function StaffPortal({ onNavigateHome }) {
                       onChange={(e) => setReferralTargetFacility(e.target.value)}
                       className="w-full p-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-teal-600 text-slate-900 cursor-pointer shadow-2xs"
                     >
-                      {REFERRAL_HOSPITALS.map((hospital) => (
-                        <option key={hospital} value={hospital}>
-                          🏥 {hospital}
-                        </option>
-                      ))}
+                      <optgroup label="Government Medical Colleges & Specialty Centers">
+                        {REFERRAL_HOSPITALS.map((hospital) => (
+                          <option key={hospital} value={hospital}>
+                            🏥 {hospital}
+                          </option>
+                        ))}
+                      </optgroup>
+                      {registeredFacilities.filter((f) => f.name !== (staffSession?.staff?.facility)).length > 0 && (
+                        <optgroup label="Network Hospitals & Clinics">
+                          {registeredFacilities
+                            .filter((f) => f.name !== (staffSession?.staff?.facility))
+                            .map((fac) => (
+                              <option key={fac.id} value={fac.name}>
+                                🏥 {fac.name} ({fac.city || fac.district || "Network"})
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
                     </select>
                   </div>
 

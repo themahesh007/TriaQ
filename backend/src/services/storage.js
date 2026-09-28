@@ -38,55 +38,6 @@ const initialStaff = [
     twoFactorSecret: "TRIAQ2FASECRETGLOBAL2026",
     backupCodes: ["TRIAQ-BACKUP-01", "TRIAQ-BACKUP-02", "TRIAQ-BACKUP-03"],
     createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-doc-1",
-    email: "doctor@triaq.org",
-    passwordHash: DOCTOR_HASH,
-    name: "Dr. Sharma",
-    role: "DOCTOR",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    status: "APPROVED",
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-nurse-1",
-    email: "nurse@triaq.org",
-    passwordHash: NURSE_HASH,
-    name: "Nurse Priya",
-    role: "NURSE",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    status: "APPROVED",
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-admin-1",
-    email: "admin@triaq.org",
-    passwordHash: ADMIN_HASH,
-    name: "Admin Officer",
-    role: "ADMIN",
-    facility: "Apollo PHC Hub, Delhi",
-    isActive: true,
-    status: "APPROVED",
-    requiresPasswordChange: false,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "staff-master-1",
-    email: "master@triaq.org",
-    passwordHash: MASTER_HASH,
-    name: "System Master",
-    role: "MASTER",
-    facility: "Global Central Hub",
-    isActive: true,
-    status: "APPROVED",
-    twoFactorSecret: "TRIAQ2FASECRETGLOBAL2026",
-    backupCodes: ["TRIAQ-BACKUP-01", "TRIAQ-BACKUP-02", "TRIAQ-BACKUP-03"],
-    createdAt: new Date().toISOString()
   }
 ];
 
@@ -115,113 +66,7 @@ if (fs.existsSync(STORE_FILE)) {
   }
 }
 
-// Seed demo pending triage cases only if explicitly configured
-function seedDemoCasesIfEmpty() {
-  if (process.env.SEED_DEMO_CASES !== "true") return;
-  const pendingNotes = memoryStore.triageNotes.filter((n) => n.status === "PENDING");
-  if (pendingNotes.length === 0) {
-    const demoDate = new Date().toISOString();
-    const p1 = {
-      id: "demo-patient-1",
-      tokenId: "Token-042-Delhi",
-      email: "ramesh@demo.com",
-      phone: "9876543210",
-      encryptedName: encryptPII("Ramesh Kumar Patel"),
-      encryptedAge: encryptPII("52"),
-      encryptedAddress: encryptPII("Ward 4, West Delhi"),
-      encryptedMedications: encryptPII("Amlodipine 5mg OD"),
-      encryptedConditions: encryptPII("Hypertension (High BP)"),
-      consentGiven: true,
-      consentTimestamp: demoDate,
-      facility: "Apollo PHC Hub, Delhi",
-      isActive: true,
-      createdAt: demoDate,
-      updatedAt: demoDate
-    };
-    const p2 = {
-      id: "demo-patient-2",
-      tokenId: "Token-043-Delhi",
-      email: "sunita@demo.com",
-      phone: "9812345678",
-      encryptedName: encryptPII("Sunita Devi"),
-      encryptedAge: encryptPII("36"),
-      encryptedAddress: encryptPII("Sector 14, Delhi"),
-      encryptedMedications: encryptPII("None"),
-      encryptedConditions: encryptPII("None"),
-      consentGiven: true,
-      consentTimestamp: demoDate,
-      facility: "Apollo PHC Hub, Delhi",
-      isActive: true,
-      createdAt: demoDate,
-      updatedAt: demoDate
-    };
-    if (!memoryStore.patients.find((p) => p.id === p1.id)) memoryStore.patients.push(p1);
-    if (!memoryStore.patients.find((p) => p.id === p2.id)) memoryStore.patients.push(p2);
 
-    memoryStore.triageNotes.push({
-      id: "note-demo-1",
-      receiptNumber: "TRIAQ-DEMO-001",
-      patientId: p1.id,
-      patient: {
-        id: p1.id,
-        tokenId: p1.tokenId,
-        name: "Ramesh Kumar Patel",
-        phone: "9876543210",
-        age: "52",
-        address: "Ward 4, West Delhi"
-      },
-      rawSymptomText: "Severe tightness in chest with breathlessness and cold sweat since 2 hours. Radiating to left arm.",
-      language: "en",
-      summary: "Patient presents with acute severe substernal chest tightness and shortness of breath starting 2 hours ago. Accompanied by diaphoresis and radiation to left arm. High risk of Acute Coronary Syndrome (ACS). Immediate ECG and physician evaluation required.",
-      originalSummary: "Patient presents with acute severe substernal chest tightness and shortness of breath starting 2 hours ago. Accompanied by diaphoresis and radiation to left arm. High risk of Acute Coronary Syndrome (ACS). Immediate ECG and physician evaluation required.",
-      vitals: { bpSystolic: 152, bpDiastolic: 96, pulse: 108, spo2: 94, temp: 98.4 },
-      prescription: "• Aspirin 300mg stat (chewable)\n• Clopidogrel 300mg stat\n• Immediate 12-lead ECG",
-      disposition: "Admit to Emergency Ward",
-      riskTag: "RED",
-      matchedRiskKeywords: ["chest", "severe", "breathlessness", "sweat"],
-      missingInfo: [],
-      followUpQuestions: ["Is the pain radiating to neck or jaw?", "Any prior heart condition?"],
-      facility: "Apollo PHC Hub, Delhi",
-      status: "PENDING",
-      editHistory: [],
-      createdAt: demoDate,
-      updatedAt: demoDate,
-      auditLogs: []
-    });
-
-    memoryStore.triageNotes.push({
-      id: "note-demo-2",
-      receiptNumber: "TRIAQ-DEMO-002",
-      patientId: p2.id,
-      patient: {
-        id: p2.id,
-        tokenId: p2.tokenId,
-        name: "Sunita Devi",
-        phone: "9812345678",
-        age: "36",
-        address: "Sector 14, Delhi"
-      },
-      rawSymptomText: "High continuous fever (102.6 F) and vomiting for 2 days. Severe headache and body ache.",
-      language: "en",
-      summary: "Patient has 2-day history of high continuous fever (102.6°F) associated with chills, vomiting (3 episodes), and generalized myalgia. Hemodynamically stable but moderate dehydration risk. Recommended CBC, Dengue NS1 / Malarial antigen testing.",
-      originalSummary: "Patient has 2-day history of high continuous fever (102.6°F) associated with chills, vomiting (3 episodes), and generalized myalgia. Hemodynamically stable but moderate dehydration risk. Recommended CBC, Dengue NS1 / Malarial antigen testing.",
-      vitals: { bpSystolic: 118, bpDiastolic: 76, pulse: 88, spo2: 98, temp: 102.6 },
-      prescription: "• Paracetamol 650mg TDS SOS\n• ORS 1 Packet in 1 Litre boiled water\n• Domperidone 10mg BD AC",
-      disposition: "Routine OPD Treatment",
-      riskTag: "YELLOW",
-      matchedRiskKeywords: ["fever", "vomiting", "headache"],
-      missingInfo: [],
-      followUpQuestions: ["Are you able to retain oral liquids?"],
-      facility: "Apollo PHC Hub, Delhi",
-      status: "PENDING",
-      editHistory: [],
-      createdAt: new Date(Date.now() - 15 * 60000).toISOString(),
-      updatedAt: new Date(Date.now() - 15 * 60000).toISOString(),
-      auditLogs: []
-    });
-  }
-}
-seedDemoCasesIfEmpty();
 
 function persistStore() {
   try {
@@ -928,6 +773,7 @@ const storage = {
     memoryStore.patients = [];
     memoryStore.triageNotes = [];
     memoryStore.auditLogs = [];
+    memoryStore.referrals = [];
     memoryStore.staff = [...initialStaff];
     persistStore();
 
@@ -939,13 +785,15 @@ const storage = {
         await client.query("TRUNCATE TABLE triaq_patients CASCADE");
         await client.query("TRUNCATE TABLE triaq_triage_notes CASCADE");
         await client.query("TRUNCATE TABLE triaq_audit_logs CASCADE");
+        await client.query("TRUNCATE TABLE triaq_referrals CASCADE");
+        await client.query("TRUNCATE TABLE triaq_facility_token_counters CASCADE");
         await client.query("TRUNCATE TABLE triaq_staff CASCADE");
         await client.query("COMMIT");
 
         for (const s of initialStaff) {
           await db.saveStaffToCloud(s);
         }
-        console.log("[Supabase Database] Successfully wiped all patients, triage notes, and audit logs!");
+        console.log("[Supabase Database] Successfully wiped all patients, triage notes, referrals, token counters, and audit logs!");
       } catch (e) {
         await client.query("ROLLBACK");
         console.error("Clear data error:", e.message);

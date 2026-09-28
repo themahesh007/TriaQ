@@ -1468,7 +1468,10 @@ app.post("/api/triage-notes", async (req, res) => {
 app.get("/api/triage-notes", async (req, res) => {
   try {
     const role = req.user?.role || "DOCTOR";
-    const facility = req.query.facility;
+    let facility = req.query.facility;
+    if (!facility && req.user && req.user.role !== "MASTER" && req.user.facility && req.user.facility !== "GLOBAL" && req.user.facility !== "Global Central Hub") {
+      facility = req.user.facility;
+    }
     const notes = await storage.getPendingNotes({ facility, role });
     return res.json(notes);
   } catch (error) {
