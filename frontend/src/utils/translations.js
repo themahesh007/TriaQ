@@ -1,0 +1,443 @@
+// Comprehensive Multilingual Translation Dictionary for TriaQ Patient Portal
+// Supports: English (en), Hindi (hi), Odia (or)
+
+export const LANGUAGES = [
+  { code: "en", label: "English", nativeName: "English" },
+  { code: "or", label: "Odia", nativeName: "ଓଡ଼ିଆ (Odia)" },
+  { code: "hi", label: "Hindi", nativeName: "हिन्दी (Hindi)" }
+];
+
+export const ODIA_DIGITS = {
+  "0": "୦", "1": "୧", "2": "୨", "3": "୩", "4": "୪",
+  "5": "୫", "6": "୬", "7": "୭", "8": "୮", "9": "୯"
+};
+
+export const HINDI_DIGITS = {
+  "0": "०", "1": "१", "2": "२", "3": "३", "4": "४",
+  "5": "५", "6": "६", "7": "७", "8": "८", "9": "९"
+};
+
+export function toOdiaDigits(str) {
+  if (!str) return "";
+  return String(str).replace(/[0-9]/g, (d) => ODIA_DIGITS[d] || d);
+}
+
+export function toHindiDigits(str) {
+  if (!str) return "";
+  return String(str).replace(/[0-9]/g, (d) => HINDI_DIGITS[d] || d);
+}
+
+export function getLocalizedToken(tokenStr, lang) {
+  if (!tokenStr) return "TOKEN NUMBER 01";
+  
+  // Extract number if present
+  const match = tokenStr.match(/\d+/);
+  const num = match ? match[0] : "";
+
+  if (lang === "or") {
+    const odiaNum = toOdiaDigits(num);
+    return `ଟୋକନ୍ ନମ୍ବର ${odiaNum} (${tokenStr})`;
+  } else if (lang === "hi") {
+    const hindiNum = toHindiDigits(num);
+    return `टोकन संख्या ${hindiNum} (${tokenStr})`;
+  }
+  return tokenStr;
+}
+
+export const TRANSLATIONS = {
+  en: {
+    // Header & Navigation
+    home: "Home",
+    patientPortal: "Patient Portal",
+    logout: "Logout",
+    patient: "Patient",
+    setLanguage: "Set Language",
+    selectLanguageModalTitle: "Select Language / ଭାଷା ଚୟନ କରନ୍ତୁ",
+
+    // Offline Banners
+    offlineTitle: "Offline Resilience Active",
+    offlineNotice: "No internet connection. Your symptom drafts and intake submissions are safely saved in local offline storage and will auto-sync when online.",
+    networkRestored: "Network Restored",
+    draftRestored: "Restored your unsaved symptom draft from local offline storage.",
+    offlineQueuedWaiting: "You have queued offline case(s) waiting to sync.",
+    syncNow: "Sync Now",
+
+    // Step 1: Auth
+    authTitle: "Patient Portal Login",
+    authSubtitle: "Book your OPD queue token or check your clinical status",
+    phoneOtpTab: "Mobile OTP Login",
+    passwordTab: "Email & Password",
+    enterPhoneLabel: "10-Digit Mobile Number",
+    phonePlaceholder: "e.g. 9876543210",
+    sendOtpBtn: "Send Login OTP",
+    sendingOtpBtn: "Sending OTP...",
+    verifyOtpLabel: "Enter 6-Digit OTP",
+    verifyOtpBtn: "Verify OTP & Proceed →",
+    emailLabel: "Email Address",
+    passwordLabel: "Password",
+    loginBtn: "Sign In →",
+    signupBtn: "Create Patient Account →",
+    noAccount: "Don't have an account?",
+    hasAccount: "Already registered?",
+    forgotPassword: "Forgot password?",
+
+    // Step 2: Demographics
+    demographicsStep: "Step 1 of 2 • Patient Demographics",
+    demographicsTitle: "Tell us about yourself",
+    demographicsSubtitle: "Your sequential token number will be generated only after you fill and submit your clinical symptoms in the next step.",
+    selectFacilityLabel: "Select Healthcare Facility / Clinic",
+    fullNameLabel: "Full Name",
+    fullNamePlaceholder: "e.g. Ramesh Sharma",
+    ageLabel: "Age (in years)",
+    agePlaceholder: "e.g. 42",
+    contactPhoneLabel: "Contact Phone Number",
+    addressLabel: "Address / Village / Ward",
+    addressPlaceholder: "e.g. Ward 4, Berhampur",
+    existingConditionsLabel: "Existing Medical Conditions (Optional)",
+    existingConditionsPlaceholder: "e.g. Diabetes, Hypertension, Asthma",
+    currentMedsLabel: "Current Medications (Optional)",
+    currentMedsPlaceholder: "e.g. Metformin, Amlodipine",
+    proceedToSymptomsBtn: "Proceed to Clinical Symptoms →",
+
+    // Step 3: Symptoms Intake
+    symptomsStep: "Step 2 of 2 • Clinical Symptoms",
+    symptomsTitle: "What health problems are you experiencing?",
+    symptomsSubtitle: "Describe your symptoms in your own words. AI and emergency safety rules will evaluate clinical priority.",
+    symptomsPlaceholder: "e.g. I have had a high fever and headache since yesterday with severe body aches...",
+    voiceRecordBtn: "Speak Symptoms (Voice Input)",
+    voiceRecording: "Listening... Please speak now",
+    quickTemplatesLabel: "Quick illness templates:",
+    templateChestPain: "🔴 Urgent: Chest Pain",
+    templateChestPainText: "Sudden severe chest pain and breathlessness since morning, no medicine taken.",
+    templateFever: "🟡 Moderate: Fever (Yellow)",
+    templateFeverText: "High fever and vomiting for 2 days, taking paracetamol tablet.",
+    templateHeadache: "🟢 Normal: Headache (Green)",
+    templateHeadacheText: "Mild headache and slight tiredness today, no previous medical history.",
+    vitalsTitle: "Vital Signs (Optional - If Measured at Clinic Desk)",
+    bpLabel: "BP (Systolic / Diastolic)",
+    pulseLabel: "Pulse (bpm)",
+    spo2Label: "SpO2 Oxygen (%)",
+    tempLabel: "Temperature (°F)",
+    uploadReportLabel: "Upload Lab / Blood Report Image (Optional OCR Analysis)",
+    uploadReportBtn: "Choose photo...",
+    
+    // Additional Questions Section
+    additionalBoxTitle: "Some Additional Questions",
+    additionalBoxHelp: "Answer the relevant questions below. Answered questions will save into your clinical summary.",
+    noQuestionsNeeded: "✓ All additional questions answered!",
+    answeredBadge: "Recorded Details:",
+    saveBtn: "✓ Save",
+    changeBtn: "✕ Change",
+    typeAnswerPlaceholder: "Type your answer here...",
+    remainingBadge: "remaining",
+    recordedBadge: "recorded",
+
+    // Consent & Submit
+    consentText: "I consent to the collection and clinical processing of my health information in accordance with the Digital Personal Data Protection (DPDP) Act 2023. My data is encrypted and strictly used for medical triage and hospital queue allocation.",
+    dpdpConsentLabel: "Digital Personal Data Protection (DPDP) Consent *",
+    dpdpConsentText: "I consent to the collection and clinical processing of my health information in accordance with the Digital Personal Data Protection (DPDP) Act 2023. My data is encrypted and strictly used for medical triage and hospital queue allocation.",
+    quickLabel: "Quick illness templates:",
+    templates: [
+      { label: "🔴 Urgent: Chest Pain", text: "Sudden severe chest pain and breathlessness since morning, no medicine taken." },
+      { label: "🟡 Moderate: Fever (Yellow)", text: "High fever and vomiting for 2 days, taking paracetamol tablet." },
+      { label: "🟢 Normal: Headache (Green)", text: "Mild headache and slight tiredness today, no previous medical history." }
+    ],
+    submitBtn: "Submit Case & Generate PDF Receipt →",
+    submittingBtn: "Evaluating & Generating Token...",
+    mandatoryQuestionsNotice: "Additional Question(s) Required before submitting.",
+
+    // Step 4: Confirmation / Token Pass
+    triageCompleteBadge: "Triage Intake Complete",
+    caseSubmittedTitle: "Your Case Has Been Submitted",
+    caseSubmittedSubtitle: "Your clinical triage receipt has been generated. Doctors are reviewing cases in clinical priority order.",
+    officialTokenLabel: "Official OPD Consultation Token",
+    urgentRed: "Urgent (RED)",
+    moderateYellow: "Moderate (YELLOW)",
+    normalGreen: "Normal Priority (GREEN)",
+    awaitingReview: "Awaiting Doctor Review",
+    downloadPdfPass: "Download PDF Pass",
+    printOpdSlip: "Print OPD Slip",
+    checkLiveStatus: "Check Live Status →",
+    startNewIntake: "Start New Intake",
+
+    // Step 5: Live Status & Referral Pass
+    liveQueueStatusTitle: "Live OPD Consultation Status",
+    hospitalTransferAlert: "Hospital Transfer & Referral Issued",
+    actionRequired: "Action Required",
+    referredToPrefix: "Your attending physician has officially referred your case to:",
+    reasonForEscalation: "Reason for Escalation:",
+    downloadReferralPdf: "📥 Download Official Referral Letter (PDF)",
+    presentReferralNotice: "Please present this official referral pass directly upon arrival at the receiving facility emergency or intake counter.",
+    doctorPrescriptionTitle: "Doctor Prescription & Instructions (Rx)",
+    triageSummaryTitle: "Clinical Triage Summary",
+    statusApproved: "APPROVED - Ready for OPD Consultation",
+    statusPending: "PENDING - In Clinical Priority Queue",
+    statusReferred: "REFERRED - Transferred to Higher Facility",
+    statusRejected: "REJECTED - Case closed or duplicate",
+    downloadReceiptAgain: "Download Receipt Again (PDF)"
+  },
+
+  or: {
+    // Header & Navigation
+    home: "ମୁଖ୍ୟ ପୃଷ୍ଠା",
+    patientPortal: "ରୋଗୀ ପୋର୍ଟାଲ",
+    logout: "ଲଗ୍ଆଉଟ୍",
+    patient: "ରୋଗୀ",
+    setLanguage: "ଭାଷା ଚୟନ କରନ୍ତୁ",
+    selectLanguageModalTitle: "ଭାଷା ଚୟନ କରନ୍ତୁ (Select Language)",
+
+    // Offline Banners
+    offlineTitle: "ଅଫଲାଇନ୍ ସୁରକ୍ଷା ସକ୍ରିୟ ଅଛି",
+    offlineNotice: "ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ନାହିଁ। ଆପଣଙ୍କ ଲକ୍ଷଣ ଡ୍ରାଫ୍ଟ ଏବଂ ଆବେଦନ ଆପଣଙ୍କ ଡିଭାଇସରେ ସୁରକ୍ଷିତ ଭାବେ ରହିଛି ଏବଂ ଇଣ୍ଟରନେଟ୍ ଆସିବା ମାତ୍ରେ ଆପେ ଆପେ ସିଙ୍କ୍ ହୋଇଯିବ।",
+    networkRestored: "ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ପୁନଃସ୍ଥାପିତ ହେଲା",
+    draftRestored: "ସ୍ଥାନୀୟ ଅଫଲାଇନ୍ ଡାଟାରୁ ଅସମ୍ପୂର୍ଣ୍ଣ ଡ୍ରାଫ୍ଟ ପୁନରୁଦ୍ଧାର କରାଗଲା।",
+    offlineQueuedWaiting: "ଆପଣଙ୍କର ଅଫଲାଇନ୍ କେସ୍ ସିଙ୍କ୍ ହେବାକୁ ଅପେକ୍ଷା କରିଛି।",
+    syncNow: "ଏବେ ସିଙ୍କ୍ କରନ୍ତୁ",
+
+    // Step 1: Auth
+    authTitle: "ରୋଗୀ ପୋର୍ଟାଲ୍ ଲଗଇନ୍",
+    authSubtitle: "ଆପଣଙ୍କ ଓପିଡି ଟୋକନ୍ ବୁକ୍ କରନ୍ତୁ କିମ୍ବା କେସ୍ ସ୍ଥିତି ଯାଞ୍ଚ କରନ୍ତୁ",
+    phoneOtpTab: "ମୋବାଇଲ୍ OTP ଲଗଇନ୍",
+    passwordTab: "ଇମେଲ୍ ଏବଂ ପାସୱାର୍ଡ",
+    enterPhoneLabel: "୧୦-ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର",
+    phonePlaceholder: "ଉଦାହରଣ: 9876543210",
+    sendOtpBtn: "ଲଗଇନ୍ OTP ପଠାନ୍ତୁ",
+    sendingOtpBtn: "OTP ପଠାଯାଉଛି...",
+    verifyOtpLabel: "୬-ଅଙ୍କ ବିଶିଷ୍ଟ OTP ଦିଅନ୍ତୁ",
+    verifyOtpBtn: "OTP ଯାଞ୍ଚ କରନ୍ତୁ ଏବଂ ଆଗକୁ ବଢ଼ନ୍ତୁ →",
+    emailLabel: "ଇମେଲ୍ ଠିକଣା",
+    passwordLabel: "ପାସୱାର୍ଡ",
+    loginBtn: "ପ୍ରବେଶ କରନ୍ତୁ (Sign In) →",
+    signupBtn: "ନୂତନ ରୋଗୀ ଆକାଉଣ୍ଟ ଖୋଲନ୍ତୁ →",
+    noAccount: "ଆକାଉଣ୍ଟ ନାହିଁ କି?",
+    hasAccount: "ପୂର୍ବରୁ ପଞ୍ଜୀକୃତ କି?",
+    forgotPassword: "ପାସୱାର୍ଡ ଭୁଲିଗଲେ କି?",
+
+    // Step 2: Demographics
+    demographicsStep: "ପଦକ୍ଷେପ ୧ / ୨ • ରୋଗୀଙ୍କ ବ୍ୟକ୍ତିଗତ ବିବରଣୀ",
+    demographicsTitle: "ଆପଣଙ୍କ ପରିଚୟ ଏବଂ ତଥ୍ୟ ଦିଅନ୍ତୁ",
+    demographicsSubtitle: "ପରବର୍ତ୍ତୀ ପଦକ୍ଷେପରେ ରୋଗର ଲକ୍ଷଣ ଦାଖଲ କରିବା ପରେ ହିଁ ଆପଣଙ୍କୁ ସରକାରୀ କ୍ରମିକ ଟୋକନ୍ ନମ୍ବର ପ୍ରଦାନ କରାଯିବ।",
+    selectFacilityLabel: "ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର / ଡାକ୍ତରଖାନା ଚୟନ କରନ୍ତୁ",
+    fullNameLabel: "ସମ୍ପୂର୍ଣ୍ଣ ନାମ",
+    fullNamePlaceholder: "ଉଦାହରଣ: ରମେଶ ଶର୍ମା",
+    ageLabel: "ବୟସ (ବର୍ଷ)",
+    agePlaceholder: "ଉଦାହରଣ: ୪୨",
+    contactPhoneLabel: "ଯୋଗାଯୋଗ ଫୋନ୍ ନମ୍ବର",
+    addressLabel: "ଠିକଣା / ଗ୍ରାମ / ୱାର୍ଡ",
+    addressPlaceholder: "ଉଦାହରଣ: ୱାର୍ଡ ୪, ବ୍ରହ୍ମପୁର",
+    existingConditionsLabel: "ପୂର୍ବରୁ ଥିବା ରୋଗ (ଯଦି ଥାଏ)",
+    existingConditionsPlaceholder: "ଉଦାହରଣ: ମଧୁମେହ (Diabetes), ଉଚ୍ଚ ରକ୍ତଚାପ, ଶ୍ୱାସରୋଗ",
+    currentMedsLabel: "ବର୍ତ୍ତମାନ ଚାଲୁଥିବା ଔଷଧ (ଯଦି ଥାଏ)",
+    currentMedsPlaceholder: "ଉଦାହରଣ: ପାରାସିଟାମୋଲ୍, ମେଟଫର୍ମିନ୍",
+    proceedToSymptomsBtn: "ରୋଗର ଲକ୍ଷଣ ଲେଖିବା ପାଇଁ ଆଗକୁ ବଢ଼ନ୍ତୁ →",
+
+    // Step 3: Symptoms Intake
+    symptomsStep: "ପଦକ୍ଷେପ ୨ / ୨ • ରୋଗର ଲକ୍ଷଣ",
+    symptomsTitle: "ଆପଣଙ୍କର କ’ଣ ସମସ୍ୟା ବା ଯନ୍ତ୍ରଣା ହେଉଛି?",
+    symptomsSubtitle: "ଆପଣଙ୍କ ନିଜ ଭାଷାରେ ଲକ୍ଷଣ ବର୍ଣ୍ଣନା କରନ୍ତୁ। AI ଏବଂ ଜରୁରୀକାଳୀନ ସୁରକ୍ଷା ନିୟମ ଆଧାରରେ ପ୍ରାଥମିକତା ନିର୍ଣ୍ଣୟ କରାଯିବ।",
+    symptomsPlaceholder: "ଉଦାହରଣ: ଗତକାଲି ଠାରୁ ପ୍ରବଳ ଜ୍ୱର ଏବଂ ମୁଣ୍ଡବିନ୍ଧା ସହିତ ଦେହହାତ ଘୋଳାବିନ୍ଧା ହେଉଛି...",
+    voiceRecordBtn: "କହିକି ଲକ୍ଷଣ ଜଣାନ୍ତୁ (ଭଏସ୍ ଇନପୁଟ୍)",
+    voiceRecording: "ଶୁଣୁଛି... ଦୟାକରି ଏବେ କୁହନ୍ତୁ",
+    quickTemplatesLabel: "ଉଦାହରଣ ଟେମ୍ପଲେଟ୍ (ସହଜ ଚୟନ):",
+    templateChestPain: "🔴 ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା (Urgent)",
+    templateChestPainText: "ସକାଳୁ ହଠାତ୍ ପ୍ରବଳ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।",
+    templateFever: "🟡 ମଧ୍ୟମ: ଜ୍ୱର (Yellow)",
+    templateFeverText: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।",
+    templateHeadache: "🟢 ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)",
+    templateHeadacheText: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।",
+    vitalsTitle: "ଶାରୀରିକ ମାପଦଣ୍ଡ (ଇଚ୍ଛାଧୀନ - ଯଦି ମପା ଯାଇଛି)",
+    bpLabel: "ରକ୍ତଚାପ / BP",
+    pulseLabel: "ନାଡ଼ିର ଗତି (Pulse bpm)",
+    spo2Label: "ଅକ୍ସିଜେନ୍ ସ୍ତର / SpO2 (%)",
+    tempLabel: "ତାପମାତ୍ରା (°F)",
+    uploadReportLabel: "ପରୀକ୍ଷା ରିପୋର୍ଟ ଫଟୋ ଅପଲୋଡ୍ କରନ୍ତୁ (ଇଚ୍ଛାଧୀନ OCR)",
+    uploadReportBtn: "ଫଟୋ ବାଛନ୍ତୁ...",
+    
+    // Additional Questions Section
+    additionalBoxTitle: "କିଛି ଅତିରିକ୍ତ ପ୍ରଶ୍ନ",
+    additionalBoxHelp: "ତଳେ ଥିବା ପ୍ରଶ୍ନଗୁଡ଼ିକର ଉତ୍ତର ଦିଅନ୍ତୁ। ଉତ୍ତର ଦେବା ପରେ ପ୍ରଶ୍ନଟି ଆପଣଙ୍କ ରିପୋର୍ଟରେ ଯୋଡ଼ି ହୋଇଯିବ।",
+    noQuestionsNeeded: "✓ ସମସ୍ତ ଅତିରିକ୍ତ ପ୍ରଶ୍ନର ଉତ୍ତର ମିଳିଗଲା!",
+    answeredBadge: "ଦାଖଲ ତଥ୍ୟ:",
+    saveBtn: "✓ ସାଇତନ୍ତୁ",
+    changeBtn: "✕ ବଦଳାନ୍ତୁ",
+    typeAnswerPlaceholder: "ଏଠାରେ ଆପଣଙ୍କ ଉତ୍ତର ଲେଖନ୍ତୁ...",
+    remainingBadge: "ବାକି ଅଛି",
+    recordedBadge: "ଲିପିବଦ୍ଧ",
+
+    // Consent & Submit
+    consentText: "ମୁଁ ମୋର ସ୍ୱାସ୍ଥ୍ୟ ସମ୍ବନ୍ଧୀୟ ତଥ୍ୟକୁ DPDP ଆଇନ ୨୦୨୩ ଅନୁଯାୟୀ କ୍ଲିନିକାଲ୍ ଟ୍ରାଇଏଜ୍ ଏବଂ ଡାକ୍ତରଖାନା ଟୋକନ୍ ବ୍ୟବସ୍ଥା ପାଇଁ ବ୍ୟବହାର କରିବାକୁ ସହମତି ପ୍ରଦାନ କରୁଛି। ମୋର ତଥ୍ୟ ସମ୍ପୂର୍ଣ୍ଣ ଏନକ୍ରିପ୍ଟ ହୋଇ ସୁରକ୍ଷିତ ରହିବ।",
+    dpdpConsentLabel: "ଡିଜିଟାଲ୍ ବ୍ୟକ୍ତିଗତ ତଥ୍ୟ ସୁରକ୍ଷା (DPDP) ସମ୍ମତି *",
+    dpdpConsentText: "ମୁଁ ମୋର ସ୍ୱାସ୍ଥ୍ୟ ସମ୍ବନ୍ଧୀୟ ତଥ୍ୟକୁ DPDP ଆଇନ ୨୦୨୩ ଅନୁଯାୟୀ କ୍ଲିନିକାଲ୍ ଟ୍ରାଇଏଜ୍ ଏବଂ ଡାକ୍ତରଖାନା ଟୋକନ୍ ବ୍ୟବସ୍ଥା ପାଇଁ ବ୍ୟବହାର କରିବାକୁ ସହମତି ପ୍ରଦାନ କରୁଛି। ମୋର ତଥ୍ୟ ସମ୍ପୂର୍ଣ୍ଣ ଏନକ୍ରିପ୍ଟ ହୋଇ ସୁରକ୍ଷିତ ରହିବ।",
+    quickLabel: "ଦ୍ରୁତ ଲକ୍ଷଣ ନମୁନା:",
+    templates: [
+      { label: "🔴 ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା", text: "ସକାଳୁ ହଠାତ୍ ଛାତିରେ ପ୍ରବଳ ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ନିଆଯାଇ ନାହିଁ।" },
+      { label: "🟡 ମଧ୍ୟମ: ଜ୍ୱର (Yellow)", text: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି, ପାରାସିଟାମଲ୍ ଟାବଲେଟ୍ ଖାଉଛନ୍ତି।" },
+      { label: "🟢 ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)", text: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।" }
+    ],
+    submitBtn: "କେସ୍ ଦାଖଲ କରନ୍ତୁ ଏବଂ PDF ରସିଦ ପାଆନ୍ତୁ →",
+    submittingBtn: "ମୂଲ୍ୟାଙ୍କନ ଓ ଟୋକନ୍ ତିଆରି ଚାଲିଛି...",
+    mandatoryQuestionsNotice: "ଦାଖଲ କରିବା ପୂର୍ବରୁ ଅତିରିକ୍ତ ପ୍ରଶ୍ନର ଉତ୍ତର ଦେବା ଆବଶ୍ୟକ।",
+
+    // Step 4: Confirmation / Token Pass
+    triageCompleteBadge: "ଟ୍ରାଇଏଜ୍ ପଞ୍ଜୀକରଣ ସମ୍ପୂର୍ଣ୍ଣ ହେଲା",
+    caseSubmittedTitle: "ଆପଣଙ୍କ କେସ୍ ସଫଳତାର ସହ ଦାଖଲ ହୋଇଛି",
+    caseSubmittedSubtitle: "ଆପଣଙ୍କ କ୍ଲିନିକାଲ୍ ଟ୍ରାଇଏଜ୍ ରସିଦ ପ୍ରସ୍ତୁତ ହୋଇଛି। ଡାକ୍ତରମାନେ ଗୁରୁତର ଅନୁଯାୟୀ କ୍ରମରେ ରୋଗୀଙ୍କୁ ଦେଖୁଛନ୍ତି।",
+    officialTokenLabel: "ସରକାରୀ OPD ପରାମର୍ଶ ଟୋକନ୍",
+    urgentRed: "ଜରୁରୀ / ଗୁରୁତର (RED)",
+    moderateYellow: "ମଧ୍ୟମ ପ୍ରାଥମିକତା (YELLOW)",
+    normalGreen: "ସାଧାରଣ ପ୍ରାଥମିକତା (GREEN)",
+    awaitingReview: "ଡାକ୍ତରଙ୍କ ସମୀକ୍ଷାକୁ ଅପେକ୍ଷା",
+    downloadPdfPass: "PDF ପାସ୍ ଡାଉନଲୋଡ୍ କରନ୍ତୁ",
+    printOpdSlip: "OPD ରସିଦ ପ୍ରିଣ୍ଟ କରନ୍ତୁ",
+    checkLiveStatus: "ଲାଇଭ୍ ସ୍ଥିତି ଯାଞ୍ଚ କରନ୍ତୁ →",
+    startNewIntake: "ନୂତନ କେସ୍ ଆରମ୍ଭ କରନ୍ତୁ",
+
+    // Step 5: Live Status & Referral Pass
+    liveQueueStatusTitle: "ଲାଇଭ୍ OPD ଧାଡ଼ି ଓ କେସ୍ ସ୍ଥିତି",
+    hospitalTransferAlert: "ଡାକ୍ତରଖାନା ସ୍ଥାନାନ୍ତର ଓ ରେଫରାଲ୍ ଜାରି ହୋଇଛି",
+    actionRequired: "ତୁରନ୍ତ ପଦକ୍ଷେପ ଆବଶ୍ୟକ",
+    referredToPrefix: "ଆପଣଙ୍କ ଡାକ୍ତର ଆପଣଙ୍କ କେସ୍ କୁ ସ୍ଥାନାନ୍ତର କରିଛନ୍ତି:",
+    reasonForEscalation: "ସ୍ଥାନାନ୍ତରର କାରଣ:",
+    downloadReferralPdf: "📥 ସରକାରୀ ରେଫରାଲ୍ ଚିଠି (PDF) ଡାଉନଲୋଡ୍ କରନ୍ତୁ",
+    presentReferralNotice: "ଉଚ୍ଚତର ଡାକ୍ତରଖାନାରେ ପହଞ୍ଚିବା ମାତ୍ରେ ଏହି ଅଫିସିଆଲ୍ ରେଫରାଲ୍ ପାସ୍ କୁ ଜରୁରୀକାଳୀନ କାଉଣ୍ଟରରେ ଦେଖାନ୍ତୁ।",
+    doctorPrescriptionTitle: "ଡାକ୍ତରଙ୍କ ଔଷଧ ପରାମର୍ଶ ଏବଂ ନିର୍ଦ୍ଦେଶ (Rx)",
+    triageSummaryTitle: "କ୍ଲିନିକାଲ୍ ଟ୍ରାଇଏଜ୍ ସାରାଂଶ",
+    statusApproved: "ଅନୁମୋଦିତ - OPD ପରାମର୍ଶ ପାଇଁ ପ୍ରସ୍ତୁତ",
+    statusPending: "ବିଚାରାଧୀନ - ପ୍ରାଥମିକତା ଧାଡ଼ିରେ ଅଛି",
+    statusReferred: "ରେଫର୍ ହୋଇଛି - ଉଚ୍ଚ ଚିକିତ୍ସାଳୟକୁ ସ୍ଥାନାନ୍ତରିତ",
+    statusRejected: "ଖାରଜ ହୋଇଛି - ଅବୈଧ କିମ୍ବା ଡୁପ୍ଲିକେଟ୍",
+    downloadReceiptAgain: "ପୁନର୍ବାର ରସିଦ (PDF) ଡାଉନଲୋଡ୍ କରନ୍ତୁ"
+  },
+
+  hi: {
+    // Header & Navigation
+    home: "मुख्य पृष्ठ",
+    patientPortal: "रोगी पोर्टल",
+    logout: "लॉग आउट",
+    patient: "मरीज़",
+    setLanguage: "भाषा चुनें",
+    selectLanguageModalTitle: "भाषा का चयन करें (Select Language)",
+
+    // Offline Banners
+    offlineTitle: "ऑफ़लाइन मोड सक्रिय है",
+    offlineNotice: "इंटरनेट कनेक्शन उपलब्ध नहीं है। आपका विवरण आपके उपकरण पर सुरक्षित रूप से सहेजा गया है और इंटरनेट आते ही स्वतः सिंक हो जाएगा।",
+    networkRestored: "इंटरनेट कनेक्शन बहाल हुआ",
+    draftRestored: "स्थानीय ऑफ़लाइन संग्रहण से आपका अधूरा ड्राफ्ट पुनर्प्राप्त किया गया।",
+    offlineQueuedWaiting: "आपके ऑफ़लाइन केस सिंक होने की प्रतीक्षा में हैं।",
+    syncNow: "अभी सिंक करें",
+
+    // Step 1: Auth
+    authTitle: "रोगी पोर्टल लॉगिन",
+    authSubtitle: "अपना ओपीडी टोकन बुक करें अथवा अपने केस की स्थिति जांचें",
+    phoneOtpTab: "मोबाइल OTP लॉगिन",
+    passwordTab: "ईमेल और पासवर्ड",
+    enterPhoneLabel: "10-अंकों का मोबाइल नंबर",
+    phonePlaceholder: "उदाहरण: 9876543210",
+    sendOtpBtn: "लॉगिन OTP भेजें",
+    sendingOtpBtn: "OTP भेजा जा रहा है...",
+    verifyOtpLabel: "6-अंकों का OTP दर्ज करें",
+    verifyOtpBtn: "OTP सत्यापित करें और आगे बढ़ें →",
+    emailLabel: "ईमेल पता",
+    passwordLabel: "पासवर्ड",
+    loginBtn: "साइन इन करें →",
+    signupBtn: "नया रोगी खाता बनाएं →",
+    noAccount: "खाता नहीं है?",
+    hasAccount: "पहले से पंजीकृत हैं?",
+    forgotPassword: "पासवर्ड भूल गए?",
+
+    // Step 2: Demographics
+    demographicsStep: "चरण 1 / 2 • रोगी का व्यक्तिगत विवरण",
+    demographicsTitle: "अपने बारे में जानकारी दें",
+    demographicsSubtitle: "आपका आधिकारिक क्रमबद्ध टोकन नंबर अगले चरण में बीमारी के लक्षण सबमिट करने के बाद ही आवंटित किया जाएगा।",
+    selectFacilityLabel: "स्वास्थ्य केंद्र / अस्पताल का चयन करें",
+    fullNameLabel: "पूरा नाम",
+    fullNamePlaceholder: "उदाहरण: रमेश शर्मा",
+    ageLabel: "आयु (वर्ष में)",
+    agePlaceholder: "उदाहरण: 42",
+    contactPhoneLabel: "संपर्क मोबाइल नंबर",
+    addressLabel: "पता / गांव / वार्ड",
+    addressPlaceholder: "उदाहरण: वार्ड 4, ब्रह्मपुर",
+    existingConditionsLabel: "पुरानी बीमारियाँ (वैकल्पिक)",
+    existingConditionsPlaceholder: "उदाहरण: मधुमेह (शुगर), उच्च रक्तचाप (बीपी), दमा",
+    currentMedsLabel: "वर्तमान में ली जा रही दवाएं (वैकल्पिक)",
+    currentMedsPlaceholder: "उदाहरण: मेटफॉर्मिन, एमलोडिपिन",
+    proceedToSymptomsBtn: "लक्षण दर्ज करने के लिए आगे बढ़ें →",
+
+    // Step 3: Symptoms Intake
+    symptomsStep: "चरण 2 / 2 • बीमारी के लक्षण",
+    symptomsTitle: "आपको क्या स्वास्थ्य समस्या या तकलीफ है?",
+    symptomsSubtitle: "अपनी सरल भाषा में लक्षणों का वर्णन करें। एआई और आपातकालीन सुरक्षा नियमों द्वारा प्राथमिकता तय की जाएगी।",
+    symptomsPlaceholder: "उदाहरण: मुझे कल से तेज बुखार और सिरदर्द के साथ बदन दर्द हो रहा है...",
+    voiceRecordBtn: "बोलकर लक्षण बताएं (आवाज इनपुट)",
+    voiceRecording: "सुन रहे हैं... कृपया अब बोलें",
+    quickTemplatesLabel: "त्वरित उदाहरण (सुविधाजनक चयन):",
+    templateChestPain: "🔴 गंभीर: छाती में दर्द (Urgent)",
+    templateChestPainText: "सुबह से अचानक छाती में तेज दर्द और सांस फूलने की समस्या है, कोई दवा नहीं ली।",
+    templateFever: "🟡 मध्यम: बुखार (Yellow)",
+    templateFeverText: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।",
+    templateHeadache: "🟢 सामान्य: सिरदर्द (Green)",
+    templateHeadacheText: "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।",
+    vitalsTitle: "शारीरिक माप (वैकल्पिक - यदि क्लिनिक में मापा गया हो)",
+    bpLabel: "रक्तचाप / BP",
+    pulseLabel: "नाड़ी की गति (Pulse bpm)",
+    spo2Label: "ऑक्सीजन स्तर / SpO2 (%)",
+    tempLabel: "तापमान (°F)",
+    uploadReportLabel: "लैब रिपोर्ट / रक्त जांच पर्ची की फोटो अपलोड करें (वैकल्पिक OCR)",
+    uploadReportBtn: "फोटो चुनें...",
+    
+    // Additional Questions Section
+    additionalBoxTitle: "कुछ अतिरिक्त प्रश्न",
+    additionalBoxHelp: "नीचे दिए गए प्रश्नों के उत्तर दें। उत्तर देने पर प्रश्न आपके रिपोर्ट में जुड़ जाएगा।",
+    noQuestionsNeeded: "✓ सभी अतिरिक्त प्रश्नों के उत्तर दर्ज हो चुके हैं!",
+    answeredBadge: "दर्ज की गई जानकारी:",
+    saveBtn: "✓ सहेजें",
+    changeBtn: "✕ बदलें",
+    typeAnswerPlaceholder: "यहाँ अपना उत्तर लिखें...",
+    remainingBadge: "शेष हैं",
+    recordedBadge: "दर्ज हैं",
+
+    // Consent & Submit
+    consentText: "मैं डीपीडीपी अधिनियम 2023 के तहत अपने स्वास्थ्य डेटा को मेडिकल ट्रायज और अस्पताल टोकन आवंटन हेतु उपयोग करने की सहमति देता/देती हूँ। मेरा डेटा पूरी तरह से एन्क्रिप्टेड और सुरक्षित रहेगा।",
+    dpdpConsentLabel: "डिजिटल व्यक्तिगत डेटा संरक्षण (DPDP) सहमति *",
+    dpdpConsentText: "मैं डीपीडीपी अधिनियम 2023 के तहत अपने स्वास्थ्य डेटा को मेडिकल ट्रायज और अस्पताल टोकन आवंटन हेतु उपयोग करने की सहमति देता/देती हूँ। मेरा डेटा पूरी तरह से एन्क्रिप्टेड और सुरक्षित रहेगा।",
+    quickLabel: "त्वरित लक्षण नमूने:",
+    templates: [
+      { label: "🔴 गंभीर: छाती में दर्द", text: "सुबह से अचानक छाती में तेज दर्द और सांस लेने में कठिनाई हो रही है, कोई दवा नहीं ली है।" },
+      { label: "🟡 मध्यम: तेज बुखार (Yellow)", text: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ले रहे हैं।" },
+      { label: "🟢 सामान्य: सिरदर्द (Green)", text: "आज हल्का सिरदर्द और थोड़ी थकान है, पहले से कोई अन्य बीमारी नहीं है।" }
+    ],
+    submitBtn: "केस सबमिट करें और PDF रसीद प्राप्त करें →",
+    submittingBtn: "मूल्यांकन एवं टोकन तैयार हो रहा है...",
+    mandatoryQuestionsNotice: "सबमिट करने से पहले अतिरिक्त प्रश्नों का उत्तर देना अनिवार्य है।",
+
+    // Step 4: Confirmation / Token Pass
+    triageCompleteBadge: "ट्रायज पंजीकरण पूर्ण हुआ",
+    caseSubmittedTitle: "आपका केस सफलतापूर्वक सबमिट हो गया है",
+    caseSubmittedSubtitle: "आपकी मेडिकल ट्रायज रसीद तैयार कर दी गई है। डॉक्टर प्राथमिकता के अनुसार मरीजों को देख रहे हैं।",
+    officialTokenLabel: "आधिकारिक ओपीडी परामर्श टोकन",
+    urgentRed: "गंभीर / आपातकालीन (RED)",
+    moderateYellow: "मध्यम प्राथमिकता (YELLOW)",
+    normalGreen: "सामान्य प्राथमिकता (GREEN)",
+    awaitingReview: "डॉक्टर की समीक्षा की प्रतीक्षा में",
+    downloadPdfPass: "PDF पास डाउनलोड करें",
+    printOpdSlip: "ओपीडी पर्ची प्रिंट करें",
+    checkLiveStatus: "लाइव स्थिति जांचें →",
+    startNewIntake: "नया केस शुरू करें",
+
+    // Step 5: Live Status & Referral Pass
+    liveQueueStatusTitle: "लाइव ओपीडी कतार व स्थिति",
+    hospitalTransferAlert: "अस्पताल ट्रांसफर और रेफरल जारी किया गया",
+    actionRequired: "तत्काल कार्रवाई आवश्यक",
+    referredToPrefix: "आपके डॉक्टर ने आपका केस इस उच्च अस्पताल में ट्रांसफर किया है:",
+    reasonForEscalation: "ट्रांसफर का कारण:",
+    downloadReferralPdf: "📥 आधिकारिक रेफरल पत्र (PDF) डाउनलोड करें",
+    presentReferralNotice: "उच्च अस्पताल पहुँचते ही इस आधिकारिक रेफरल पास को आपातकालीन या प्रवेश काउंटर पर दिखाएं।",
+    doctorPrescriptionTitle: "डॉक्टर की दवा और परामर्श निर्देश (Rx)",
+    triageSummaryTitle: "मेडिकल ट्रायज सारांश",
+    statusApproved: "स्वीकृत - ओपीडी परामर्श के लिए तैयार",
+    statusPending: "लंबित - प्राथमिकता कतार में है",
+    statusReferred: "रेफर किया गया - उच्च अस्पताल में स्थानांतरित",
+    statusRejected: "अस्वीकृत - केस बंद या डुप्लिकेट",
+    downloadReceiptAgain: "रसीद (PDF) दोबारा डाउनलोड करें"
+  }
+};

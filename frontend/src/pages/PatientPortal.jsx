@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import LanguageSelectorModal from "../components/LanguageSelectorModal";
+import { TRANSLATIONS, LANGUAGES, getLocalizedToken } from "../utils/translations";
 import {
   saveDraft,
   loadDraft,
@@ -28,65 +30,6 @@ import {
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
-const LANGUAGES = [
-  { code: "en", label: "English" },
-  { code: "hi", label: "हिन्दी (Hindi)" },
-  { code: "or", label: "ଓଡ଼ିଆ (Odia)" }
-];
-
-const UI_TEXT = {
-  en: {
-    quickLabel: "Quick templates:",
-    templates: [
-      { label: "🔴 Urgent: Chest Pain", text: "Sudden severe chest pain and breathlessness since morning, no medicine taken." },
-      { label: "🟡 Moderate: Fever (Yellow)", text: "High fever and vomiting for 2 days, taking paracetamol tablet." },
-      { label: "🟢 Normal: Headache (Green)", text: "Mild headache and slight tiredness today, no previous medical history." }
-    ],
-    additionalBoxTitle: "Some Additional Questions",
-    additionalBoxHelp: "Answer the relevant questions below. Answered questions will disappear and save into the summary.",
-    noQuestionsNeeded: "✓ All additional questions answered!",
-    answeredBadge: "Recorded Details:",
-    saveBtn: "✓ Save",
-    typeAnswerPlaceholder: "Type your answer here...",
-    consentText: "I agree that this information can be used to prepare a triage summary for facility staff. My data will be stored with minimal identifying details and can be deleted on request.",
-    submitBtn: "Submit Case & Generate PDF Receipt →",
-    submittingBtn: "Evaluating & Generating Token..."
-  },
-  hi: {
-    quickLabel: "त्वरित उदाहरण (Quick templates):",
-    templates: [
-      { label: "🔴 गंभीर: छाती में दर्द (Urgent)", text: "सुबह से अचानक छाती में तेज दर्द और सांस फूलने की समस्या है, कोई दवा नहीं ली।" },
-      { label: "🟡 मध्यम: बुखार (Yellow)", text: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।" },
-      { label: "🟢 सामान्य: सिरदर्द (Green)", text: "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।" }
-    ],
-    additionalBoxTitle: "कुछ अतिरिक्त प्रश्न (Some Additional Questions)",
-    additionalBoxHelp: "नीचे दिए गए प्रश्नों के उत्तर दें। उत्तर देने पर प्रश्न हट जाएगा और सारांश में जुड़ जाएगा।",
-    noQuestionsNeeded: "✓ सभी अतिरिक्त प्रश्नों के उत्तर दर्ज हो चुके हैं!",
-    answeredBadge: "दर्ज की गई जानकारी:",
-    saveBtn: "✓ सहेजें",
-    typeAnswerPlaceholder: "यहाँ अपना उत्तर लिखें...",
-    consentText: "मैं सहमत हूँ कि इस जानकारी का उपयोग स्वास्थ्य कर्मचारियों के लिए ट्राइएज सारांश तैयार करने में किया जा सकता है। मेरा डेटा न्यूनतम पहचान के साथ सुरक्षित रहेगा।",
-    submitBtn: "केस सबमिट करें और टोकन रसीद प्राप्त करें →",
-    submittingBtn: "मूल्यांकन एवं टोकन तैयार हो रहा है..."
-  },
-  or: {
-    quickLabel: "ଉଦାହରଣ ଟେମ୍ପଲେଟ୍ (Quick templates):",
-    templates: [
-      { label: "🔴 ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା (Urgent)", text: "ସକାଳୁ ହଠାତ୍ ପ୍ରବଳ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।" },
-      { label: "🟡 ମଧ୍ୟମ: ଜ୍ୱର (Yellow)", text: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।" },
-      { label: "🟢 ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)", text: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।" }
-    ],
-    additionalBoxTitle: "କିଛି ଅତିରିକ୍ତ ପ୍ରଶ୍ନ (Some Additional Questions)",
-    additionalBoxHelp: "ତଳେ ଥିବା ପ୍ରଶ୍ନଗୁଡ଼ିକର ଉତ୍ତର ଦିଅନ୍ତୁ। ଉତ୍ତର ଦେବା ପରେ ପ୍ରଶ୍ନଟି ହଟିଯିବ ଏବଂ ନୋଟରେ ସାଇତା ହେବ।",
-    noQuestionsNeeded: "✓ ସମସ୍ତ ଅତିରିକ୍ତ ପ୍ରଶ୍ନର ଉତ୍ତର ମିଳିଗଲା!",
-    answeredBadge: "ଦାଖଲ ତଥ୍ୟ:",
-    saveBtn: "✓ ସାଇତନ୍ତୁ",
-    typeAnswerPlaceholder: "ଏଠାରେ ଆପଣଙ୍କ ଉତ୍ତର ଲେଖନ୍ତୁ...",
-    consentText: "ମୁଁ ସହମତ ଯେ ଏହି ତଥ୍ୟକୁ ସ୍ୱାସ୍ଥ୍ୟ କର୍ମଚାରୀଙ୍କ ଟ୍ରାଇଏଜ୍ ପ୍ରସ୍ତୁତି ପାଇଁ ବ୍ୟବହାର କରାଯାଇପାରିବ। ମୋର ତଥ୍ୟ ସୁରକ୍ଷିତ ରହିବ।",
-    submitBtn: "ଦାଖଲ କରନ୍ତୁ ଏବଂ ଟୋକନ୍ ରସିଦ ପାଆନ୍ତୁ →",
-    submittingBtn: "ମୂଲ୍ୟାଙ୍କନ ଚାଲିଛି..."
-  }
-};
 
 export default function PatientPortal({ onNavigateHome }) {
   // Session & navigation states
@@ -185,8 +128,22 @@ export default function PatientPortal({ onNavigateHome }) {
   const [statusData, setStatusData] = useState(null);
 
   // Multilingual, Dynamic Questions & Consent States
-  const [language, setLanguage] = useState("en");
-  const t = UI_TEXT[language] || UI_TEXT.en;
+  const [language, setLanguage] = useState(() => {
+    try {
+      return localStorage.getItem("triaq_patient_lang") || "en";
+    } catch {
+      return "en";
+    }
+  });
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+
+  const handleSelectLanguage = (code) => {
+    setLanguage(code);
+    try {
+      localStorage.setItem("triaq_patient_lang", code);
+    } catch {}
+  };
   const [consentChecked, setConsentChecked] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [offlineQueueCount, setOfflineQueueCount] = useState(0);
@@ -836,6 +793,7 @@ export default function PatientPortal({ onNavigateHome }) {
           patientId: pId,
           symptomText: combinedSymptomText,
           vitals: vitalsObj,
+          language,
           facility: selectedFacility,
           facilityId: selectedFacilityId || undefined,
           reportImageBase64: reportImageBase64 || undefined
@@ -935,7 +893,7 @@ export default function PatientPortal({ onNavigateHome }) {
 
   return (
     <div className="max-w-[760px] mx-auto px-4 py-6 md:py-10 space-y-6">
-      {/* Top Header & Breadcrumbs */}
+      {/* Top Header & Breadcrumbs & Multilingual Selector */}
       <div className="flex items-center justify-between border-b border-slate-200/80 pb-4">
         <div className="flex items-center gap-2">
           <button
@@ -943,34 +901,50 @@ export default function PatientPortal({ onNavigateHome }) {
             onClick={onNavigateHome}
             className="text-[12px] font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer"
           >
-            ← Home
+            ← {t.home}
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12.5px] font-black text-emerald-800 uppercase tracking-wider">
-            Patient Portal
+            {t.patientPortal}
           </span>
         </div>
 
-        {patientSession && (
-          <div className="flex items-center gap-2">
-            {(currentStep === "confirmation" || currentStep === "status") && (receiptData?.tokenId || statusData?.tokenId) ? (
-              <span className="text-[11.5px] font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                Token: {receiptData?.tokenId || statusData?.tokenId}
-              </span>
-            ) : (
-              <span className="text-[12px] font-bold text-slate-600">
-                Patient: {fullName || patientSession.patient?.name || "Active Session"}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer ml-1"
-            >
-              Logout
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2.5">
+          {/* Odisha Govt Style Floating Language Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setShowLanguageModal(true)}
+            className="btn-tactile text-[12px] font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 px-3 py-1.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+            title="Change Language / ଭାଷା ବଦଳାନ୍ତୁ / भाषा बदलें"
+          >
+            <span className="text-sm">🌐</span>
+            <span className="font-bold text-emerald-950">
+              {language === "or" ? "ଓଡ଼ିଆ" : language === "hi" ? "हिन्दी" : "English"}
+            </span>
+            <span className="text-[10px] text-slate-500">▼</span>
+          </button>
+
+          {patientSession && (
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-2.5">
+              {(currentStep === "confirmation" || currentStep === "status") && (receiptData?.tokenId || statusData?.tokenId) ? (
+                <span className="text-[11.5px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  {getLocalizedToken(receiptData?.tokenId || statusData?.tokenId, language)}
+                </span>
+              ) : (
+                <span className="text-[12px] font-bold text-slate-600 hidden sm:inline">
+                  {t.patient}: {fullName || patientSession.patient?.name || "Active Session"}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer ml-1"
+              >
+                {t.logout}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Real-time Offline Resilience Banners */}
@@ -1785,16 +1759,16 @@ export default function PatientPortal({ onNavigateHome }) {
             <div className="rounded-2xl p-5 border border-slate-200/90 bg-white shadow-xs space-y-4">
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
                 <div>
-                  <h3 className="text-[17px] font-black text-slate-900 flex items-center gap-2">
+                  <h3 className="text-[16px] font-semibold text-slate-800 flex items-center gap-2">
                     <span className="text-lg">📋</span> {t.additionalBoxTitle}
                   </h3>
-                  <p className="text-[12.5px] text-slate-500 mt-0.5">
+                  <p className="text-[12.5px] text-slate-500 mt-0.5 font-normal">
                     {t.additionalBoxHelp}
                   </p>
                 </div>
                 {dynamicQuestions.length > 0 && (
-                  <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                    {dynamicQuestions.length} remaining
+                  <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
+                    {dynamicQuestions.length} {t.remainingBadge || "remaining"}
                   </span>
                 )}
               </div>
@@ -1803,11 +1777,11 @@ export default function PatientPortal({ onNavigateHome }) {
               {Object.keys(answeredMap).length > 0 && (
                 <div className="p-3.5 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11.5px] font-black text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-[11.5px] font-medium text-[#166534] uppercase tracking-wider flex items-center gap-1.5">
                       <span>✓</span> {t.answeredBadge}
                     </span>
-                    <span className="text-[11px] font-black px-2 py-0.5 rounded-full bg-white text-[#15803D] border border-[#86EFAC]">
-                      {Object.keys(answeredMap).length} recorded
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white text-[#15803D] border border-[#86EFAC]">
+                      {Object.keys(answeredMap).length} {t.recordedBadge || "recorded"}
                     </span>
                   </div>
 
@@ -1815,23 +1789,23 @@ export default function PatientPortal({ onNavigateHome }) {
                     {Object.entries(answeredMap).map(([key, item]) => (
                       <div 
                         key={key}
-                        className="bg-white p-3 rounded-xl border border-[#D1D5DB] border-l-4 border-l-[#111827] flex items-start justify-between gap-3 shadow-2xs"
+                        className="bg-white p-3 rounded-xl border border-slate-200 border-l-4 border-l-emerald-600 flex items-start justify-between gap-3 shadow-2xs"
                       >
                         <div className="space-y-1">
-                          {/* Question in COLOR 1: Crisp Solid Black */}
+                          {/* Question in normal font weight */}
                           <div className="flex items-start gap-2">
-                            <span className="text-[10.5px] font-black uppercase px-1.5 py-0.2 rounded bg-[#111827] text-white shrink-0 mt-0.5">
+                            <span className="text-[10.5px] font-semibold uppercase px-1.5 py-0.2 rounded bg-slate-800 text-white shrink-0 mt-0.5">
                               Q
                             </span>
-                            <p className="text-[13.5px] font-black text-[#111827] leading-snug">
+                            <p className="text-[13.5px] font-normal text-slate-800 leading-snug">
                               {item.question}
                             </p>
                           </div>
 
-                          {/* Answer in COLOR 2: Vibrant Medical Green Badge */}
+                          {/* Answer in vibrant medical green badge */}
                           <div className="pl-6">
-                            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-extrabold text-[#065F46] bg-[#ECFDF5] border border-[#10B981] px-3 py-0.5 rounded-lg">
-                              <span className="text-[#059669] font-black">✓</span>
+                            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-normal text-[#065F46] bg-[#ECFDF5] border border-[#10B981] px-3 py-0.5 rounded-lg">
+                              <span className="text-[#059669] font-medium">✓</span>
                               <span>{item.answer}</span>
                             </span>
                           </div>
@@ -1841,9 +1815,9 @@ export default function PatientPortal({ onNavigateHome }) {
                           type="button"
                           onClick={() => handleRemoveAnswered(key)}
                           title="Click to edit or change answer"
-                          className="text-[11px] font-bold px-2 py-1 rounded-md bg-[#FEE2E2] text-[#B91C1C] hover:bg-[#FCA5A5] cursor-pointer transition shrink-0"
+                          className="text-[11px] font-medium px-2 py-1 rounded-md bg-[#FEE2E2] text-[#B91C1C] hover:bg-[#FCA5A5] cursor-pointer transition shrink-0"
                         >
-                          ✕ Change
+                          {t.changeBtn || "✕ Change"}
                         </button>
                       </div>
                     ))}
@@ -1853,7 +1827,7 @@ export default function PatientPortal({ onNavigateHome }) {
 
               {/* Dynamic Questions List - Each Question Pops Out / Disappears When Answered */}
               {dynamicQuestions.length === 0 ? (
-                <div className="p-3.5 text-center rounded-xl bg-[#ECFDF5] border border-[#10B981] text-[#065F46] text-[13px] font-bold flex items-center justify-center gap-2">
+                <div className="p-3.5 text-center rounded-xl bg-[#ECFDF5] border border-[#10B981] text-[#065F46] text-[13px] font-medium flex items-center justify-center gap-2">
                   <span>✓</span>
                   <span>{t.noQuestionsNeeded}</span>
                 </div>
@@ -1865,14 +1839,14 @@ export default function PatientPortal({ onNavigateHome }) {
                     return (
                       <div 
                         key={item.id}
-                        className="p-3.5 rounded-xl border border-[#D1D5DB] border-l-4 border-l-[#111827] bg-white space-y-2.5 shadow-2xs hover:border-[#111827] transition"
+                        className="p-3.5 rounded-xl border border-slate-200 border-l-4 border-l-emerald-600 bg-white space-y-2.5 shadow-2xs hover:border-emerald-500 transition"
                       >
-                        {/* Question in COLOR 1: Crisp Solid Black */}
+                        {/* Question in normal font weight - clean and readable */}
                         <div className="flex items-start gap-2">
-                          <span className="text-[10.5px] font-black uppercase px-1.5 py-0.2 rounded bg-[#111827] text-white shrink-0 mt-0.5">
+                          <span className="text-[10.5px] font-semibold uppercase px-1.5 py-0.2 rounded bg-slate-800 text-white shrink-0 mt-0.5">
                             Q
                           </span>
-                          <p className="text-[13.5px] font-black text-[#111827] leading-snug">
+                          <p className="text-[13.5px] font-normal text-slate-800 leading-snug">
                             {item.question}
                           </p>
                         </div>
@@ -1885,7 +1859,7 @@ export default function PatientPortal({ onNavigateHome }) {
                                 key={idx}
                                 type="button"
                                 onClick={() => handleSaveAnswer(item.id, item.question, choice)}
-                                className="text-[12px] font-bold px-3 py-1 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] hover:bg-[#D1FAE5] hover:border-[#059669]"
+                                className="text-[12px] font-normal px-3 py-1 rounded-lg border transition-all cursor-pointer shadow-2xs active:scale-95 bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] hover:bg-[#D1FAE5] hover:border-[#059669]"
                               >
                                 {choice}
                               </button>
@@ -1908,14 +1882,13 @@ export default function PatientPortal({ onNavigateHome }) {
                               }
                             }}
                             placeholder={t.typeAnswerPlaceholder}
-                            className="flex-1 p-2 text-[13px] rounded-lg border border-[#D1D5DB] bg-[#F9FAFB] focus:bg-white outline-none focus:border-[#059669] focus:ring-1 focus:ring-[#059669]"
-                            style={{ color: "#111827" }}
+                            className="flex-1 p-2 text-[13px] font-normal text-slate-800 rounded-lg border border-[#D1D5DB] bg-[#F9FAFB] focus:bg-white outline-none focus:border-[#059669] focus:ring-1 focus:ring-[#059669]"
                           />
                           <button
                             type="button"
                             disabled={!currentDraft.trim()}
                             onClick={() => handleSaveAnswer(item.id, item.question, currentDraft)}
-                            className="px-3.5 py-2 rounded-lg font-black text-[12.5px] text-white transition cursor-pointer disabled:opacity-40 shadow-xs bg-[#059669] hover:bg-[#047857]"
+                            className="px-3.5 py-2 rounded-lg font-medium text-[12.5px] text-white transition cursor-pointer disabled:opacity-40 shadow-xs bg-[#059669] hover:bg-[#047857]"
                           >
                             {t.saveBtn}
                           </button>
@@ -2055,7 +2028,7 @@ export default function PatientPortal({ onNavigateHome }) {
               Official OPD Consultation Token
             </span>
             <div className="font-mono text-2xl sm:text-3xl font-black text-slate-900 tracking-wider select-all py-1.5 px-3 bg-white rounded-xl border border-emerald-200 shadow-2xs">
-              {receiptData.patient?.tokenId || receiptData.tokenId || "TOKEN NUMBER 01"}
+              {getLocalizedToken(receiptData.patient?.tokenId || receiptData.tokenId || "TOKEN NUMBER 01", language)}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-1 text-[12px] text-slate-700 font-bold">
@@ -2342,6 +2315,14 @@ export default function PatientPortal({ onNavigateHome }) {
           }
           setPassword(newPassword);
         }}
+      />
+
+      {/* Floating Odisha Govt Style Language Selector Modal */}
+      <LanguageSelectorModal
+        isOpen={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+        currentLanguage={language}
+        onSelectLanguage={handleSelectLanguage}
       />
     </div>
   );

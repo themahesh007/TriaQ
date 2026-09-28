@@ -513,7 +513,8 @@ const storage = {
         name: decryptPatientProfile(patient).name,
         phone: decryptPatientProfile(patient).phone,
         age: decryptPatientProfile(patient).age,
-        address: decryptPatientProfile(patient).address
+        address: decryptPatientProfile(patient).address,
+        language: data.language || "en"
       },
       rawSymptomText: data.rawSymptomText,
       language: data.language || "en",

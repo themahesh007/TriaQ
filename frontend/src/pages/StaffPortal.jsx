@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import { toOdiaDigits, toHindiDigits } from "../utils/translations";
 import {
   IconStethoscope,
   IconHospital,
@@ -220,7 +221,12 @@ export default function StaffPortal({ onNavigateHome }) {
       setTimeout(() => window.speechSynthesis.speak(utterance), 250);
     }
 
-    setNotification(`📢 Calling Token Number ${cleanTokenNum} to ${targetDestination}...`);
+    const langBadge = (note.language === "or" || note.patient?.language === "or")
+      ? ` [ 🌐 ଟୋକନ୍ ${toOdiaDigits(cleanTokenNum)} ]`
+      : (note.language === "hi" || note.patient?.language === "hi")
+      ? ` [ 🌐 टोकन ${toHindiDigits(cleanTokenNum)} ]`
+      : "";
+    setNotification(`📢 Calling Token Number ${cleanTokenNum}${langBadge} to ${targetDestination}...`);
     setTimeout(() => setCallingToken(""), 5000);
   };
 
@@ -1264,9 +1270,21 @@ export default function StaffPortal({ onNavigateHome }) {
                           style={{ borderLeftWidth: "5px", borderLeftColor: riskColor }}
                         >
                           <div className="flex items-center justify-between mb-1">
-                            <span className="font-black text-[14.5px] text-slate-900">
-                              {item.patient?.tokenId || "Token"}
-                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-black text-[14.5px] text-slate-900">
+                                {item.patient?.tokenId || "Token"}
+                              </span>
+                              {(item.language === "or" || item.patient?.language === "or") && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Patient selected Odia language">
+                                  🌐 ଟୋକନ୍ {toOdiaDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
+                                </span>
+                              )}
+                              {(item.language === "hi" || item.patient?.language === "hi") && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Patient selected Hindi language">
+                                  🌐 टोकन {toHindiDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
+                                </span>
+                              )}
+                            </div>
 
                             <div className="flex items-center gap-1.5">
                               <button
@@ -1345,9 +1363,21 @@ export default function StaffPortal({ onNavigateHome }) {
                             Receipt: {selectedNote.receiptNumber || selectedNote.patient?.tokenId}
                           </span>
                         </div>
-                        <h2 className="text-2xl font-black text-slate-900 mt-0.5">
-                          {selectedNote.patient?.tokenId || "Token Patient"}
-                        </h2>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <h2 className="text-2xl font-black text-slate-900 mt-0.5">
+                            {selectedNote.patient?.tokenId || "Token Patient"}
+                          </h2>
+                          {(selectedNote.language === "or" || selectedNote.patient?.language === "or") && (
+                            <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              🌐 ଟୋକନ୍ ନମ୍ବର {toOdiaDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
+                            </span>
+                          )}
+                          {(selectedNote.language === "hi" || selectedNote.patient?.language === "hi") && (
+                            <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
+                              🌐 टोकन संख्या {toHindiDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2">
