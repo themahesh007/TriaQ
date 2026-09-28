@@ -25,11 +25,11 @@ export default function MasterPortal({ onNavigateHome }) {
     }
   });
 
-  // Login inputs
-  const [email, setEmail] = useState("triaqproject@gmail.com");
-  const [password, setPassword] = useState("TriaQ@2026");
+  // Login inputs (secured - must be entered manually by authorized administrator)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showMasterPw, setShowMasterPw] = useState(false);
-  const [totpCode, setTotpCode] = useState("123456");
+  const [totpCode, setTotpCode] = useState("");
   const [loginError, setLoginError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -303,21 +303,17 @@ export default function MasterPortal({ onNavigateHome }) {
             </div>
 
             <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[12px] font-black text-slate-800 flex items-center gap-1.5">
-                  <span>📱</span> 2FA Authenticator Code
-                </label>
-                <span className="text-[10.5px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                  Demo Code: 123456
-                </span>
-              </div>
+              <label className="text-[12px] font-black text-slate-800 flex items-center gap-1.5">
+                <span>📱</span> 2FA Authenticator Code
+              </label>
               <input
                 type="text"
                 maxLength={6}
                 required
+                autoComplete="one-time-code"
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
-                placeholder="123456"
+                placeholder="Enter 6-digit code"
                 className="w-full p-2.5 rounded-xl border border-slate-200 text-center font-mono text-xl tracking-widest text-slate-900 font-black outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-600 bg-white"
               />
             </div>

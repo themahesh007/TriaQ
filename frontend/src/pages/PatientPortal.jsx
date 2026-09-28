@@ -56,7 +56,7 @@ export default function PatientPortal({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [phone, setPhone] = useState("9876543210");
+  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [demoOtpCode, setDemoOtpCode] = useState("");
