@@ -768,41 +768,44 @@ export default function HospitalPortal({ onNavigateHome }) {
         /* LOGGED IN DASHBOARD */
         <div className="space-y-6">
           {/* Facility Banner Card */}
-          <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-6 text-white shadow-sm flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
+          <div className="govt-panel bg-[#003366] text-white rounded-md p-6 shadow-sm flex flex-wrap items-center justify-between gap-4 border border-[#0B2545]">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  {session.facility?.type || "HOSPITAL"}
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-400 text-slate-950 font-bold">
+                  {session.facility?.type || "HEALTHCARE CLINIC"}
                 </span>
-                <span className="text-[11px] font-mono text-slate-400">
-                  Code: {session.facility?.code || session.facility?.id}
+                <span className="text-[11px] font-mono text-slate-300">
+                  HFR Code: {session.facility?.code || session.facility?.id}
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-800 text-emerald-200 border border-emerald-600 font-bold">
+                  ✓ Verified Facility
                 </span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
                 {session.facility?.name}
               </h1>
-              <p className="text-[13px] text-slate-300 font-medium">
-                📍 {session.facility?.address || "Registered Clinical Location"} • Admin: {session.facility?.adminEmail || "Healthcare Admin"}
+              <p className="text-[12.5px] text-slate-200 font-medium">
+                📍 {session.facility?.address || "Registered Clinical Location"} • Nodal Officer Email: {session.facility?.adminEmail || "Healthcare Admin"}
               </p>
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
-                <span className="block text-[11px] font-bold text-slate-300 uppercase">Live Queue</span>
+              <div className="bg-[#0B2545] rounded p-3 text-center border border-blue-900/60 min-w-[115px]">
+                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Live Queue</span>
                 <span className="text-2xl font-black text-emerald-400">{facilityQueue.length}</span>
-                <span className="block text-[10px] text-slate-400">Tokens Waiting</span>
+                <span className="block text-[9.5px] text-slate-400">Tokens Waiting</span>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
-                <span className="block text-[11px] font-bold text-slate-300 uppercase">Pending Staff</span>
+              <div className="bg-[#0B2545] rounded p-3 text-center border border-blue-900/60 min-w-[115px]">
+                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Pending Staff</span>
                 <span className={`text-2xl font-black ${pendingStaff.length > 0 ? "text-amber-400 animate-pulse" : "text-slate-300"}`}>
                   {pendingStaff.length}
                 </span>
-                <span className="block text-[10px] text-slate-400">Needs Clearance</span>
+                <span className="block text-[9.5px] text-slate-400">Needs Clearance</span>
               </div>
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 text-center border border-white/10 min-w-[120px]">
-                <span className="block text-[11px] font-bold text-slate-300 uppercase">Medical Roster</span>
-                <span className="text-2xl font-black text-teal-300">{staffList.length}</span>
-                <span className="block text-[10px] text-slate-400">Doctors & Nurses</span>
+              <div className="bg-[#0B2545] rounded p-3 text-center border border-blue-900/60 min-w-[115px]">
+                <span className="block text-[10.5px] font-bold text-slate-300 uppercase">Medical Roster</span>
+                <span className="text-2xl font-black text-amber-300">{staffList.length}</span>
+                <span className="block text-[9.5px] text-slate-400">Doctors & Nurses</span>
               </div>
             </div>
           </div>

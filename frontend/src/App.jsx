@@ -173,25 +173,88 @@ export default function App() {
         onSelectLanguage={handleSelectLanguage}
       />
 
-      {/* 4. Clinical Governance Footer */}
-      <footer className="border-t border-slate-200/90 py-6 bg-white text-center text-[12px] text-slate-500 shadow-2xs">
-        <div className="max-w-[1200px] mx-auto px-4 space-y-2">
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <p className="font-bold text-slate-800">
-              TriaQ • 3-Tier Clinical Triage & Patient Token Platform
-            </p>
-            <span className="text-slate-300">•</span>
-            <button
-              type="button"
-              onClick={() => setActivePortal("master-portal")}
-              className="text-[11.5px] font-bold text-slate-500 hover:text-rose-700 transition cursor-pointer"
-            >
-              🔐 System Admin (2FA)
-            </button>
+      {/* 4. Official Indian Government Health Portal Footer */}
+      <footer className="border-t border-[#003366] bg-[#0B2545] text-slate-300 py-8 text-[12px] no-print">
+        <div className="max-w-[1240px] mx-auto px-4 space-y-6">
+          {/* Upper Footer: Official Portal Network Info & Helplines */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-6 border-b border-slate-700/80">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white text-[14px] uppercase tracking-wide">
+                  TriaQ • National OPD Portal
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">
+                  e-Gov Certified
+                </span>
+              </div>
+              <p className="text-[12px] text-slate-300 leading-relaxed">
+                Integrated Outpatient Department (OPD) queue management, algorithmic clinical risk triage, and referral infrastructure for Primary Healthcare Centers (PHCs), District Hospitals &amp; Registered Clinics.
+              </p>
+            </div>
+
+            <div className="space-y-1.5 text-[12px]">
+              <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
+                आपातकालीन दूरभाष / Emergency &amp; Helplines
+              </h4>
+              <p className="text-slate-300">National Health Helpline: <strong className="text-white">1075</strong> (Toll Free)</p>
+              <p className="text-slate-300">Odisha Swasthya Seva: <strong className="text-white">104</strong> (Medical Advice)</p>
+              <p className="text-slate-300">Ambulance Emergency Dispatch: <strong className="text-white">108 / 102</strong></p>
+              <p className="text-slate-300">ABDM Helpdesk: <strong className="text-white">1800-11-4477</strong></p>
+            </div>
+
+            <div className="space-y-2 text-[12px]">
+              <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
+                प्रशासनिक लिंक / Governance &amp; Portals
+              </h4>
+              <div className="flex flex-col gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActivePortal("patient-portal")}
+                  className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
+                >
+                  › Citizen Portal: Book OPD Token &amp; Check Status
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePortal("staff-portal")}
+                  className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
+                >
+                  › Medical Officer Clinical Workstation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePortal("hospital-portal")}
+                  className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
+                >
+                  › Hospital Administration &amp; QR Standees
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePortal("master-portal")}
+                  className="text-left text-amber-400 hover:text-amber-300 hover:underline font-bold transition cursor-pointer"
+                >
+                  🔐 Nodal Master Governance Desk (2FA)
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="text-[11.5px] text-slate-400 max-w-xl mx-auto">
-            Hospital Outpatient Information System • Clinical Triage & Queue Management • Built for Hospitals, Clinics & Primary Healthcare Centers
-          </p>
+
+          {/* Lower Footer: Mandatory Government Disclaimers & Copyright */}
+          <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 pt-1">
+            <div className="space-y-1">
+              <p>
+                Website Content Owned &amp; Managed by <strong>Department of Health &amp; Family Welfare, Government of Odisha &amp; National Health Mission</strong>.
+              </p>
+              <p>
+                Guidelines for Indian Government Websites (GIGW) Compliant • Best viewed in Chrome, Edge, Firefox at 1024x768 resolution and above.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span>Last Updated: <strong>28-09-2026</strong></span>
+              <span>•</span>
+              <span>Version: <strong>2.4.0 (Govt. Release)</strong></span>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
