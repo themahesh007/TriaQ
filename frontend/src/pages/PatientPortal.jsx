@@ -1391,7 +1391,7 @@ export default function PatientPortal({
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {lang.label}
+                    {lang.nativeName}
                   </button>
                 ))}
               </div>
@@ -1610,7 +1610,7 @@ export default function PatientPortal({
                         : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    {lang.code === "or" ? "ଓଡ଼ିଆ" : lang.code === "hi" ? "हिन्दी" : "English"}
+                    {lang.nativeName}
                   </button>
                 ))}
               </div>

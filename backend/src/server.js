@@ -1713,15 +1713,29 @@ const publicDir = path.join(__dirname, "../public");
 const frontendDistDir = path.join(__dirname, "../../frontend/dist");
 
 if (fs.existsSync(publicDir) && fs.existsSync(path.join(publicDir, "index.html"))) {
-  app.use(express.static(publicDir));
+  app.use(express.static(publicDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    }
+  }));
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api") || req.path.startsWith("/health")) return next();
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.join(publicDir, "index.html"));
   });
 } else if (fs.existsSync(frontendDistDir) && fs.existsSync(path.join(frontendDistDir, "index.html"))) {
-  app.use(express.static(frontendDistDir));
+  app.use(express.static(frontendDistDir, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      }
+    }
+  }));
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path.startsWith("/api") || req.path.startsWith("/health")) return next();
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.sendFile(path.join(frontendDistDir, "index.html"));
   });
 }
