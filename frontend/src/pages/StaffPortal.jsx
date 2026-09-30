@@ -17,7 +17,8 @@ import {
   IconShield,
   IconArrowRight,
   IconCheckCircle,
-  IconXCircle
+  IconXCircle,
+  IconGovtEmblem
 } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
