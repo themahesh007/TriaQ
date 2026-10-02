@@ -949,7 +949,8 @@ app.get("/api/master/analytics", requireRole(["MASTER", "ADMIN"]), async (req, r
  */
 app.get("/api/facilities", async (req, res) => {
   try {
-    const facilities = await storage.getAllFacilities();
+    const includePending = req.query.includePending === "true" || req.query.all === "true";
+    const facilities = await storage.getAllFacilities(includePending);
     return res.json(facilities);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch facilities." });
@@ -1284,7 +1285,7 @@ app.get("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]
 app.get("/api/hospital/pending-staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"]), async (req, res) => {
   try {
     const facilityName = req.query.facility || req.user?.facility;
-    const pending = await storage.getPendingStaff(facilityName);
+    const pending = await storage.getPendingStaff(facilityName, "DOCTOR_NURSE");
     return res.json(pending);
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch pending staff." });

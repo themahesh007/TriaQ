@@ -294,11 +294,14 @@ const storage = {
     return newStaff;
   },
 
-  async getPendingStaff(facility = null) {
-    let list = memoryStore.staff.filter((s) => s.status === "PENDING");
+  async getPendingStaff(facility = null, role = null) {
+    let list = (memoryStore.staff || []).filter((s) => s.status === "PENDING");
     if (facility && facility !== "ALL") {
       const target = facility.toLowerCase().trim();
       list = list.filter((s) => s.facility && s.facility.toLowerCase().trim() === target);
+    }
+    if (role === "STAFF" || role === "DOCTOR_NURSE") {
+      list = list.filter((s) => s.role === "DOCTOR" || s.role === "NURSE");
     }
     return list.map(({ passwordHash, twoFactorSecret, ...s }) => s);
   },
@@ -681,8 +684,11 @@ const storage = {
   },
 
   // --- FACILITIES ---
-  async getAllFacilities() {
-    return memoryStore.facilities || [];
+  async getAllFacilities(includePending = false) {
+    if (includePending) {
+      return memoryStore.facilities || [];
+    }
+    return (memoryStore.facilities || []).filter((f) => f.status === "APPROVED");
   },
 
   async findFacilityById(id) {
