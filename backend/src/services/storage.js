@@ -449,7 +449,94 @@ const storage = {
   async getLatestNoteForPatient(patientId) {
     const notes = memoryStore.triageNotes.filter((n) => n.patientId === patientId);
     if (!notes.length) return null;
-    return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+    const sorted = notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latest = sorted[0];
+    const patient = memoryStore.patients.find((p) => p.id === latest.patientId);
+    return {
+      ...latest,
+      patient: decryptPatientProfile(patient) || latest.patient
+    };
+  },
+
+  async getAllNotes(options = {}) {
+    const { facility, role = "DOCTOR", status } = options;
+    let notes = [...memoryStore.triageNotes];
+
+    if (status && status !== "ALL") {
+      notes = notes.filter((n) => n.status === status);
+    }
+    if (facility && facility !== "ALL") {
+      notes = notes.filter((n) => (n.facility || "").toLowerCase() === facility.toLowerCase());
+    }
+
+    const formattedNotes = notes.map((note) => {
+      const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+      const patientData = role === "DOCTOR" || role === "MASTER" || role === "ADMIN" 
+        ? decryptPatientProfile(patient) 
+        : maskPatientProfile(patient);
+      return {
+        ...note,
+        patient: patientData || note.patient
+      };
+    });
+
+    return formattedNotes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  },
+
+  async findNoteByQuery(query) {
+    if (!query) return null;
+    const cleanQuery = String(query).trim();
+    const cleanDigits = cleanQuery.replace(/\D/g, "");
+
+    // 1. Check exact receipt number match (e.g. TRIAQ-2026-...)
+    let note = memoryStore.triageNotes.find(
+      (n) => n.receiptNumber && n.receiptNumber.toLowerCase() === cleanQuery.toLowerCase()
+    );
+    if (note) {
+      const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+      return { ...note, patient: decryptPatientProfile(patient) || note.patient };
+    }
+
+    // 2. Check token ID match (e.g. "TOKEN NUMBER 01", "TK-01", "01")
+    note = memoryStore.triageNotes.find((n) => {
+      const t = (n.patient?.tokenId || n.tokenId || "").toLowerCase();
+      if (!t) return false;
+      if (t === cleanQuery.toLowerCase()) return true;
+      if (cleanDigits && t.replace(/\D/g, "") === cleanDigits) return true;
+      return false;
+    });
+    if (note) {
+      const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+      return { ...note, patient: decryptPatientProfile(patient) || note.patient };
+    }
+
+    // 3. Check by patient phone number (if 10-digits or cleanDigits >= 10)
+    if (cleanDigits.length >= 10) {
+      const last10 = cleanDigits.slice(-10);
+      note = memoryStore.triageNotes
+        .filter((n) => {
+          const pPhone = n.patient?.phone ? String(n.patient.phone).replace(/\D/g, "") : "";
+          return pPhone.endsWith(last10);
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+      if (note) {
+        const patient = memoryStore.patients.find((p) => p.id === note.patientId);
+        return { ...note, patient: decryptPatientProfile(patient) || note.patient };
+      }
+
+      // Check in patients store
+      const patient = memoryStore.patients.find((p) => {
+        const pPhone = p.phone ? String(p.phone).replace(/\D/g, "") : "";
+        return pPhone.endsWith(last10);
+      });
+      if (patient) {
+        return this.getLatestNoteForPatient(patient.id);
+      }
+    }
+
+    // 4. Check by patientId
+    return this.getLatestNoteForPatient(cleanQuery);
   },
 
   async updateTriageDecision(id, updateData) {

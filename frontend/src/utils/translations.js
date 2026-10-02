@@ -196,7 +196,20 @@ export const TRANSLATIONS = {
     statusPending: "PENDING - In Clinical Priority Queue",
     statusReferred: "REFERRED - Transferred to Higher Facility",
     statusRejected: "REJECTED - Case closed or duplicate",
-    downloadReceiptAgain: "Download Receipt Again (PDF)"
+    downloadReceiptAgain: "Download Receipt Again (PDF)",
+
+    // Status Lookup
+    bookTokenTab: "Book OPD Token",
+    showStatusTab: "SHOW STATUS",
+    lookupTitle: "National OPD Patient Status & Queue Tracker",
+    lookupSubtitle: "Enter your 10-Digit Registered Mobile Number or Token ID to view real-time doctor review status, OPD room number, prescriptions, and digital slip.",
+    lookupInputPlaceholder: "Enter 10-digit mobile number, token ID (e.g. 01), or receipt number",
+    lookupBtn: "Check Live OPD Status →",
+    queueAhead: "Patients Ahead in OPD Queue:",
+    assignedRoomLabel: "Assigned OPD Room / Counter:",
+    doctorReviewStatus: "Clinical Review Status:",
+    prescriptionTitle: "Doctor's Prescription & Clinical Advice:",
+    downloadSlipBtn: "Download Official OPD Slip (PDF)"
   },
 
   or: {
@@ -350,7 +363,20 @@ export const TRANSLATIONS = {
     statusPending: "ବିଚାରାଧୀନ - ପ୍ରାଥମିକତା ଧାଡ଼ିରେ ଅଛି",
     statusReferred: "ରେଫର୍ ହୋଇଛି - ଉଚ୍ଚ ଚିକିତ୍ସାଳୟକୁ ସ୍ଥାନାନ୍ତରିତ",
     statusRejected: "ଖାରଜ ହୋଇଛି - ଅବୈଧ କିମ୍ବା ଡୁପ୍ଲିକେଟ୍",
-    downloadReceiptAgain: "ପୁନର୍ବାର ରସିଦ (PDF) ଡାଉନଲୋଡ୍ କରନ୍ତୁ"
+    downloadReceiptAgain: "ପୁନର୍ବାର ରସିଦ (PDF) ଡାଉନଲୋଡ୍ କରନ୍ତୁ",
+
+    // Status Lookup
+    bookTokenTab: "OPD ଟୋକନ୍ ବୁକ୍ କରନ୍ତୁ",
+    showStatusTab: "କେସ୍ ସ୍ଥିତି ଯାଞ୍ଚ (SHOW STATUS)",
+    lookupTitle: "ଜାତୀୟ ଓପିଡି ରୋଗୀ ସ୍ଥିତି ଓ ଧାଡ଼ି ଟ୍ରାକର୍",
+    lookupSubtitle: "ଆପଣଙ୍କର ୧୦ ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର କିମ୍ବା ଟୋକନ୍ ନମ୍ବର ପ୍ରବେଶ କରି ଡାକ୍ତରୀ ସ୍ଥିତି, ଓପିଡି ରୁମ୍ ଏବଂ ପ୍ରେସକ୍ରିପସନ୍ ଦେଖନ୍ତୁ।",
+    lookupInputPlaceholder: "୧୦ ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର କିମ୍ବା ଟୋକନ୍ ନମ୍ବର ଲେଖନ୍ତୁ",
+    lookupBtn: "ଲାଇଭ୍ ସ୍ଥିତି ଯାଞ୍ଚ କରନ୍ତୁ →",
+    queueAhead: "ଧାଡ଼ିରେ ଆପଣଙ୍କ ଆଗରେ ଥିବା ରୋଗୀ:",
+    assignedRoomLabel: "ନିର୍ଦ୍ଧାରିତ ଓପିଡି କୋଠରୀ / କାଉଣ୍ଟର:",
+    doctorReviewStatus: "ଡାକ୍ତରୀ ମୂଲ୍ୟାଙ୍କନ ସ୍ଥିତି:",
+    prescriptionTitle: "ଡାକ୍ତରଙ୍କ ପ୍ରେସକ୍ରିପସନ୍ ଓ ପରାମର୍ଶ:",
+    downloadSlipBtn: "ସରକାରୀ OPD ରସିଦ ଡାଉନଲୋଡ୍ କରନ୍ତୁ (PDF)"
   },
 
   hi: {
@@ -504,6 +530,19 @@ export const TRANSLATIONS = {
     statusPending: "लंबित - प्राथमिकता कतार में है",
     statusReferred: "रेफर किया गया - उच्च अस्पताल में स्थानांतरित",
     statusRejected: "अस्वीकृत - केस बंद या डुप्लिकेट",
-    downloadReceiptAgain: "रसीद (PDF) दोबारा डाउनलोड करें"
+    downloadReceiptAgain: "रसीद (PDF) दोबारा डाउनलोड करें",
+
+    // Status Lookup
+    bookTokenTab: "नया OPD टोकन बुक करें",
+    showStatusTab: "केस स्थिति देखें (SHOW STATUS)",
+    lookupTitle: "राष्ट्रीय ओपीडी मरीज स्थिति एवं कतार ट्रैकर",
+    lookupSubtitle: "अपना 10-अंकीय मोबाइल नंबर या टोकन संख्या दर्ज करके लाइव डॉक्टर समीक्षा, ओपीडी कक्ष संख्या और पर्चा देखें।",
+    lookupInputPlaceholder: "10-अंकों का मोबाइल नंबर या टोकन संख्या दर्ज करें",
+    lookupBtn: "लाइव ओपीडी स्थिति देखें →",
+    queueAhead: "कतार में आपसे आगे मरीज:",
+    assignedRoomLabel: "आवंटित ओपीडी कक्ष / काउंटर:",
+    doctorReviewStatus: "डॉक्टर समीक्षा स्थिति:",
+    prescriptionTitle: "डॉक्टर का पर्चा एवं चिकित्सकीय परामर्श:",
+    downloadSlipBtn: "आधिकारिक ओपीडी पर्ची डाउनलोड करें (PDF)"
   }
 };

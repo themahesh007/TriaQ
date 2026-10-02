@@ -448,30 +448,44 @@ app.post("/api/patients/profile", async (req, res) => {
  */
 app.get("/api/patients/status", async (req, res) => {
   try {
-    const patientId = req.user?.id || req.query.patientId;
-    if (!patientId) {
-      return res.status(400).json({ error: "Patient identification required." });
+    const query = req.query.query || req.query.phone || req.query.token || req.query.patientId || req.user?.id;
+    if (!query) {
+      return res.status(400).json({ error: "Mobile number, Token ID, or Patient ID is required." });
     }
 
-    const latestNote = await storage.getLatestNoteForPatient(patientId);
-    if (!latestNote) {
+    const note = await storage.findNoteByQuery(query);
+    if (!note) {
       return res.json({ hasNote: false, status: "NO_RECORD" });
+    }
+
+    // Calculate queue position if patient is pending review
+    let queuePosition = 0;
+    if (note.status === "PENDING") {
+      const pendingForFacility = await storage.getPendingNotes({ facility: note.facility });
+      const idx = pendingForFacility.findIndex((n) => n.id === note.id);
+      queuePosition = idx >= 0 ? idx : 0;
     }
 
     return res.json({
       hasNote: true,
-      receiptNumber: latestNote.receiptNumber,
-      tokenId: latestNote.patient?.tokenId,
-      status: latestNote.status,
-      riskTag: latestNote.riskTag,
-      submittedAt: latestNote.createdAt,
-      summary: latestNote.summary,
-      disposition: latestNote.disposition,
-      prescription: latestNote.prescription,
-      referral: latestNote.referral || null
+      receiptNumber: note.receiptNumber,
+      tokenId: note.patient?.tokenId || note.tokenId,
+      patientName: note.patient?.name || "Patient",
+      facility: note.facility,
+      status: note.status,
+      riskTag: note.riskTag,
+      queuePosition,
+      submittedAt: note.createdAt,
+      summary: note.summary,
+      rawSymptomText: note.rawSymptomText,
+      vitals: note.vitals,
+      assignedRoom: note.assignedRoom || null,
+      disposition: note.disposition || null,
+      prescription: note.prescription || null,
+      referral: note.referral || null
     });
   } catch (err) {
-    console.error("Patient status error:", err);
+    console.error("Patient status lookup error:", err);
     return res.status(500).json({ error: "Failed to fetch patient status." });
   }
 });
@@ -1472,7 +1486,14 @@ app.get("/api/triage-notes", async (req, res) => {
     if (!facility && req.user && req.user.role !== "MASTER" && req.user.facility && req.user.facility !== "GLOBAL" && req.user.facility !== "Global Central Hub") {
       facility = req.user.facility;
     }
-    const notes = await storage.getPendingNotes({ facility, role });
+
+    const isAll = req.query.status === "ALL" || req.query.all === "true" || req.query.history === "true";
+    let notes;
+    if (isAll) {
+      notes = await storage.getAllNotes({ facility, role, status: req.query.status });
+    } else {
+      notes = await storage.getPendingNotes({ facility, role });
+    }
     return res.json(notes);
   } catch (error) {
     console.error("Error fetching triage notes:", error);

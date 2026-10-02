@@ -52,6 +52,14 @@ export default function PatientPortal({
   const [authTab, setAuthTab] = useState("password"); // password | otp
   const [isSignup, setIsSignup] = useState(false);
 
+  // Top-level Portal Mode: "book" (OPD Token Booking) | "status" (SHOW STATUS Lookup)
+  const [portalMode, setPortalMode] = useState("book");
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupResult, setLookupResult] = useState(null);
+  const [lookupError, setLookupError] = useState("");
+  const [hasSearched, setHasSearched] = useState(false);
+
   // Auth Inputs
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -890,6 +898,40 @@ export default function PatientPortal({
     }
   };
 
+
+  // Direct Status Lookup by Phone Number / Token ID
+  const handlePerformLookup = async (e) => {
+    if (e) e.preventDefault();
+    const q = lookupQuery.trim();
+    if (!q) {
+      setLookupError(
+        language === "or"
+          ? "ଦୟାକରି ଆପଣଙ୍କର ୧୦ ଅଙ୍କ ବିଶିଷ୍ଟ ମୋବାଇଲ୍ ନମ୍ବର କିମ୍ବା ଟୋକନ୍ ନମ୍ବର ଲେଖନ୍ତୁ।"
+          : language === "hi"
+          ? "कृपया अपना 10-अंकीय मोबाइल नंबर या टोकन संख्या दर्ज करें।"
+          : "Please enter your 10-digit mobile number or Token ID."
+      );
+      return;
+    }
+    setLookupLoading(true);
+    setLookupError("");
+    setHasSearched(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/patients/status?query=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to search status.");
+      if (!data.hasNote) {
+        setLookupResult(null);
+      } else {
+        setLookupResult(data);
+      }
+    } catch (err) {
+      setLookupError(err.message || "Failed to connect to triage server.");
+    } finally {
+      setLookupLoading(false);
+    }
+  };
+
   // --- CHECK STATUS ---
   const handleCheckStatus = async () => {
     setLoading(true);
@@ -1042,6 +1084,340 @@ export default function PatientPortal({
           </button>
         </div>
       )}
+
+      {/* Top Portal Navigation Mode Switcher: Book OPD Token vs SHOW STATUS */}
+      <div className="flex items-center justify-center p-1 rounded-xl bg-slate-100 border border-slate-300 max-w-md mx-auto shadow-2xs">
+        <button
+          type="button"
+          onClick={() => {
+            setPortalMode("book");
+            setLookupError("");
+          }}
+          className={`flex-1 py-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-2 ${
+            portalMode === "book"
+              ? "bg-[#003366] text-white shadow-xs"
+              : "text-slate-700 hover:text-slate-900"
+          }`}
+        >
+          <span>📝</span>
+          <span>{t.bookTokenTab || "Book OPD Token"}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setPortalMode("status");
+            setLookupError("");
+          }}
+          className={`flex-1 py-2 rounded-lg text-xs font-black transition cursor-pointer flex items-center justify-center gap-2 ${
+            portalMode === "status"
+              ? "bg-[#003366] text-white shadow-xs"
+              : "text-slate-700 hover:text-slate-900"
+          }`}
+        >
+          <span>🔍</span>
+          <span>{t.showStatusTab || "SHOW STATUS"}</span>
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SHOW STATUS VIEW: DIRECT LOOKUP BY MOBILE NUMBER / TOKEN ID              */}
+      {/* ========================================================================= */}
+      {portalMode === "status" && (
+        <div className="space-y-6 animate-fade-in">
+          <div className="max-w-2xl mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
+            <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b border-[#0B2545]">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🏛️</span>
+                <div>
+                  <h3 className="font-bold text-[15px] leading-tight text-white tracking-wide">
+                    {t.lookupTitle || "National OPD Patient Status & Queue Tracker"}
+                  </h3>
+                  <p className="text-[11px] text-amber-300 font-semibold">
+                    Department of Health &amp; Family Welfare • National Health Mission
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10.5px] font-black px-2.5 py-1 rounded bg-emerald-800 text-white border border-emerald-600">
+                ABDM Live
+              </span>
+            </div>
+
+            <div className="p-6 sm:p-8 space-y-6 bg-white">
+              <p className="text-[13px] text-slate-700 leading-relaxed font-medium">
+                {t.lookupSubtitle || "Enter your 10-Digit Registered Mobile Number or Token ID to view real-time doctor review status, OPD room number, prescriptions, and digital slip."}
+              </p>
+
+              {/* Search Form */}
+              <form onSubmit={handlePerformLookup} className="space-y-4">
+                <div>
+                  <label className="block text-[12px] font-black uppercase text-slate-700 mb-1.5 tracking-wider">
+                    {language === "or" ? "ମୋବାଇଲ୍ ନମ୍ବର କିମ୍ବା ଟୋକନ୍ ଆଇଡି (Mobile / Token ID)" : language === "hi" ? "मोबाइल नंबर या टोकन आईडी (Mobile / Token ID)" : "Mobile Number / Token ID / Receipt ID"}
+                  </label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="text"
+                      value={lookupQuery}
+                      onChange={(e) => {
+                        setLookupQuery(e.target.value);
+                        setLookupError("");
+                      }}
+                      placeholder={t.lookupInputPlaceholder || "e.g. 9876543210 or TK-01"}
+                      className="flex-1 px-4 py-3 rounded-lg border-2 border-slate-300 focus:border-[#003366] focus:outline-none text-[14px] font-bold text-slate-900 bg-white placeholder:text-slate-400 shadow-2xs"
+                    />
+                    <button
+                      type="submit"
+                      disabled={lookupLoading}
+                      className="btn-tactile px-6 py-3 rounded-lg bg-[#003366] hover:bg-[#002244] text-white font-black text-[13.5px] transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      {lookupLoading ? (
+                        <span>Searching...</span>
+                      ) : (
+                        <span>{t.lookupBtn || "Check Live Status →"}</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {lookupError && (
+                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold">
+                    ⚠️ {lookupError}
+                  </div>
+                )}
+              </form>
+
+              {/* Not Found State */}
+              {hasSearched && !lookupResult && !lookupLoading && (
+                <div className="p-6 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 text-center space-y-3">
+                  <span className="text-3xl block">🔍</span>
+                  <h4 className="text-[14.5px] font-bold text-slate-800">
+                    {language === "or" ? "କୌଣସି ସକ୍ରିୟ ଓପିଡି ରେକର୍ଡ ମିଳିଲା ନାହିଁ" : language === "hi" ? "कोई सक्रिय ओपीडी रिकॉर्ड नहीं मिला" : "No Active OPD Record Found"}
+                  </h4>
+                  <p className="text-[12.5px] text-slate-600 max-w-md mx-auto">
+                    {language === "or"
+                      ? "ଦିଆଯାଇଥିବା ନମ୍ବର ପାଇଁ କୌଣସି ଟୋକନ୍ ପଞ୍ଜିକୃତ ହୋଇନାହିଁ। ଦୟାକରି ଆପଣଙ୍କର ୧୦ ଅଙ୍କ ବିଶିଷ୍ଟ ନମ୍ବର ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ନୂତନ ଟୋକନ୍ ବୁକ୍ କରନ୍ତୁ।"
+                      : language === "hi"
+                      ? "प्रविष्ट संख्या के लिए कोई टोकन नहीं मिला। कृपया 10 अंकों का नंबर जांचें या नया टोकन बुक करें।"
+                      : `No active or recent OPD consultation found for "${lookupQuery}". Please verify the 10-digit mobile number or book a new token below.`}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPortalMode("book")}
+                    className="mt-2 px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[12.5px] transition cursor-pointer shadow-2xs"
+                  >
+                    📝 {t.bookTokenTab || "Book New OPD Token"}
+                  </button>
+                </div>
+              )}
+
+              {/* Found Patient Status Card */}
+              {lookupResult && (
+                <div className="space-y-5 animate-fade-in border-t border-slate-200 pt-5">
+                  {/* Status Banner */}
+                  <div className={`p-4 rounded-xl border flex flex-wrap items-center justify-between gap-3 ${
+                    lookupResult.status === "APPROVED" || lookupResult.status === "EDITED"
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-950"
+                      : lookupResult.status === "REJECTED"
+                      ? "bg-rose-50 border-rose-300 text-rose-950"
+                      : "bg-amber-50 border-amber-300 text-amber-950"
+                  }`}>
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-black uppercase tracking-wider block opacity-75">
+                        {t.doctorReviewStatus || "Clinical Review Status"}
+                      </span>
+                      <span className="text-[15px] font-black flex items-center gap-2">
+                        {lookupResult.status === "APPROVED" ? (
+                          <><span>✓</span> {language === "or" ? "ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ଅନୁମୋଦିତ (Consultation Concluded)" : language === "hi" ? "डॉक्टर द्वारा स्वीकृत (परामर्श पूर्ण)" : "Consultation Approved & Concluded"}</>
+                        ) : lookupResult.status === "EDITED" ? (
+                          <><span>✓</span> {language === "or" ? "ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ସମୀକ୍ଷା ସମ୍ପନ୍ନ (Reviewed)" : language === "hi" ? "डॉक्टर द्वारा समीक्षा पूर्ण" : "Reviewed & Updated by Doctor"}</>
+                        ) : lookupResult.status === "REJECTED" ? (
+                          <><span>✕</span> {language === "or" ? "ଜରୁରୀକାଳୀନ ଡେସ୍କକୁ ଯାଆନ୍ତୁ" : language === "hi" ? "आपातकालीन डेस्क से संपर्क करें" : "Direct to Emergency Desk"}</>
+                        ) : (
+                          <><span>⏳</span> {language === "or" ? "ଡାକ୍ତରୀ ସମୀକ୍ଷା ପାଇଁ ଧାଡ଼ିରେ ବିଚାରାଧୀନ" : language === "hi" ? "डॉक्टर समीक्षा हेतु कतार में प्रतीक्षारत" : "In Priority Queue — Awaiting Doctor"}</>
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[11px] font-bold block text-slate-500">Token ID</span>
+                      <span className="text-lg font-black text-slate-900 bg-white px-3 py-1 rounded-lg border border-slate-300 inline-block font-mono">
+                        {getLocalizedToken(lookupResult.tokenId, language)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Queue Indicator if PENDING */}
+                  {lookupResult.status === "PENDING" && (
+                    <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-300 text-blue-950 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[12px] font-black uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                          <span className="animate-pulse">🟢</span> {t.queueAhead || "Queue Position"}
+                        </span>
+                        <span className="text-[11px] font-bold text-blue-700">Live Status</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                          <span className="text-[11px] font-bold text-slate-500 block">Current Queue Spot</span>
+                          <span className="text-xl font-black text-[#003366]">#{lookupResult.queuePosition + 1}</span>
+                          <span className="text-[11px] text-slate-600 block">
+                            {lookupResult.queuePosition === 0 ? "You are next in turn!" : `${lookupResult.queuePosition} patient(s) ahead`}
+                          </span>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                          <span className="text-[11px] font-bold text-slate-500 block">Estimated Wait</span>
+                          <span className="text-xl font-black text-amber-700">~{Math.max(5, (lookupResult.queuePosition + 1) * 7)} min</span>
+                          <span className="text-[11px] text-slate-600 block">Subject to triage priority</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Patient & Facility Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase block">{t.patient || "Patient"}</span>
+                      <strong className="text-slate-900 text-[14px] block">{lookupResult.patientName}</strong>
+                      <span className="text-slate-600 text-[12px] font-mono">Receipt: {lookupResult.receiptNumber}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase block">{t.hospitalClinic || "Hospital / OPD Room"}</span>
+                      <strong className="text-slate-900 text-[14px] block">{lookupResult.facility || "Assigned Facility"}</strong>
+                      <span className="text-emerald-800 font-bold text-[12px] block">
+                        🏛️ {lookupResult.assignedRoom ? `${lookupResult.assignedRoom.roomNumber} - ${lookupResult.assignedRoom.name}` : "General OPD Room 101"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Triage Urgency & Symptoms */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                      <span className="text-[11.5px] font-black uppercase text-slate-600 tracking-wider">
+                        {language === "or" ? "କ୍ଲିନିକାଲ୍ ଲକ୍ଷଣ ଓ ଟ୍ରାଏଜ୍ ମୂଲ୍ୟାଙ୍କନ" : language === "hi" ? "क्लीनिकल लक्षण एवं ट्राइएज मूल्यांकन" : "Reported Symptoms & Urgency Tier"}
+                      </span>
+                      <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${
+                        lookupResult.riskTag === "RED"
+                          ? "bg-rose-100 text-rose-800 border border-rose-300"
+                          : lookupResult.riskTag === "YELLOW" || lookupResult.riskTag === "AMBER"
+                          ? "bg-amber-100 text-amber-900 border border-amber-300"
+                          : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      }`}>
+                        {lookupResult.riskTag || "GREEN"} Priority
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-slate-800 leading-relaxed font-medium">
+                      {lookupResult.rawSymptomText || lookupResult.summary || "Symptoms logged in triage intake."}
+                    </p>
+
+                    {/* Vitals summary if present */}
+                    {lookupResult.vitals && Object.keys(lookupResult.vitals).length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+                        {lookupResult.vitals.bpSystolic && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                            BP: {lookupResult.vitals.bpSystolic}/{lookupResult.vitals.bpDiastolic || "80"} mmHg
+                          </span>
+                        )}
+                        {lookupResult.vitals.pulse && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                            Pulse: {lookupResult.vitals.pulse} bpm
+                          </span>
+                        )}
+                        {lookupResult.vitals.spo2 && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                            SpO2: {lookupResult.vitals.spo2}%
+                          </span>
+                        )}
+                        {lookupResult.vitals.temp && (
+                          <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                            Temp: {lookupResult.vitals.temp}°F
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Doctor Clinical Advice / Disposition if present */}
+                  {lookupResult.disposition && (
+                    <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 space-y-1">
+                      <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider block">
+                        {language === "or" ? "ଡାକ୍ତରଙ୍କ କ୍ଲିନିକାଲ୍ ମତାମତ" : language === "hi" ? "डॉक्टर का क्लीनिकल परामर्श" : "Doctor Clinical Disposition & Advice"}
+                      </span>
+                      <p className="text-[13.5px] font-bold text-slate-900 leading-relaxed">
+                        {lookupResult.disposition}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Doctor Prescription (Rx) if present */}
+                  {lookupResult.prescription && (
+                    <div className="p-4 rounded-xl border-2 border-emerald-400 bg-white space-y-2 shadow-xs">
+                      <div className="flex items-center justify-between border-emerald-100 border-b pb-1.5">
+                        <span className="text-[11.5px] font-black uppercase text-emerald-900 tracking-wider flex items-center gap-1.5">
+                          <span>💊</span> {t.prescriptionTitle || "Doctor's Prescription & Clinical Advice (Rx)"}
+                        </span>
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                          Official Rx
+                        </span>
+                      </div>
+                      <p className="text-[13px] font-semibold text-slate-800 whitespace-pre-line leading-relaxed">
+                        {lookupResult.prescription}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Referral notice if escalated */}
+                  {lookupResult.referral && (
+                    <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50 space-y-2">
+                      <span className="text-[12px] font-black uppercase text-teal-950 block">
+                        🚨 Escalated / Referred to Higher Facility
+                      </span>
+                      <p className="text-[13px] text-slate-800">
+                        Referred To: <strong>🏥 {lookupResult.referral.targetFacility}</strong>
+                      </p>
+                      <a
+                        href={`${API_BASE}/api/referrals/${lookupResult.referral.id}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block mt-2 px-4 py-2 rounded-lg bg-teal-900 text-white font-bold text-xs"
+                      >
+                        📥 Download Official Referral Pass (PDF)
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <a
+                      href={`${API_BASE}/api/patients/receipt/${lookupResult.receiptNumber}/pdf`}
+                      download={`${lookupResult.receiptNumber}.pdf`}
+                      className="btn-tactile py-3 px-4 rounded-xl font-black text-[13px] text-white bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                    >
+                      <span>📄</span>
+                      <span>{t.downloadSlipBtn || "Download Official OPD Slip (PDF)"}</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLookupQuery("");
+                        setLookupResult(null);
+                        setHasSearched(false);
+                      }}
+                      className="btn-tactile py-3 px-4 rounded-xl font-bold text-[13px] text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span>🔍</span>
+                      <span>Check Another Number</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Render booking flow when portalMode is "book" */}
+      {portalMode === "book" && (
+        <>
 
       {/* ========================================================================= */}
       {/* STEP 1: AUTHENTICATION (PHONE/OTP or EMAIL/PASSWORD)                      */}
@@ -2366,6 +2742,9 @@ export default function PatientPortal({
             </div>
           </div>
         </div>
+      )}
+
+        </>
       )}
 
       {/* Printable OPD Slip Modal */}

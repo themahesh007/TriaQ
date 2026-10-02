@@ -79,6 +79,13 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
   const [newRoomFloor, setNewRoomFloor] = useState("Ground Floor");
   const [newRoomUrgency, setNewRoomUrgency] = useState("GREEN");
 
+  // Patient Records & Visits State
+  const [allPatientsList, setAllPatientsList] = useState([]);
+  const [patientSearchQuery, setPatientSearchQuery] = useState("");
+  const [patientRiskFilter, setPatientRiskFilter] = useState("ALL");
+  const [patientStatusFilter, setPatientStatusFilter] = useState("ALL");
+  const [selectedPatientModal, setSelectedPatientModal] = useState(null);
+
 
 
   // Handle Login
@@ -144,6 +151,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
     setStaffList([]);
     setPendingStaff([]);
     setFacilityQueue([]);
+    setAllPatientsList([]);
   };
 
   // Fetch Facility Staff, Pending Approvals, and Queue
@@ -154,7 +162,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
       const [staffRes, pendingRes, notesRes, roomsRes] = await Promise.all([
         fetch(`${API_BASE}/api/hospital/staff`, { headers }),
         fetch(`${API_BASE}/api/hospital/pending-staff`, { headers }),
-        fetch(`${API_BASE}/api/triage-notes?status=PENDING`, { headers }),
+        fetch(`${API_BASE}/api/triage-notes?status=ALL`, { headers }),
         fetch(`${API_BASE}/api/hospital/rooms`, { headers })
       ]);
 
@@ -176,7 +184,8 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
             (n.facilityId && n.facilityId === facilityId) ||
             (n.facility && n.facility.toLowerCase().includes(facilityName.toLowerCase()))
         );
-        setFacilityQueue(matched);
+        setFacilityQueue(matched.filter((n) => n.status === "PENDING"));
+        setAllPatientsList(matched);
       }
     } catch (err) {
       console.error("Facility data fetch error:", err);
@@ -293,7 +302,94 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
     if (session) {
       fetchFacilityData();
       const interval = setInterval(fetchFacilityData, 4000);
-      return () => clearInterval(interval);
+      // Filtered patients for Patient Records & Visits tab
+  const filteredPatients = useMemo(() => {
+    return allPatientsList.filter((item) => {
+      if (patientRiskFilter !== "ALL" && item.riskTag !== patientRiskFilter) {
+        return false;
+      }
+      if (patientStatusFilter !== "ALL" && item.status !== patientStatusFilter) {
+        return false;
+      }
+      if (patientSearchQuery.trim()) {
+        const q = patientSearchQuery.toLowerCase().trim();
+        const pName = (item.patient?.name || item.patientName || "").toLowerCase();
+        const pPhone = (item.patient?.phone || "").toLowerCase();
+        const token = (item.patient?.tokenId || item.tokenId || "").toLowerCase();
+        const receipt = (item.receiptNumber || "").toLowerCase();
+        const sym = (item.rawSymptomText || item.summary || "").toLowerCase();
+        const disp = (item.disposition || "").toLowerCase();
+        return (
+          pName.includes(q) ||
+          pPhone.includes(q) ||
+          token.includes(q) ||
+          receipt.includes(q) ||
+          sym.includes(q) ||
+          disp.includes(q)
+        );
+      }
+      return true;
+    });
+  }, [allPatientsList, patientRiskFilter, patientStatusFilter, patientSearchQuery]);
+
+  // Export Patient Registry to CSV
+  const handleExportCSV = () => {
+    if (!filteredPatients || filteredPatients.length === 0) {
+      alert("No patient records available to export for the current filters.");
+      return;
+    }
+    const headers = [
+      "Receipt Number",
+      "Token ID",
+      "Patient Name",
+      "Age",
+      "Phone",
+      "Date Time",
+      "Risk Priority",
+      "Status",
+      "Reported Symptoms",
+      "BP (Systolic/Diastolic)",
+      "Pulse (bpm)",
+      "SpO2 (%)",
+      "Temp (F)",
+      "Doctor Disposition",
+      "Prescription (Rx)"
+    ];
+
+    const rows = filteredPatients.map((p) => [
+      `"${p.receiptNumber || ""}"`,
+      `"${p.patient?.tokenId || p.tokenId || ""}"`,
+      `"${(p.patient?.name || "Patient").replace(/"/g, '""')}"`,
+      `"${p.patient?.age || ""}"`,
+      `"${p.patient?.phone || ""}"`,
+      `"${new Date(p.createdAt).toLocaleString()}"`,
+      `"${p.riskTag || "GREEN"}"`,
+      `"${p.status || "PENDING"}"`,
+      `"${(p.rawSymptomText || p.summary || "").replace(/"/g, '""')}"`,
+      `"${p.vitals?.bpSystolic ? `${p.vitals.bpSystolic}/${p.vitals.bpDiastolic || ""}` : ""}"`,
+      `"${p.vitals?.pulse || ""}"`,
+      `"${p.vitals?.spo2 || ""}"`,
+      `"${p.vitals?.temp || ""}"`,
+      `"${(p.disposition || "").replace(/"/g, '""')}"`,
+      `"${(p.prescription || "").replace(/"/g, '""')}"`
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    link.setAttribute(
+      "download",
+      `TriaQ_${session?.facility?.name ? session.facility.name.replace(/\s+/g, "_") : "Hospital"}_Patient_Registry_${dateStr}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return () => clearInterval(interval);
     }
   }, [session, fetchFacilityData]);
 
@@ -832,7 +928,8 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
               },
               { id: "rooms", label: `Rooms & OPD Wards (${roomsList.length})`, icon: IconHospital },
               { id: "staff", label: `Active Roster (${staffList.length})`, icon: IconDoctor },
-              { id: "queue", label: `Live OPD Queue (${facilityQueue.length})`, icon: IconPatient }
+              { id: "queue", label: `Live OPD Queue (${facilityQueue.length})`, icon: IconPatient },
+              { id: "patients", label: `Patient Records & Visits (${allPatientsList.length})`, icon: IconClipboard }
             ].map((tab) => {
               const TabIcon = tab.icon;
               return (
@@ -1388,6 +1485,475 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB 4: PATIENT RECORDS & VISITS */}
+          {activeTab === "patients" && (
+            <div className="bg-white rounded-md p-6 border border-slate-200 shadow-xs space-y-6">
+              {/* Top Title & Export Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">📋</span>
+                    <h3 className="text-lg font-black text-slate-900">
+                      Patient Records &amp; Clinical Visits Registry
+                    </h3>
+                  </div>
+                  <p className="text-[12.5px] text-slate-500 font-medium mt-0.5">
+                    Total ${allPatientsList.length} patient visit(s) logged for ${session?.facility?.name || "this hospital"}. Complete record of reported symptoms, vitals, triage risk, and doctor dispositions.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExportCSV}
+                  disabled={allPatientsList.length === 0}
+                  className="btn-tactile px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-black text-[12.5px] transition flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+                  title="Export filtered records as a CSV spreadsheet"
+                >
+                  <span>📥</span>
+                  <span>Export Registry (CSV)</span>
+                </button>
+              </div>
+
+              {/* Metrics Summary Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Visits</span>
+                  <span className="text-xl font-black text-slate-900">${allPatientsList.length}</span>
+                  <span className="text-[10px] text-slate-400 block">All-time OPD cases</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
+                  <span className="text-[11px] font-bold text-blue-700 uppercase block">In Queue (Pending)</span>
+                  <span className="text-xl font-black text-blue-900">
+                    ${allPatientsList.filter((p) => p.status === "PENDING").length}
+                  </span>
+                  <span className="text-[10px] text-blue-600 block">Awaiting doctor review</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                  <span className="text-[11px] font-bold text-emerald-800 uppercase block">Consulted / Done</span>
+                  <span className="text-xl font-black text-emerald-900">
+                    ${allPatientsList.filter((p) => p.status === "APPROVED" || p.status === "EDITED").length}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 block">Completed consultations</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
+                  <span className="text-[11px] font-bold text-rose-700 uppercase block">Critical (RED)</span>
+                  <span className="text-xl font-black text-rose-900">
+                    ${allPatientsList.filter((p) => p.riskTag === "RED").length}
+                  </span>
+                  <span className="text-[10px] text-rose-600 block">High urgency triage</span>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
+                  <span className="text-[11px] font-bold text-amber-800 uppercase block">Urgent (YELLOW)</span>
+                  <span className="text-xl font-black text-amber-900">
+                    ${allPatientsList.filter((p) => p.riskTag === "YELLOW" || p.riskTag === "AMBER").length}
+                  </span>
+                  <span className="text-[10px] text-amber-700 block">Priority clinical cases</span>
+                </div>
+              </div>
+
+              {/* Search & Filter Controls */}
+              <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+                {/* Search Bar */}
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={patientSearchQuery}
+                    onChange={(e) => setPatientSearchQuery(e.target.value)}
+                    placeholder="Search by patient name, phone, token (e.g. 01), receipt, or symptom keyword..."
+                    className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-[#003366] focus:outline-none text-[13px] font-medium text-slate-800 bg-white placeholder:text-slate-400 shadow-2xs"
+                  />
+                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
+                  {patientSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setPatientSearchQuery("")}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 font-bold text-xs"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {/* Risk Tag Filter */}
+                <div className="w-full sm:w-auto flex items-center gap-1.5">
+                  <label className="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Risk:</label>
+                  <select
+                    value={patientRiskFilter}
+                    onChange={(e) => setPatientRiskFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-slate-300 text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none"
+                  >
+                    <option value="ALL">All Triage Tiers</option>
+                    <option value="RED">🔴 RED (Critical)</option>
+                    <option value="YELLOW">🟡 YELLOW (Urgent)</option>
+                    <option value="GREEN">🟢 GREEN (Routine)</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div className="w-full sm:w-auto flex items-center gap-1.5">
+                  <label className="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Status:</label>
+                  <select
+                    value={patientStatusFilter}
+                    onChange={(e) => setPatientStatusFilter(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-slate-300 text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none"
+                  >
+                    <option value="ALL">All Statuses</option>
+                    <option value="PENDING">⏳ PENDING (Waiting)</option>
+                    <option value="APPROVED">✓ APPROVED / DONE</option>
+                    <option value="EDITED">✓ EDITED BY DOCTOR</option>
+                    <option value="REFERRED">🚨 REFERRED OUT</option>
+                    <option value="REJECTED">✕ REJECTED</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Records List / Table */}
+              {filteredPatients.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2 border border-dashed border-slate-200 rounded-xl">
+                  <span className="text-3xl block">📋</span>
+                  <p className="font-bold text-slate-700 text-sm">No Patient Visits Match Criteria</p>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    {allPatientsList.length === 0
+                      ? "Patients scanning this hospital's QR standee or booking via citizen portal will automatically appear in this registry."
+                      : "Try clearing your search query or reset the risk/status filters to see all visits."}
+                  </p>
+                  {(patientSearchQuery || patientRiskFilter !== "ALL" || patientStatusFilter !== "ALL") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPatientSearchQuery("");
+                        setPatientRiskFilter("ALL");
+                        setPatientStatusFilter("ALL");
+                      }}
+                      className="mt-2 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer"
+                    >
+                      Reset All Filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                        <th className="py-3 px-4">Token &amp; Time</th>
+                        <th className="py-3 px-4">Patient Particulars</th>
+                        <th className="py-3 px-4">Symptoms &amp; Clinical Summary</th>
+                        <th className="py-3 px-4">Triage Tier</th>
+                        <th className="py-3 px-4">OPD Status</th>
+                        <th className="py-3 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-[12.5px]">
+                      {filteredPatients.map((item) => (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                          {/* Token & Date */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span className="font-black text-slate-900 text-[13.5px] block font-mono">
+                              ${item.patient?.tokenId || item.tokenId || "Token"}
+                            </span>
+                            <span className="text-[11px] text-slate-400 block font-medium">
+                              ${new Date(item.createdAt).toLocaleDateString()} • ${new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400 block">
+                              ${item.receiptNumber || ""}
+                            </span>
+                          </td>
+
+                          {/* Patient Particulars */}
+                          <td className="py-3.5 px-4">
+                            <strong className="text-slate-900 block text-[13px]">
+                              ${item.patient?.name || item.patientName || "Patient"}
+                            </strong>
+                            <div className="text-[11.5px] text-slate-500 flex items-center gap-1.5 mt-0.5">
+                              {item.patient?.age && <span>${item.patient.age} yrs</span>}
+                              {item.patient?.gender && <span>• ${item.patient.gender}</span>}
+                              {item.patient?.phone && (
+                                <span className="font-mono text-slate-600">• ${item.patient.phone}</span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* Symptoms & Vitals */}
+                          <td className="py-3.5 px-4 max-w-xs">
+                            <p className="text-slate-800 line-clamp-2 font-medium leading-relaxed">
+                              ${item.rawSymptomText || item.summary || "Symptoms logged in triage."}
+                            </p>
+                            {item.vitals && Object.keys(item.vitals).length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {item.vitals.bpSystolic && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                                    BP: ${item.vitals.bpSystolic}/${item.vitals.bpDiastolic || "80"}
+                                  </span>
+                                )}
+                                {item.vitals.spo2 && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                                    SpO2: ${item.vitals.spo2}%
+                                  </span>
+                                )}
+                                {item.vitals.pulse && (
+                                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                                    Pulse: ${item.vitals.pulse}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+
+                          {/* Risk Tier */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span
+                              className={`text-[10.5px] font-black px-2.5 py-1 rounded-full inline-block ${
+                                item.riskTag === "RED"
+                                  ? "bg-rose-100 text-rose-800 border border-rose-300"
+                                  : item.riskTag === "YELLOW" || item.riskTag === "AMBER"
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300"
+                                  : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                              }`}
+                            >
+                              ${item.riskTag === "RED" ? "🔴 RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine"}
+                            </span>
+                          </td>
+
+                          {/* OPD Status */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <span
+                              className={`text-[11px] font-black px-2 py-0.5 rounded ${
+                                item.status === "APPROVED" || item.status === "EDITED"
+                                  ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                                  : item.status === "REFERRED"
+                                  ? "bg-teal-50 text-teal-900 border border-teal-200"
+                                  : item.status === "REJECTED"
+                                  ? "bg-rose-50 text-rose-800 border border-rose-200"
+                                  : "bg-amber-50 text-amber-900 border border-amber-200"
+                              }`}
+                            >
+                              ${item.status === "APPROVED" ? "✓ Approved" : item.status === "EDITED" ? "✓ Edited" : item.status === "REFERRED" ? "🚨 Referred" : item.status === "REJECTED" ? "✕ Rejected" : "⏳ Pending"}
+                            </span>
+                            {item.disposition && (
+                              <span className="block text-[10.5px] text-slate-500 font-medium max-w-[130px] truncate mt-0.5" title={item.disposition}>
+                                ${item.disposition}
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Action Buttons */}
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPatientModal(item)}
+                              className="btn-tactile px-3 py-1.5 rounded-lg bg-[#003366] hover:bg-[#002244] text-white font-bold text-[11.5px] transition cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                            >
+                              <span>🔍</span>
+                              <span>Details</span>
+                            </button>
+                            {item.receiptNumber && (
+                              <a
+                                href={`${API_BASE}/api/patients/receipt/${item.receiptNumber}/pdf`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11.5px] transition inline-flex items-center gap-1 border border-slate-300"
+                                title="Download Slip PDF"
+                              >
+                                <span>📄</span>
+                              </a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+
+          {/* PATIENT DETAILS MODAL */}
+          {selectedPatientModal && (
+            <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-300 animate-scale-up">
+                {/* Modal Header */}
+                <div className="bg-[#003366] text-white p-4 sm:p-5 flex items-center justify-between sticky top-0 z-10">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">📋</span>
+                    <div>
+                      <h4 className="font-black text-[15px] leading-tight text-white">
+                        OPD Patient Clinical Details
+                      </h4>
+                      <p className="text-[11px] text-amber-300 font-semibold">
+                        Receipt: ${selectedPatientModal.receiptNumber || "N/A"} • Token: ${selectedPatientModal.patient?.tokenId || selectedPatientModal.tokenId || "N/A"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPatientModal(null)}
+                    className="text-white hover:text-amber-300 font-black text-lg px-2 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="p-5 sm:p-6 space-y-5 text-left">
+                  {/* Demographics */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-[12.5px]">
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 block uppercase">Patient Name</span>
+                      <strong className="text-slate-900 text-sm">
+                        ${selectedPatientModal.patient?.name || selectedPatientModal.patientName || "Patient"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 block uppercase">Age / Gender</span>
+                      <span className="text-slate-800 font-semibold">
+                        ${selectedPatientModal.patient?.age ? `${selectedPatientModal.patient.age} yrs` : "N/A"} ${selectedPatientModal.patient?.gender ? `/ ${selectedPatientModal.patient.gender}` : ""}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[11px] font-bold text-slate-400 block uppercase">Contact Phone</span>
+                      <span className="font-mono text-slate-800 font-semibold">
+                        ${selectedPatientModal.patient?.phone ? `+91 ${selectedPatientModal.patient.phone}` : "N/A"}
+                      </span>
+                    </div>
+                    {selectedPatientModal.patient?.address && (
+                      <div className="col-span-2 sm:col-span-3">
+                        <span className="text-[11px] font-bold text-slate-400 block uppercase">Address</span>
+                        <span className="text-slate-800 font-medium">${selectedPatientModal.patient.address}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Triage Priority Banner */}
+                  <div className={`p-4 rounded-xl border flex items-center justify-between gap-3 ${
+                    selectedPatientModal.riskTag === "RED"
+                      ? "bg-rose-50 border-rose-300 text-rose-950"
+                      : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER"
+                      ? "bg-amber-50 border-amber-300 text-amber-950"
+                      : "bg-emerald-50 border-emerald-300 text-emerald-950"
+                  }`}>
+                    <div>
+                      <span className="text-[11px] font-black uppercase tracking-wider block opacity-80">Triage Priority Assessment</span>
+                      <strong className="text-base font-black">
+                        ${selectedPatientModal.riskTag === "RED" ? "🔴 RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine Priority"}
+                      </strong>
+                    </div>
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-300 font-mono">
+                      Status: ${selectedPatientModal.status}
+                    </span>
+                  </div>
+
+                  {/* Symptoms & Vitals */}
+                  <div className="space-y-3">
+                    <h5 className="font-black text-[13px] text-slate-800 uppercase tracking-wide">
+                      Chief Complaint &amp; Reported Symptoms
+                    </h5>
+                    <div className="p-4 rounded-xl border border-slate-200 bg-white">
+                      <p className="text-[13px] text-slate-800 leading-relaxed font-medium">
+                        ${selectedPatientModal.rawSymptomText || selectedPatientModal.summary || "Symptoms logged in triage."}
+                      </p>
+
+                      {/* Vitals */}
+                      {selectedPatientModal.vitals && Object.keys(selectedPatientModal.vitals).length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12px]">
+                          {selectedPatientModal.vitals.bpSystolic && (
+                            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-bold">Blood Pressure</span>
+                              <strong className="text-slate-800">${selectedPatientModal.vitals.bpSystolic}/${selectedPatientModal.vitals.bpDiastolic || "80"} mmHg</strong>
+                            </div>
+                          )}
+                          {selectedPatientModal.vitals.spo2 && (
+                            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-bold">SpO2 Oxygen</span>
+                              <strong className="text-slate-800">${selectedPatientModal.vitals.spo2}%</strong>
+                            </div>
+                          )}
+                          {selectedPatientModal.vitals.pulse && (
+                            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-bold">Pulse Rate</span>
+                              <strong className="text-slate-800">${selectedPatientModal.vitals.pulse} bpm</strong>
+                            </div>
+                          )}
+                          {selectedPatientModal.vitals.temp && (
+                            <div className="p-2 rounded bg-slate-50 border border-slate-200">
+                              <span className="text-[10px] text-slate-400 block font-bold">Body Temp</span>
+                              <strong className="text-slate-800">${selectedPatientModal.vitals.temp}°F</strong>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Doctor Disposition & Advice */}
+                  {selectedPatientModal.disposition && (
+                    <div className="space-y-2">
+                      <h5 className="font-black text-[13px] text-slate-800 uppercase tracking-wide">
+                        Doctor Clinical Disposition
+                      </h5>
+                      <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 text-[13px] font-bold text-slate-900 leading-relaxed">
+                        ${selectedPatientModal.disposition}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Doctor Prescription (Rx) */}
+                  {selectedPatientModal.prescription && (
+                    <div className="space-y-2">
+                      <h5 className="font-black text-[13px] text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>💊</span> Doctor's Prescription (Rx)
+                      </h5>
+                      <div className="p-4 rounded-xl border-2 border-emerald-400 bg-white text-[13px] font-semibold text-slate-800 whitespace-pre-line leading-relaxed shadow-xs">
+                        ${selectedPatientModal.prescription}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Referral Details if any */}
+                  {selectedPatientModal.referral && (
+                    <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50 space-y-2 text-[13px]">
+                      <span className="font-black uppercase text-teal-950 block text-[12px]">
+                        🚨 Case Referred / Escalated
+                      </span>
+                      <p className="text-slate-800">
+                        Target Facility: <strong>🏥 ${selectedPatientModal.referral.targetFacility}</strong>
+                      </p>
+                      <p className="text-slate-700 text-xs">
+                        Reason: ${selectedPatientModal.referral.referralReason}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Modal Footer Actions */}
+                  <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-slate-200">
+                    {selectedPatientModal.receiptNumber && (
+                      <a
+                        href={`${API_BASE}/api/patients/receipt/${selectedPatientModal.receiptNumber}/pdf`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn-tactile flex-1 py-2.5 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <span>📄</span>
+                        <span>Open Official OPD Slip (PDF)</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedPatientModal(null)}
+                      className="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs cursor-pointer border border-slate-300"
+                    >
+                      Close Window
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
