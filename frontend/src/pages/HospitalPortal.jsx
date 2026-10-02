@@ -302,7 +302,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
     if (session) {
       fetchFacilityData();
       const interval = setInterval(fetchFacilityData, 4000);
-      // Filtered patients for Patient Records & Visits tab
+      return () => clearInterval(interval);
+    }
+  }, [session, fetchFacilityData]);
+
+  // Filtered patients for Patient Records & Visits tab
   const filteredPatients = useMemo(() => {
     return allPatientsList.filter((item) => {
       if (patientRiskFilter !== "ALL" && item.riskTag !== patientRiskFilter) {
@@ -388,10 +392,6 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
     link.click();
     document.body.removeChild(link);
   };
-
-  return () => clearInterval(interval);
-    }
-  }, [session, fetchFacilityData]);
 
 
 
@@ -1501,7 +1501,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     </h3>
                   </div>
                   <p className="text-[12.5px] text-slate-500 font-medium mt-0.5">
-                    Total ${allPatientsList.length} patient visit(s) logged for ${session?.facility?.name || "this hospital"}. Complete record of reported symptoms, vitals, triage risk, and doctor dispositions.
+                    Total {allPatientsList.length} patient visit(s) logged for {session?.facility?.name || "this hospital"}. Complete record of reported symptoms, vitals, triage risk, and doctor dispositions.
                   </p>
                 </div>
 
@@ -1521,14 +1521,14 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                   <span className="text-[11px] font-bold text-slate-500 uppercase block">Total Visits</span>
-                  <span className="text-xl font-black text-slate-900">${allPatientsList.length}</span>
+                  <span className="text-xl font-black text-slate-900">{allPatientsList.length}</span>
                   <span className="text-[10px] text-slate-400 block">All-time OPD cases</span>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200">
                   <span className="text-[11px] font-bold text-blue-700 uppercase block">In Queue (Pending)</span>
                   <span className="text-xl font-black text-blue-900">
-                    ${allPatientsList.filter((p) => p.status === "PENDING").length}
+                    {allPatientsList.filter((p) => p.status === "PENDING").length}
                   </span>
                   <span className="text-[10px] text-blue-600 block">Awaiting doctor review</span>
                 </div>
@@ -1536,7 +1536,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200">
                   <span className="text-[11px] font-bold text-emerald-800 uppercase block">Consulted / Done</span>
                   <span className="text-xl font-black text-emerald-900">
-                    ${allPatientsList.filter((p) => p.status === "APPROVED" || p.status === "EDITED").length}
+                    {allPatientsList.filter((p) => p.status === "APPROVED" || p.status === "EDITED").length}
                   </span>
                   <span className="text-[10px] text-emerald-600 block">Completed consultations</span>
                 </div>
@@ -1544,7 +1544,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200">
                   <span className="text-[11px] font-bold text-rose-700 uppercase block">Critical (RED)</span>
                   <span className="text-xl font-black text-rose-900">
-                    ${allPatientsList.filter((p) => p.riskTag === "RED").length}
+                    {allPatientsList.filter((p) => p.riskTag === "RED").length}
                   </span>
                   <span className="text-[10px] text-rose-600 block">High urgency triage</span>
                 </div>
@@ -1552,7 +1552,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                   <span className="text-[11px] font-bold text-amber-800 uppercase block">Urgent (YELLOW)</span>
                   <span className="text-xl font-black text-amber-900">
-                    ${allPatientsList.filter((p) => p.riskTag === "YELLOW" || p.riskTag === "AMBER").length}
+                    {allPatientsList.filter((p) => p.riskTag === "YELLOW" || p.riskTag === "AMBER").length}
                   </span>
                   <span className="text-[10px] text-amber-700 block">Priority clinical cases</span>
                 </div>
@@ -1657,20 +1657,20 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                           {/* Token & Date */}
                           <td className="py-3.5 px-4 whitespace-nowrap">
                             <span className="font-black text-slate-900 text-[13.5px] block font-mono">
-                              ${item.patient?.tokenId || item.tokenId || "Token"}
+                              {item.patient?.tokenId || item.tokenId || "Token"}
                             </span>
                             <span className="text-[11px] text-slate-400 block font-medium">
-                              ${new Date(item.createdAt).toLocaleDateString()} • ${new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {new Date(item.createdAt).toLocaleDateString()} • {new Date(item.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                             <span className="text-[10px] font-mono text-slate-400 block">
-                              ${item.receiptNumber || ""}
+                              {item.receiptNumber || ""}
                             </span>
                           </td>
 
                           {/* Patient Particulars */}
                           <td className="py-3.5 px-4">
                             <strong className="text-slate-900 block text-[13px]">
-                              ${item.patient?.name || item.patientName || "Patient"}
+                              {item.patient?.name || item.patientName || "Patient"}
                             </strong>
                             <div className="text-[11.5px] text-slate-500 flex items-center gap-1.5 mt-0.5">
                               {item.patient?.age && <span>${item.patient.age} yrs</span>}
@@ -1684,23 +1684,23 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                           {/* Symptoms & Vitals */}
                           <td className="py-3.5 px-4 max-w-xs">
                             <p className="text-slate-800 line-clamp-2 font-medium leading-relaxed">
-                              ${item.rawSymptomText || item.summary || "Symptoms logged in triage."}
+                              {item.rawSymptomText || item.summary || "Symptoms logged in triage."}
                             </p>
                             {item.vitals && Object.keys(item.vitals).length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {item.vitals.bpSystolic && (
                                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                                    BP: ${item.vitals.bpSystolic}/${item.vitals.bpDiastolic || "80"}
+                                    BP: {item.vitals.bpSystolic}/{item.vitals.bpDiastolic || "80"}
                                   </span>
                                 )}
                                 {item.vitals.spo2 && (
                                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                                    SpO2: ${item.vitals.spo2}%
+                                    SpO2: {item.vitals.spo2}%
                                   </span>
                                 )}
                                 {item.vitals.pulse && (
                                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                                    Pulse: ${item.vitals.pulse}
+                                    Pulse: {item.vitals.pulse}
                                   </span>
                                 )}
                               </div>
@@ -1718,7 +1718,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                   : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                               }`}
                             >
-                              ${item.riskTag === "RED" ? "🔴 RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine"}
+                              {item.riskTag === "RED" ? "🔴 RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine"}
                             </span>
                           </td>
 
@@ -1735,11 +1735,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                   : "bg-amber-50 text-amber-900 border border-amber-200"
                               }`}
                             >
-                              ${item.status === "APPROVED" ? "✓ Approved" : item.status === "EDITED" ? "✓ Edited" : item.status === "REFERRED" ? "🚨 Referred" : item.status === "REJECTED" ? "✕ Rejected" : "⏳ Pending"}
+                              {item.status === "APPROVED" ? "✓ Approved" : item.status === "EDITED" ? "✓ Edited" : item.status === "REFERRED" ? "🚨 Referred" : item.status === "REJECTED" ? "✕ Rejected" : "⏳ Pending"}
                             </span>
                             {item.disposition && (
                               <span className="block text-[10.5px] text-slate-500 font-medium max-w-[130px] truncate mt-0.5" title={item.disposition}>
-                                ${item.disposition}
+                                {item.disposition}
                               </span>
                             )}
                           </td>
@@ -1789,7 +1789,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         OPD Patient Clinical Details
                       </h4>
                       <p className="text-[11px] text-amber-300 font-semibold">
-                        Receipt: ${selectedPatientModal.receiptNumber || "N/A"} • Token: ${selectedPatientModal.patient?.tokenId || selectedPatientModal.tokenId || "N/A"}
+                        Receipt: {selectedPatientModal.receiptNumber || "N/A"} • Token: {selectedPatientModal.patient?.tokenId || selectedPatientModal.tokenId || "N/A"}
                       </p>
                     </div>
                   </div>
@@ -1808,25 +1808,25 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     <div>
                       <span className="text-[11px] font-bold text-slate-400 block uppercase">Patient Name</span>
                       <strong className="text-slate-900 text-sm">
-                        ${selectedPatientModal.patient?.name || selectedPatientModal.patientName || "Patient"}
+                        {selectedPatientModal.patient?.name || selectedPatientModal.patientName || "Patient"}
                       </strong>
                     </div>
                     <div>
                       <span className="text-[11px] font-bold text-slate-400 block uppercase">Age / Gender</span>
                       <span className="text-slate-800 font-semibold">
-                        ${selectedPatientModal.patient?.age ? `${selectedPatientModal.patient.age} yrs` : "N/A"} ${selectedPatientModal.patient?.gender ? `/ ${selectedPatientModal.patient.gender}` : ""}
+                        {selectedPatientModal.patient?.age ? `${selectedPatientModal.patient.age} yrs` : "N/A"} {selectedPatientModal.patient?.gender ? `/ ${selectedPatientModal.patient.gender}` : ""}
                       </span>
                     </div>
                     <div>
                       <span className="text-[11px] font-bold text-slate-400 block uppercase">Contact Phone</span>
                       <span className="font-mono text-slate-800 font-semibold">
-                        ${selectedPatientModal.patient?.phone ? `+91 ${selectedPatientModal.patient.phone}` : "N/A"}
+                        {selectedPatientModal.patient?.phone ? `+91 ${selectedPatientModal.patient.phone}` : "N/A"}
                       </span>
                     </div>
                     {selectedPatientModal.patient?.address && (
                       <div className="col-span-2 sm:col-span-3">
                         <span className="text-[11px] font-bold text-slate-400 block uppercase">Address</span>
-                        <span className="text-slate-800 font-medium">${selectedPatientModal.patient.address}</span>
+                        <span className="text-slate-800 font-medium">{selectedPatientModal.patient?.address}</span>
                       </div>
                     )}
                   </div>
@@ -1842,11 +1842,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     <div>
                       <span className="text-[11px] font-black uppercase tracking-wider block opacity-80">Triage Priority Assessment</span>
                       <strong className="text-base font-black">
-                        ${selectedPatientModal.riskTag === "RED" ? "🔴 RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine Priority"}
+                        {selectedPatientModal.riskTag === "RED" ? "🔴 RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine Priority"}
                       </strong>
                     </div>
                     <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-300 font-mono">
-                      Status: ${selectedPatientModal.status}
+                      Status: {selectedPatientModal.status}
                     </span>
                   </div>
 
@@ -1857,7 +1857,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     </h5>
                     <div className="p-4 rounded-xl border border-slate-200 bg-white">
                       <p className="text-[13px] text-slate-800 leading-relaxed font-medium">
-                        ${selectedPatientModal.rawSymptomText || selectedPatientModal.summary || "Symptoms logged in triage."}
+                        {selectedPatientModal.rawSymptomText || selectedPatientModal.summary || "Symptoms logged in triage."}
                       </p>
 
                       {/* Vitals */}
@@ -1866,25 +1866,25 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                           {selectedPatientModal.vitals.bpSystolic && (
                             <div className="p-2 rounded bg-slate-50 border border-slate-200">
                               <span className="text-[10px] text-slate-400 block font-bold">Blood Pressure</span>
-                              <strong className="text-slate-800">${selectedPatientModal.vitals.bpSystolic}/${selectedPatientModal.vitals.bpDiastolic || "80"} mmHg</strong>
+                              <strong className="text-slate-800">{selectedPatientModal.vitals.bpSystolic}/{selectedPatientModal.vitals.bpDiastolic || "80"} mmHg</strong>
                             </div>
                           )}
                           {selectedPatientModal.vitals.spo2 && (
                             <div className="p-2 rounded bg-slate-50 border border-slate-200">
                               <span className="text-[10px] text-slate-400 block font-bold">SpO2 Oxygen</span>
-                              <strong className="text-slate-800">${selectedPatientModal.vitals.spo2}%</strong>
+                              <strong className="text-slate-800">{selectedPatientModal.vitals.spo2}%</strong>
                             </div>
                           )}
                           {selectedPatientModal.vitals.pulse && (
                             <div className="p-2 rounded bg-slate-50 border border-slate-200">
                               <span className="text-[10px] text-slate-400 block font-bold">Pulse Rate</span>
-                              <strong className="text-slate-800">${selectedPatientModal.vitals.pulse} bpm</strong>
+                              <strong className="text-slate-800">{selectedPatientModal.vitals.pulse} bpm</strong>
                             </div>
                           )}
                           {selectedPatientModal.vitals.temp && (
                             <div className="p-2 rounded bg-slate-50 border border-slate-200">
                               <span className="text-[10px] text-slate-400 block font-bold">Body Temp</span>
-                              <strong className="text-slate-800">${selectedPatientModal.vitals.temp}°F</strong>
+                              <strong className="text-slate-800">{selectedPatientModal.vitals.temp}°F</strong>
                             </div>
                           )}
                         </div>
@@ -1899,7 +1899,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         Doctor Clinical Disposition
                       </h5>
                       <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 text-[13px] font-bold text-slate-900 leading-relaxed">
-                        ${selectedPatientModal.disposition}
+                        {selectedPatientModal.disposition}
                       </div>
                     </div>
                   )}
@@ -1911,7 +1911,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         <span>💊</span> Doctor's Prescription (Rx)
                       </h5>
                       <div className="p-4 rounded-xl border-2 border-emerald-400 bg-white text-[13px] font-semibold text-slate-800 whitespace-pre-line leading-relaxed shadow-xs">
-                        ${selectedPatientModal.prescription}
+                        {selectedPatientModal.prescription}
                       </div>
                     </div>
                   )}
@@ -1923,10 +1923,10 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         🚨 Case Referred / Escalated
                       </span>
                       <p className="text-slate-800">
-                        Target Facility: <strong>🏥 ${selectedPatientModal.referral.targetFacility}</strong>
+                        Target Facility: <strong>🏥 {selectedPatientModal.referral.targetFacility}</strong>
                       </p>
                       <p className="text-slate-700 text-xs">
-                        Reason: ${selectedPatientModal.referral.referralReason}
+                        Reason: {selectedPatientModal.referral.referralReason}
                       </p>
                     </div>
                   )}
