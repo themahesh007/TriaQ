@@ -98,12 +98,21 @@ export default function App() {
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
+  const [pendingHospitalCount, setPendingHospitalCount] = useState(0);
+
   const fetchPendingCount = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/triage-notes?status=PENDING`);
-      if (res.ok) {
-        const data = await res.json();
+      const [triageRes, facRes] = await Promise.all([
+        fetch(`${API_BASE}/api/triage-notes?status=PENDING`),
+        fetch(`${API_BASE}/api/facilities/pending-count`)
+      ]);
+      if (triageRes.ok) {
+        const data = await triageRes.json();
         setPendingCount(Array.isArray(data) ? data.length : 0);
+      }
+      if (facRes.ok) {
+        const facData = await facRes.json();
+        setPendingHospitalCount(facData.count || 0);
       }
     } catch {
       // quiet polling catch
@@ -112,7 +121,7 @@ export default function App() {
 
   useEffect(() => {
     fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 10000);
+    const interval = setInterval(fetchPendingCount, 5000);
     return () => clearInterval(interval);
   }, [fetchPendingCount]);
 
@@ -126,6 +135,7 @@ export default function App() {
         activePortal={activePortal}
         setActivePortal={setActivePortal}
         pendingCount={pendingCount}
+        pendingHospitalCount={pendingHospitalCount}
         language={language}
         onOpenLanguageModal={() => setShowLanguageModal(true)}
       />

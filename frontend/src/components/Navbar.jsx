@@ -8,7 +8,7 @@ import {
   IconGovtEmblem
 } from "./Icons";
 
-export default function Navbar({ activePortal, setActivePortal, pendingCount = 0, language = "en", onOpenLanguageModal }) {
+export default function Navbar({ activePortal, setActivePortal, pendingCount = 0, pendingHospitalCount = 0, language = "en", onOpenLanguageModal }) {
   return (
     <header className="w-full bg-white border-b border-slate-300 shadow-xs sticky top-0 z-30 no-print">
       {/* 1. Official Government Header Tier */}
@@ -142,6 +142,11 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
             >
               <IconShield className="w-3.5 h-3.5" />
               <span>{language === "hi" ? "मुख्य नियंत्रक" : language === "or" ? "ମୁଖ୍ୟ ନିୟନ୍ତ୍ରକ" : "Master"}</span>
+              {pendingHospitalCount > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold text-slate-950 bg-amber-400 border border-amber-300 animate-pulse shadow-2xs">
+                  {pendingHospitalCount}
+                </span>
+              )}
             </button>
           </nav>
 

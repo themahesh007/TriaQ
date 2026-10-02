@@ -958,6 +958,30 @@ app.get("/api/facilities", async (req, res) => {
 });
 
 /**
+ * GET /api/facilities/pending-count
+ * Public count and summary of pending facility registrations for navbar badge and Master login preview
+ */
+app.get("/api/facilities/pending-count", async (req, res) => {
+  try {
+    const pending = await storage.getPendingFacilities();
+    const list = Array.isArray(pending) ? pending : [];
+    return res.json({
+      count: list.length,
+      facilities: list.map((f) => ({
+        id: f.id,
+        name: f.name,
+        city: f.city || "",
+        district: f.district || "",
+        state: f.state || "",
+        type: f.type || "HOSPITAL"
+      }))
+    });
+  } catch (err) {
+    return res.json({ count: 0, facilities: [] });
+  }
+});
+
+/**
  * POST /api/hospital/register
  * Public Self-Registration for Hospitals and Clinics (Status: PENDING Master Approval)
  */

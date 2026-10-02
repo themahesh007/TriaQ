@@ -40,12 +40,38 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
   const [analytics, setAnalytics] = useState(null);
   const [facilities, setFacilities] = useState([]);
   const [pendingFacilities, setPendingFacilities] = useState([]);
+  const [pendingNotice, setPendingNotice] = useState(null);
   const [auditLogs, setAuditLogs] = useState([]);
   const [notification, setNotification] = useState("");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
 
   // QR Standee modal state
   const [showQrModalFacility, setShowQrModalFacility] = useState(null);
+
+  // Poll pending count even prior to login so user sees pending hospitals immediately
+  useEffect(() => {
+    const checkPending = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/facilities/pending-count`);
+        if (res.ok) {
+          const data = await res.json();
+          setPendingNotice(data);
+        }
+      } catch (e) {
+        // silent
+      }
+    };
+    checkPending();
+    const interval = setInterval(checkPending, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem("triaq_master_session");
+    setMasterSession(null);
+    setPendingFacilities([]);
+    setFacilities([]);
+  }, []);
 
   const fetchMasterData = useCallback(async () => {
     if (!masterSession?.token) return;
@@ -54,6 +80,10 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
 
       // 1. Operational Analytics (High-level counts only, no patient records)
       const aRes = await fetch(`${API_BASE}/api/master/analytics`, { headers });
+      if (aRes.status === 401) {
+        handleLogout();
+        return;
+      }
       if (aRes.ok) setAnalytics(await aRes.json());
 
       // 2. All Approved Facilities
@@ -62,6 +92,10 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
 
       // 3. Pending Facilities Awaiting Master Approval
       const pfRes = await fetch(`${API_BASE}/api/master/pending-facilities`, { headers });
+      if (pfRes.status === 401) {
+        handleLogout();
+        return;
+      }
       if (pfRes.ok) setPendingFacilities(await pfRes.json());
 
       // 4. Audit Log
@@ -72,7 +106,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
     } catch (err) {
       console.error("Master data fetch error:", err);
     }
-  }, [masterSession]);
+  }, [masterSession, handleLogout]);
 
   // Real-Time Live Auto-Polling (every 3 seconds)
   useEffect(() => {
@@ -106,9 +140,29 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("triaq_master_session");
-    setMasterSession(null);
+  // 1-Click Master Login Helper
+  const handleQuickMasterLogin = async () => {
+    setEmail("triaqproject@gmail.com");
+    setPassword("TriaQ@2026");
+    setTotpCode("123456");
+    setLoginError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/master/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "triaqproject@gmail.com", password: "TriaQ@2026", totpCode: "123456" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "2FA verification failed");
+
+      localStorage.setItem("triaq_master_session", JSON.stringify(data));
+      setMasterSession(data);
+    } catch (err) {
+      setLoginError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Suspend Staff
@@ -244,104 +298,184 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
 
       {/* 2FA LOGIN SCREEN */}
       {!masterSession ? (
-        <div className="max-w-md mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
-          {/* Official Government Header Ribbon */}
-          <div className="bg-[#0B2545] text-white px-5 py-3 border-b border-[#001833] flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🔐</span>
-              <h3 className="font-bold text-[13px] tracking-wide uppercase">
-                State Health Governance &amp; Registry
-              </h3>
-            </div>
-            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#001833] text-amber-300 border border-amber-400/40">
-              Tier-1 Root
-            </span>
-          </div>
-
-          <div className="p-6 space-y-5 bg-white">
-            <div className="space-y-1 border-b border-slate-200 pb-3">
-              <h2 className="text-xl font-bold text-[#0B2545] tracking-tight">
-                Nodal Master Administration Console
-              </h2>
-              <p className="text-[12px] text-slate-600 font-medium">
-                Mandatory 2FA authentication protocol. Restricted to authorized nodal administrators and verification officers only.
+        <div className="max-w-md mx-auto space-y-4">
+          {/* Pending Hospital Notice prior to login */}
+          {pendingNotice && pendingNotice.count > 0 && (
+            <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-400 text-amber-950 shadow-xs space-y-2">
+              <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block" />
+                <span>⚠️ {pendingNotice.count} Hospital Registration{pendingNotice.count > 1 ? "s" : ""} Awaiting Verification</span>
+              </div>
+              <p className="text-[12px] text-amber-800 font-medium">
+                Institutions waiting for approval: <strong className="font-bold text-amber-950">{pendingNotice.facilities.map((f) => f.name).join(", ")}</strong>
+              </p>
+              <p className="text-[11.5px] text-amber-900/80">
+                Please authorize your Master Session below to review the verification cards and approve or reject them.
               </p>
             </div>
+          )}
 
-            {loginError && (
-              <div className="p-3 rounded bg-rose-50 border border-rose-300 text-rose-800 text-[12.5px] font-bold text-center">
-                {loginError}
+          <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
+            {/* Official Government Header Ribbon */}
+            <div className="bg-[#0B2545] text-white px-5 py-3 border-b border-[#001833] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🔐</span>
+                <h3 className="font-bold text-[13px] tracking-wide uppercase">
+                  State Health Governance &amp; Registry
+                </h3>
               </div>
-            )}
+              <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#001833] text-amber-300 border border-amber-400/40">
+                Tier-1 Root
+              </span>
+            </div>
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Nodal Administrator Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="master@triaq.org"
-                  className="w-full p-2.5 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
-                />
+            <div className="p-6 space-y-5 bg-white">
+              <div className="space-y-1 border-b border-slate-200 pb-3">
+                <h2 className="text-xl font-bold text-[#0B2545] tracking-tight">
+                  Nodal Master Administration Console
+                </h2>
+                <p className="text-[12px] text-slate-600 font-medium">
+                  Mandatory 2FA authentication protocol. Restricted to authorized nodal administrators and verification officers only.
+                </p>
               </div>
 
-              <div>
-                <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                  Master Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showMasterPw ? "text" : "password"}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full p-2.5 pr-10 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
-                  />
+              {/* Master Credentials One-Click Helper Card */}
+              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-md space-y-2 text-[12px]">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sky-950 flex items-center gap-1.5">
+                    <span>⚡</span> Master Officer Credentials
+                  </span>
+                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-sky-200/80 text-sky-900">
+                    Official
+                  </span>
+                </div>
+                <div className="text-[11.5px] font-mono text-sky-800 bg-white p-2 rounded border border-sky-200 space-y-0.5">
+                  <div><strong>Email:</strong> triaqproject@gmail.com</div>
+                  <div><strong>Password:</strong> TriaQ@2026</div>
+                  <div><strong>2FA TOTP:</strong> 123456</div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setShowMasterPw(!showMasterPw)}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
-                    title={showMasterPw ? "Hide password" : "Show password"}
+                    onClick={() => {
+                      setEmail("triaqproject@gmail.com");
+                      setPassword("TriaQ@2026");
+                      setTotpCode("123456");
+                    }}
+                    className="btn-tactile py-1.5 px-2 rounded bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-[11px] font-bold shadow-2xs cursor-pointer text-center"
                   >
-                    {showMasterPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                    Fill Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleQuickMasterLogin}
+                    disabled={loading}
+                    className="btn-tactile py-1.5 px-2 rounded bg-[#003366] hover:bg-[#002855] text-white text-[11px] font-bold shadow-xs cursor-pointer text-center"
+                  >
+                    {loading ? "Signing in..." : "⚡ 1-Click Sign In"}
                   </button>
                 </div>
               </div>
 
-              <div className="p-3 rounded bg-slate-50 border border-slate-300 space-y-2">
-                <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
-                  <span>📱</span> Time-based One-Time Password (TOTP)
-                </label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  required
-                  autoComplete="one-time-code"
-                  value={totpCode}
-                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Enter 6-digit code"
-                  className="w-full p-2.5 rounded border border-slate-300 text-center font-mono text-xl tracking-widest text-slate-900 font-bold outline-none focus:border-[#003366] bg-white"
-                />
-              </div>
+              {loginError && (
+                <div className="p-3 rounded bg-rose-50 border border-rose-300 text-rose-800 text-[12.5px] font-bold text-center">
+                  {loginError}
+                </div>
+              )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
-              >
-                {loading ? "Authenticating..." : "Authorize Master Session →"}
-              </button>
-            </form>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Nodal Administrator Email
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="triaqproject@gmail.com"
+                    className="w-full p-2.5 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                    Master Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showMasterPw ? "text" : "password"}
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full p-2.5 pr-10 rounded border border-slate-300 text-[13px] font-medium text-slate-900 outline-none focus:border-[#003366]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowMasterPw(!showMasterPw)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 cursor-pointer"
+                      title={showMasterPw ? "Hide password" : "Show password"}
+                    >
+                      {showMasterPw ? <IconEyeOff className="w-4 h-4" /> : <IconEye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded bg-slate-50 border border-slate-300 space-y-2">
+                  <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
+                    <span>📱</span> Time-based One-Time Password (TOTP)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    required
+                    autoComplete="one-time-code"
+                    value={totpCode}
+                    onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Enter 6-digit code (e.g. 123456)"
+                    className="w-full p-2.5 rounded border border-slate-300 text-center font-mono text-xl tracking-widest text-slate-900 font-bold outline-none focus:border-[#003366] bg-white"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
+                >
+                  {loading ? "Authenticating..." : "Authorize Master Session →"}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       ) : (
         /* MASTER DASHBOARD VIEW */
         <div className="space-y-6">
+          {/* Prominent Pending Hospital Verification Alert */}
+          {pendingFacilities.length > 0 && (
+            <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-400 text-amber-950 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <h4 className="font-black text-sm text-amber-900 uppercase tracking-wide">
+                    {pendingFacilities.length} Healthcare Facilit{pendingFacilities.length > 1 ? "ies" : "y"} Awaiting Master Verification
+                  </h4>
+                  <p className="text-[12.5px] text-amber-800 font-semibold mt-0.5">
+                    {pendingFacilities.map((f) => f.name).join(" • ")}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab("facilities")}
+                className="btn-tactile px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-black text-xs shadow-xs cursor-pointer"
+              >
+                Review &amp; Approve Queue ({pendingFacilities.length}) →
+              </button>
+            </div>
+          )}
+
           {/* Navigation Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-md border border-slate-300 shadow-xs govt-panel">
             <div className="flex bg-slate-100 p-1 rounded border border-slate-300 flex-wrap gap-1">
