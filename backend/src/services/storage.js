@@ -72,7 +72,7 @@ function getDefaultFacilityName() {
   if (memoryStore.facilities && memoryStore.facilities.length > 0) {
     return memoryStore.facilities[0].name;
   }
-  return "Ramesh Clinic";
+  return "District Health Facility";
 }
 
 function persistStore() {

@@ -644,24 +644,6 @@ export default function IntakePage({ onTriageCreated }) {
                 required
                 className="w-full p-4 rounded-xl text-[15px] outline-none transition border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 leading-relaxed font-medium text-slate-900 shadow-2xs"
               />
-
-              {/* Quick Template Buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11.5px] font-bold text-slate-500">{t.quickLabel}</span>
-                {t.templates.map((tpl, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setSymptomText(tpl.text);
-                      setAnsweredMap({});
-                    }}
-                    className="text-[11.5px] px-3 py-1 rounded-lg bg-slate-100/90 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 cursor-pointer font-bold transition shadow-2xs active:scale-95"
-                  >
-                    {tpl.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* PATIENT VITAL SIGNS (OPTIONAL) */}

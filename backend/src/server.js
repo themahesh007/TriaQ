@@ -579,7 +579,7 @@ app.post("/api/staff/register", async (req, res) => {
       email: email.trim().toLowerCase(),
       passwordHash,
       role: normalizedRole,
-      facility: (facility && facility.trim()) || "Ramesh Clinic",
+      facility: (facility && facility.trim()) || "District Health Facility",
       phone: cleanedPhone,
       status: "PENDING",
       requiresPasswordChange: false
@@ -1356,7 +1356,7 @@ app.post("/api/hospital/staff", requireRole(["HOSPITAL_ADMIN", "ADMIN", "MASTER"
       email: cleanEmail,
       passwordHash,
       role: normalizedRole,
-      facility: facility || "Ramesh Clinic",
+      facility: (facility && facility.trim()) || "District Health Facility",
       phone: phone ? cleanIndianPhone(phone) : null,
       department: department ? department.trim() : null,
       status: "APPROVED"

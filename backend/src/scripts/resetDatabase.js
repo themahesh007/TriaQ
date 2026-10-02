@@ -28,10 +28,7 @@ const initialStaff = [
   }
 ];
 
-const initialFacilities = [
-  { id: "fac-ramesh", name: "Ramesh Clinic", phone: "+91-98765-43210", address: "Main Road, Ward 4", state: "Odisha", district: "Bhubaneswar", type: "Clinic", bedCapacity: 20, emergencyReady: true, registrationNumber: "REG-RAMESH-01", adminEmail: "ramesh.clinic@triaq.org" },
-  { id: "fac-aditya", name: "Aditya Clinic", phone: "+91-98765-43211", address: "Station Square", state: "Odisha", district: "Cuttack", type: "Clinic", bedCapacity: 35, emergencyReady: true, registrationNumber: "REG-ADITYA-01", adminEmail: "aditya.clinic@triaq.org" }
-];
+const initialFacilities = [];
 
 async function resetAll() {
   console.log("=========================================");

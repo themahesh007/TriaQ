@@ -350,7 +350,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
             <span className="block text-[11px] font-bold text-slate-500 uppercase">Registered Facilities</span>
             <span className="text-xl sm:text-2xl font-black text-[#003366]">Verified Network</span>
-            <span className="block text-[10.5px] text-slate-500 mt-0.5">Ramesh Clinic, Aditya Clinic &amp; PHCs</span>
+            <span className="block text-[10.5px] text-slate-500 mt-0.5">District Hospitals, CHCs &amp; PHCs</span>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">

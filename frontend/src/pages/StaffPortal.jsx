@@ -80,22 +80,24 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
       const s = localStorage.getItem("triaq_staff_session");
       if (s) {
         const parsed = JSON.parse(s);
-        if (parsed?.staff?.facility && !parsed.staff.facility.includes("Apollo")) return parsed.staff.facility;
+        if (parsed?.staff?.facility && !parsed.staff.facility.includes("Apollo") && !parsed.staff.facility.includes("Ramesh") && !parsed.staff.facility.includes("Aditya")) {
+          return parsed.staff.facility;
+        }
       }
     } catch {}
-    return "Ramesh Clinic";
+    return "";
   });
 
-  // Safety sweep: ensure any legacy Apollo or mock tokens in storage are cleared on mount
+  // Safety sweep: ensure any legacy test sessions or mock tokens in storage are cleared on mount
   useEffect(() => {
     try {
       const active = localStorage.getItem("triaq_active_station");
-      if (active && active.includes("Apollo")) {
-        localStorage.setItem("triaq_active_station", "Ramesh Clinic");
-        setActiveStationFacility("Ramesh Clinic");
+      if (active && (active.includes("Apollo") || active.includes("Ramesh") || active.includes("Aditya"))) {
+        localStorage.removeItem("triaq_active_station");
+        setActiveStationFacility("");
       }
       const sess = localStorage.getItem("triaq_staff_session");
-      if (sess && (sess.includes("Apollo") || sess.includes("Dr. Sharma") || sess.includes("doctor@triaq.org"))) {
+      if (sess && (sess.includes("Apollo") || sess.includes("Dr. Sharma") || sess.includes("doctor@triaq.org") || sess.includes("Ramesh") || sess.includes("Aditya"))) {
         localStorage.removeItem("triaq_staff_session");
         setStaffSession(null);
       }
@@ -281,7 +283,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
     setTimeout(() => setCallingToken(""), 5000);
   };
 
-  const currentHospitalName = activeStationFacility || staffSession?.staff?.facility || (registeredFacilities[0]?.name || "Ramesh Clinic");
+  const currentHospitalName = activeStationFacility || staffSession?.staff?.facility || (registeredFacilities[0]?.name || "District Health Facility");
 
   const fetchDashboardData = useCallback(async () => {
     if (!staffSession) return;
@@ -384,7 +386,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
       email: regEmail.trim(),
       password: regPassword,
       role: regRole,
-      facility: regFacility.trim() || (registeredFacilities[0]?.name || "Ramesh Clinic"),
+      facility: regFacility.trim() || (registeredFacilities[0]?.name || "District Health Facility"),
       phone: cleanedPhone
     };
     try {
@@ -405,10 +407,6 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
     }
   };
 
-  const handleQuickLogin = (roleEmail, rolePw) => {
-    setEmail(roleEmail);
-    setPassword(rolePw);
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("triaq_staff_session");
@@ -923,38 +921,6 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
 
             <div className="p-5 sm:p-7 space-y-5 bg-white">
 
-            {/* Quick Fill Demo Credentials */}
-            <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 space-y-2">
-              <span className="text-[10.5px] font-black uppercase text-slate-500 tracking-wider block text-center">
-                Quick Demo Login Pills (Click to test role):
-              </span>
-              <div className="grid grid-cols-3 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("doctor@triaq.org", "Doctor@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-emerald-50 text-[11px] font-bold text-emerald-800 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
-                >
-                  <IconStethoscope className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Doctor</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("nurse@triaq.org", "Nurse@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-teal-50 text-[11px] font-bold text-teal-800 border border-slate-200 hover:border-teal-300 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
-                >
-                  <IconNurse className="w-3.5 h-3.5 text-teal-600" />
-                  <span>Nurse</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin("admin@triaq.org", "Admin@123")}
-                  className="py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-[11px] font-bold text-slate-800 border border-slate-200 hover:border-slate-400 transition cursor-pointer shadow-2xs text-center flex items-center justify-center gap-1.5"
-                >
-                  <IconHospital className="w-3.5 h-3.5 text-slate-700" />
-                  <span>Admin</span>
-                </button>
-              </div>
-            </div>
 
             {loginError && (
               loginError.toLowerCase().includes("pending") || loginError.toLowerCase().includes("hod") ? (

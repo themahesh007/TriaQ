@@ -1233,7 +1233,7 @@ export default function PatientPortal({
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="e.g. Ramesh Kumar"
+                      placeholder="Enter full legal name"
                       className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                   </div>
@@ -1484,7 +1484,7 @@ export default function PatientPortal({
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder={t.fullNamePlaceholder || "e.g. Ramesh Sharma"}
+                  placeholder={t.fullNamePlaceholder || "Enter full legal name"}
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
               </div>
@@ -1714,23 +1714,6 @@ export default function PatientPortal({
                 </div>
               )}
 
-              {/* Quick Template Buttons */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-[11px] font-bold text-slate-500">{t.quickLabel}</span>
-                {t.templates && t.templates.map((tpl, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => {
-                      setSymptomText(tpl.text);
-                      setAnsweredMap({});
-                    }}
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 cursor-pointer font-bold transition shadow-2xs active:scale-95"
-                  >
-                    {tpl.label}
-                  </button>
-                ))}
-              </div>
             </div>
 
             {/* Patient Vitals Tracker Card */}

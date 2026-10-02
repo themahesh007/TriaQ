@@ -110,7 +110,7 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
               <IconDoctor className="w-3.5 h-3.5" />
               <span>{language === "hi" ? "चिकित्सा अधिकारी" : language === "or" ? "ଚିକିତ୍ସା ଅଧିକାରୀ" : "Staff Desk"}</span>
               {pendingCount > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-black text-white bg-red-600 animate-pulse">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold text-white bg-red-600 shadow-2xs">
                   {pendingCount}
                 </span>
               )}
