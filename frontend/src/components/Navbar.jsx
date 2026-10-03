@@ -5,7 +5,8 @@ import {
   IconDoctor,
   IconHospital,
   IconShield,
-  IconGovtEmblem
+  IconGovtEmblem,
+  IconGlobe
 } from "./Icons";
 
 export default function Navbar({ activePortal, setActivePortal, pendingCount = 0, pendingHospitalCount = 0, language = "en", onOpenLanguageModal }) {
