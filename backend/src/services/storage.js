@@ -353,8 +353,26 @@ const storage = {
   // --- TRIAGE NOTES ---
   async createTriageNote(data) {
     let patient = memoryStore.patients.find((p) => p.id === data.patientId);
+    const pName = data.name || data.fullName || null;
+    const pAge = data.age || null;
+    const pPhone = data.phone || null;
+    const pAddress = data.address || data.ward || null;
+
     if (!patient) {
-      patient = await this.createPatient({ id: data.patientId, facility: data.facility });
+      patient = await this.createPatient({
+        id: data.patientId,
+        facility: data.facility,
+        name: pName,
+        age: pAge,
+        phone: pPhone,
+        address: pAddress
+      });
+    } else {
+      if (pName) patient.encryptedName = encryptPII(pName);
+      if (pAge) patient.encryptedAge = encryptPII(pAge);
+      if (pPhone) patient.phone = pPhone;
+      if (pAddress) patient.encryptedAddress = encryptPII(pAddress);
+      db.savePatientToCloud(patient).catch(console.error);
     }
 
     const targetFacility = data.facility || patient.facility || "GLOBAL";
@@ -377,6 +395,7 @@ const storage = {
     db.savePatientToCloud(patient).catch(console.error);
 
     const receiptNumber = generateReceiptNumber();
+    const decryptedPat = decryptPatientProfile(patient) || {};
 
     const note = {
       id: generateCuid(),
@@ -386,10 +405,10 @@ const storage = {
       patient: {
         id: patient.id,
         tokenId: assignedToken,
-        name: decryptPatientProfile(patient).name,
-        phone: decryptPatientProfile(patient).phone,
-        age: decryptPatientProfile(patient).age,
-        address: decryptPatientProfile(patient).address,
+        name: pName || decryptedPat.name || "Patient",
+        phone: pPhone || decryptedPat.phone || "--",
+        age: pAge || decryptedPat.age || "--",
+        address: pAddress || decryptedPat.address || "--",
         language: data.language || "en"
       },
       rawSymptomText: data.rawSymptomText,
@@ -431,9 +450,23 @@ const storage = {
     const formattedNotes = notes.map((note) => {
       const patient = memoryStore.patients.find((p) => p.id === note.patientId);
       const patientData = role === "DOCTOR" || role === "MASTER" ? decryptPatientProfile(patient) : maskPatientProfile(patient);
+      const basePatient = note.patient || {};
+      const mergedPatient = {
+        ...basePatient,
+        ...(patientData || {})
+      };
+      if ((!mergedPatient.name || mergedPatient.name === "Anonymous Patient") && basePatient.name && basePatient.name !== "Anonymous Patient") {
+        mergedPatient.name = basePatient.name;
+      }
+      if ((!mergedPatient.age || mergedPatient.age === "--") && basePatient.age && basePatient.age !== "--") {
+        mergedPatient.age = basePatient.age;
+      }
+      if ((!mergedPatient.address || mergedPatient.address === "--") && basePatient.address && basePatient.address !== "--") {
+        mergedPatient.address = basePatient.address;
+      }
       return {
         ...note,
-        patient: patientData || note.patient
+        patient: mergedPatient
       };
     });
 
@@ -498,9 +531,23 @@ const storage = {
       const patientData = role === "DOCTOR" || role === "MASTER" || role === "ADMIN" 
         ? decryptPatientProfile(patient) 
         : maskPatientProfile(patient);
+      const basePatient = note.patient || {};
+      const mergedPatient = {
+        ...basePatient,
+        ...(patientData || {})
+      };
+      if ((!mergedPatient.name || mergedPatient.name === "Anonymous Patient") && basePatient.name && basePatient.name !== "Anonymous Patient") {
+        mergedPatient.name = basePatient.name;
+      }
+      if ((!mergedPatient.age || mergedPatient.age === "--") && basePatient.age && basePatient.age !== "--") {
+        mergedPatient.age = basePatient.age;
+      }
+      if ((!mergedPatient.address || mergedPatient.address === "--") && basePatient.address && basePatient.address !== "--") {
+        mergedPatient.address = basePatient.address;
+      }
       return {
         ...note,
-        patient: patientData || note.patient
+        patient: mergedPatient
       };
     });
 

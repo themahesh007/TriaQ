@@ -836,6 +836,10 @@ export default function PatientPortal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           patientId: pId,
+          fullName: fullName.trim(),
+          age: age.trim(),
+          phone: cleanIndianPhone(contactPhone) || contactPhone.trim(),
+          address: address.trim(),
           symptomText: combinedSymptomText,
           vitals: vitalsObj,
           language,

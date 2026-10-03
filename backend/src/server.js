@@ -1445,7 +1445,21 @@ app.post("/api/patients", async (req, res) => {
  */
 app.post("/api/triage-notes", async (req, res) => {
   try {
-    const { patientId, symptomText, additionalAnswers = [], language = "en", reportImageBase64, vitals, facility } = req.body;
+    const {
+      patientId,
+      symptomText,
+      additionalAnswers = [],
+      language = "en",
+      reportImageBase64,
+      vitals,
+      facility,
+      name,
+      fullName,
+      age,
+      phone,
+      address,
+      ward
+    } = req.body;
 
     if (!patientId || typeof patientId !== "string") {
       return res.status(400).json({ error: "patientId is required" });
@@ -1478,9 +1492,13 @@ app.post("/api/triage-notes", async (req, res) => {
     // 4. Structured non-diagnostic summary
     const summary = await generateSummary(symptomText, language, additionalAnswers);
 
-    // 5. Store note with receipt number and vitals
+    // 5. Store note with receipt number, vitals, and patient demographics
     const note = await storage.createTriageNote({
       patientId,
+      name: name || fullName || null,
+      age: age || null,
+      phone: phone || null,
+      address: address || ward || null,
       rawSymptomText: symptomText.trim(),
       language,
       summary,
