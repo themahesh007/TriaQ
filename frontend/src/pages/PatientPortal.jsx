@@ -1834,91 +1834,54 @@ export default function PatientPortal({
               </span>
             </div>
           ) : (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
                   <IconHospital className="w-4 h-4 text-emerald-600" />
-                  {t.selectFacilityLabel || "Select Healthcare Facility / Clinic"} <span className="text-rose-600">*</span>
+                  {t.selectFacilityLabel || "Select Healthcare Facility / Hospital"} <span className="text-rose-600">*</span>
                 </label>
                 <span className="text-[10.5px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   {t.selectFacilityStep || "Step 1 • Demographics"}
                 </span>
               </div>
 
-              {/* 10 Odisha Hospitals Quick Suggestions Bar */}
-              <div className="space-y-1.5 pt-0.5">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[11px] font-black text-emerald-800 uppercase tracking-wider">
-                    <span>⚡</span>
-                    <span>
-                      {t.quickHospitalSuggestions || "Quick Suggestions (Top 10 Odisha Apex & Govt Hospitals):"}
-                    </span>
-                  </span>
-                  <span className="text-[10.5px] font-bold text-slate-500">
-                    {t.quickSelectHint || "1-Click Quick Select"}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
-                  {ODISHA_QUICK_HOSPITALS.map((hospName, idx) => {
-                    const isSelected = selectedFacility === hospName;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setSelectedFacility(hospName);
-                          const matched = facilities.find((f) => f.name === hospName);
-                          if (matched) setSelectedFacilityId(matched.id);
-                          else setSelectedFacilityId("");
-                        }}
-                        className={`btn-tactile px-2.5 py-1.5 rounded-lg text-[12px] font-semibold transition cursor-pointer border shadow-2xs flex items-center gap-1.5 text-left ${
-                          isSelected
-                            ? "bg-emerald-600 text-white border-emerald-700 shadow-xs ring-2 ring-emerald-500/20 font-bold"
-                            : "bg-white text-slate-800 border-slate-200 hover:border-emerald-400 hover:bg-emerald-50/60"
-                        }`}
-                      >
-                        <span className={isSelected ? "text-white" : "text-emerald-600 font-bold"}>🏥</span>
-                        <span>{hospName}</span>
-                        {isSelected && (
-                          <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded bg-emerald-500 text-white ml-0.5">
-                            ✓
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Full Facility Dropdown */}
-              <div className="pt-1">
-                <select
-                  value={selectedFacility}
-                  onChange={(e) => {
-                    setSelectedFacility(e.target.value);
-                    const matched = facilities.find((f) => f.name === e.target.value);
-                    if (matched) setSelectedFacilityId(matched.id);
-                  }}
-                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
-                >
-                  <option value="" disabled>-- {t.selectFacilityLabel || "Select Healthcare Facility / Clinic"} --</option>
-                  {/* Server registered active facilities */}
-                  {facilities.map((f) => (
-                    <option key={f.id} value={f.name}>
-                      {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
-                    </option>
-                  ))}
-                  {/* 10 Odisha Hospitals (if not already returned by server) */}
-                  {ODISHA_QUICK_HOSPITALS.filter(
-                    (oh) => !facilities.some((f) => f.name.toLowerCase() === oh.toLowerCase())
-                  ).map((oh, idx) => (
+              {/* Full Facility Dropdown containing 10 Odisha Hospitals & Active Facilities */}
+              <select
+                value={selectedFacility}
+                onChange={(e) => {
+                  setSelectedFacility(e.target.value);
+                  const matched = facilities.find((f) => f.name === e.target.value);
+                  if (matched) setSelectedFacilityId(matched.id);
+                  else setSelectedFacilityId("");
+                }}
+                className="w-full p-3 rounded-xl border border-slate-300 text-[13.5px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white shadow-2xs"
+              >
+                <option value="" disabled>-- {t.selectFacilityLabel || "Select Healthcare Facility / Hospital"} --</option>
+                
+                {/* 10 Major Odisha Apex & Government Medical Colleges */}
+                <optgroup label={language === "or" ? "ଓଡ଼ିଶାର ପ୍ରମୁଖ ୧୦ ଡାକ୍ତରଖାନା (Top 10 Odisha Hospitals)" : language === "hi" ? "ओडिशा के प्रमुख 10 अस्पताल (Top 10 Odisha Hospitals)" : "Top 10 Odisha Apex & Govt Hospitals"}>
+                  {ODISHA_QUICK_HOSPITALS.map((oh, idx) => (
                     <option key={`odisha-hosp-${idx}`} value={oh}>
-                      {oh} ({language === "or" ? "ଓଡ଼ିଶା ସରକାରୀ ମେଡିକାଲ୍" : language === "hi" ? "ओडिशा सरकारी मेडिकल" : "Odisha Govt Medical"})
+                      {oh}
                     </option>
                   ))}
-                </select>
-              </div>
+                </optgroup>
+
+                {/* Other Registered Facilities (if any) */}
+                {facilities.filter(
+                  (f) => !ODISHA_QUICK_HOSPITALS.some((oh) => oh.toLowerCase() === f.name.toLowerCase())
+                ).length > 0 && (
+                  <optgroup label={language === "or" ? "ଅନ୍ୟାନ୍ୟ ସକ୍ରିୟ ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର (Other Facilities)" : language === "hi" ? "अन्य सक्रिय स्वास्थ्य केंद्र (Other Facilities)" : "Other Registered Facilities"}>
+                    {facilities
+                      .filter((f) => !ODISHA_QUICK_HOSPITALS.some((oh) => oh.toLowerCase() === f.name.toLowerCase()))
+                      .map((f) => (
+                        <option key={f.id} value={f.name}>
+                          {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+              </select>
 
               <p className="text-[11px] text-slate-500 font-medium">
                 {t.demographicsSubtitle || "Your sequential token number will be generated only after you fill and submit your clinical symptoms in the next step."}
