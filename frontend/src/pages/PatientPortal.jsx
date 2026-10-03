@@ -1858,29 +1858,27 @@ export default function PatientPortal({
               >
                 <option value="" disabled>-- {t.selectFacilityLabel || "Select Healthcare Facility / Hospital"} --</option>
                 
+                {/* Active Registered Healthcare Facilities (e.g. MKCG MEDICAL, Satya Nagar) */}
+                {facilities.length > 0 && (
+                  <optgroup label={language === "or" ? "🏥 ସକ୍ରିୟ ପଞ୍ଜୀକୃତ ଡାକ୍ତରଖାନା (Active Registered Hospitals)" : language === "hi" ? "🏥 सक्रिय पंजीकृत अस्पताल (Active Registered Hospitals)" : "🏥 Active Registered Healthcare Facilities"}>
+                    {facilities.map((f) => (
+                      <option key={f.id} value={f.name}>
+                        {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
                 {/* 10 Major Odisha Apex & Government Medical Colleges */}
-                <optgroup label={language === "or" ? "ଓଡ଼ିଶାର ପ୍ରମୁଖ ୧୦ ଡାକ୍ତରଖାନା (Top 10 Odisha Hospitals)" : language === "hi" ? "ओडिशा के प्रमुख 10 अस्पताल (Top 10 Odisha Hospitals)" : "Top 10 Odisha Apex & Govt Hospitals"}>
-                  {ODISHA_QUICK_HOSPITALS.map((oh, idx) => (
+                <optgroup label={language === "or" ? "🏛️ ଓଡ଼ିଶାର ପ୍ରମୁଖ ୧୦ ଡାକ୍ତରଖାନା (Top 10 Odisha Hospitals)" : language === "hi" ? "🏛️ ओडिशा के प्रमुख 10 अस्पताल (Top 10 Odisha Hospitals)" : "🏛️ Top 10 Odisha Apex & Govt Hospitals"}>
+                  {ODISHA_QUICK_HOSPITALS.filter(
+                    (oh) => !facilities.some((f) => f.name.toLowerCase() === oh.toLowerCase())
+                  ).map((oh, idx) => (
                     <option key={`odisha-hosp-${idx}`} value={oh}>
                       {oh}
                     </option>
                   ))}
                 </optgroup>
-
-                {/* Other Registered Facilities (if any) */}
-                {facilities.filter(
-                  (f) => !ODISHA_QUICK_HOSPITALS.some((oh) => oh.toLowerCase() === f.name.toLowerCase())
-                ).length > 0 && (
-                  <optgroup label={language === "or" ? "ଅନ୍ୟାନ୍ୟ ସକ୍ରିୟ ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର (Other Facilities)" : language === "hi" ? "अन्य सक्रिय स्वास्थ्य केंद्र (Other Facilities)" : "Other Registered Facilities"}>
-                    {facilities
-                      .filter((f) => !ODISHA_QUICK_HOSPITALS.some((oh) => oh.toLowerCase() === f.name.toLowerCase()))
-                      .map((f) => (
-                        <option key={f.id} value={f.name}>
-                          {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
-                        </option>
-                      ))}
-                  </optgroup>
-                )}
               </select>
 
               <p className="text-[11px] text-slate-500 font-medium">
@@ -2049,6 +2047,28 @@ export default function PatientPortal({
 
           <div className="p-5 sm:p-7 space-y-6 bg-white">
           <form onSubmit={handleSubmitTriage} className="space-y-5">
+            {/* Target Hospital Indicator with 1-click change */}
+            <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-2xs">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏥</span>
+                <div>
+                  <span className="text-[10.5px] font-bold text-emerald-800 uppercase tracking-wide block">
+                    {language === "or" ? "ଚୟନିତ ଡାକ୍ତରଖାନା / ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର:" : language === "hi" ? "चयनित अस्पताल / स्वास्थ्य केंद्र:" : "Selected Health Facility / OPD Desk:"}
+                  </span>
+                  <span className="text-[14px] font-black text-slate-900">
+                    {selectedFacility || "General Health Facility"}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentStep("intake")}
+                className="text-[12px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
+              >
+                {language === "or" ? "ଡାକ୍ତରଖାନା ବଦଳାନ୍ତୁ →" : language === "hi" ? "अस्पताल बदलें →" : "Change Hospital →"}
+              </button>
+            </div>
+
             {/* Symptoms Input Area + Voice Mic */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">

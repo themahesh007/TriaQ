@@ -153,7 +153,28 @@ function generateReceiptNumber() {
   return `TRIAQ-${dateStr}-${randomSuffix}`;
 }
 
+// Helper to match facilities flexibly across slight naming variations (e.g. MKCG MEDICAL vs MKCG Medical College)
+function isSameFacility(facA, facB) {
+  if (!facA || !facB) return false;
+  const a = String(facA).trim().toLowerCase();
+  const b = String(facB).trim().toLowerCase();
+  if (a === b) return true;
+  if (a.replace(/[^a-z0-9]/g, "") === b.replace(/[^a-z0-9]/g, "")) return true;
+
+  const cleanA = a.replace(/–|-/g, " ").replace(/\s+/g, " ");
+  const cleanB = b.replace(/–|-/g, " ").replace(/\s+/g, " ");
+  const keywords = [
+    "mkcg", "aiims", "scb", "vimsar", "satya nagar", "jagannath",
+    "fakir mohan", "raghunath murmu", "laxman nayak", "bhima bhoi", "sundargarh"
+  ];
+  for (const kw of keywords) {
+    if (cleanA.includes(kw) && cleanB.includes(kw)) return true;
+  }
+  return false;
+}
+
 const storage = {
+  isSameFacility,
   // --- PATIENTS ---
   async createPatient(data = {}) {
     const targetFacility = data.facility || null;
@@ -402,8 +423,8 @@ const storage = {
     const { facility, role = "DOCTOR" } = options;
     let notes = memoryStore.triageNotes.filter((n) => n.status === "PENDING");
 
-    if (facility && facility !== "ALL") {
-      notes = notes.filter((n) => n.facility === facility);
+    if (facility && facility !== "ALL" && facility !== "All Facilities" && facility !== "GLOBAL") {
+      notes = notes.filter((n) => isSameFacility(n.facility, facility));
     }
 
     // Role-based masking of patient info
@@ -468,8 +489,8 @@ const storage = {
     if (status && status !== "ALL") {
       notes = notes.filter((n) => n.status === status);
     }
-    if (facility && facility !== "ALL") {
-      notes = notes.filter((n) => (n.facility || "").toLowerCase() === facility.toLowerCase());
+    if (facility && facility !== "ALL" && facility !== "All Facilities" && facility !== "GLOBAL") {
+      notes = notes.filter((n) => isSameFacility(n.facility, facility));
     }
 
     const formattedNotes = notes.map((note) => {
