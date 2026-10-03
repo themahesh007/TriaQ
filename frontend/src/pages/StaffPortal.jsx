@@ -1378,21 +1378,17 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                           </span>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[12.5px]">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12.5px]">
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">Name</span>
+                          <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Patient Name</span>
                           <span className="font-bold text-slate-900">{selectedNote.patient?.name || "Patient"}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">Age</span>
+                          <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Age</span>
                           <span className="font-bold text-slate-900">{selectedNote.patient?.age || "--"}</span>
                         </div>
                         <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">Phone</span>
-                          <span className="font-bold text-slate-900">{selectedNote.patient?.phone || "--"}</span>
-                        </div>
-                        <div>
-                          <span className="text-[10px] text-slate-400 block font-bold">Ward / Area</span>
+                          <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Address / Area</span>
                           <span className="font-bold text-slate-900">{selectedNote.patient?.address || "--"}</span>
                         </div>
                       </div>
