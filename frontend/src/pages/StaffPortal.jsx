@@ -52,6 +52,23 @@ const isValidIndianPhone = (clean) => {
   return /^[6-9]\d{9}$/.test(clean);
 };
 
+// Mask patient name: "MAHESH" -> "M****H", "RAMESH MOHANTY" -> "R****H M*****Y"
+const maskPatientName = (name) => {
+  if (!name || typeof name !== "string") return "--";
+  const clean = name.trim();
+  if (!clean || clean.toLowerCase() === "patient" || clean.toLowerCase() === "anonymous patient") {
+    return clean;
+  }
+  return clean
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length <= 1) return word;
+      if (word.length === 2) return word[0] + "*";
+      return word[0] + "*".repeat(word.length - 2) + word[word.length - 1];
+    })
+    .join(" ");
+};
+
 export default function StaffPortal({ onNavigateHome, language = "en" }) {
   const [staffSession, setStaffSession] = useState(() => {
     try {
@@ -141,6 +158,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
   const [summaryViewMode, setSummaryViewMode] = useState("cards");
   const [lastSyncTime, setLastSyncTime] = useState(new Date());
   const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [revealFullName, setRevealFullName] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -1381,7 +1399,23 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[12.5px]">
                         <div>
                           <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Patient Name</span>
-                          <span className="font-bold text-slate-900">{selectedNote.patient?.name || "Patient"}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 font-mono tracking-wider">
+                              {revealFullName
+                                ? (selectedNote.patient?.name || "Patient")
+                                : maskPatientName(selectedNote.patient?.name || "Patient")}
+                            </span>
+                            {selectedNote.patient?.name && selectedNote.patient.name.toLowerCase() !== "patient" && (
+                              <button
+                                type="button"
+                                onClick={() => setRevealFullName((prev) => !prev)}
+                                className="text-[11px] px-1.5 py-0.5 rounded hover:bg-slate-200 text-slate-500 transition cursor-pointer"
+                                title={revealFullName ? "Click to mask name" : "Click to unmask full name"}
+                              >
+                                {revealFullName ? "🙈" : "👁️"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div>
                           <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">Age</span>
