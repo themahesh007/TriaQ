@@ -8,6 +8,7 @@ import StaffPortal from "./pages/StaffPortal";
 import HospitalPortal from "./pages/HospitalPortal";
 import MasterPortal from "./pages/MasterPortal";
 import LanguageSelectorModal from "./components/LanguageSelectorModal";
+import { IconAlertCircle } from "./components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -26,8 +27,8 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       return (
         <div className="max-w-md mx-auto my-12 p-6 bg-white rounded-md border border-rose-200 shadow-sm text-center space-y-4">
-          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center text-2xl mx-auto">
-            ⚠️
+          <div className="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+            <IconAlertCircle className="w-7 h-7 text-rose-600" />
           </div>
           <h2 className="text-xl font-bold text-slate-900">Application Notice</h2>
           <p className="text-xs text-slate-600">
@@ -200,10 +201,10 @@ export default function App() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-white text-[14px] uppercase tracking-wide">
-                  TriaQ • National OPD Portal
+                  TriaQ • Clinical OPD Portal
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">
-                  e-Gov Certified
+                  Clinical Certified
                 </span>
               </div>
               <p className="text-[12px] text-slate-300 leading-relaxed">
@@ -216,14 +217,13 @@ export default function App() {
                 {language === "hi" ? "आपातकालीन दूरभाष" : language === "or" ? "ଜରୁରୀକାଳୀନ ହେଲ୍ପଲାଇନ୍" : "Emergency & Helplines"}
               </h4>
               <p className="text-slate-300">National Health Helpline: <strong className="text-white">1075</strong> (Toll Free)</p>
-              <p className="text-slate-300">Odisha Swasthya Seva: <strong className="text-white">104</strong> (Medical Advice)</p>
+              <p className="text-slate-300">Medical Advice Desk: <strong className="text-white">104</strong></p>
               <p className="text-slate-300">Ambulance Emergency Dispatch: <strong className="text-white">108 / 102</strong></p>
-              <p className="text-slate-300">ABDM Helpdesk: <strong className="text-white">1800-11-4477</strong></p>
             </div>
 
             <div className="space-y-2 text-[12px]">
               <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
-                {language === "hi" ? "प्रशासनिक लिंक" : language === "or" ? "ପ୍ରଶାସନିକ ଲିଙ୍କ" : "Governance & Portals"}
+                {language === "hi" ? "प्रशासनिक लिंक" : language === "or" ? "ପ୍ରଶାସନିକ ଲିଙ୍କ" : "Portals & Navigation"}
               </h4>
               <div className="flex flex-col gap-1.5">
                 <button
@@ -252,26 +252,26 @@ export default function App() {
                   onClick={() => setActivePortal("master-portal")}
                   className="text-left text-amber-400 hover:text-amber-300 hover:underline font-bold transition cursor-pointer"
                 >
-                  🔐 Nodal Master Governance Desk (2FA)
+                  › Master Control Desk (2FA Required)
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Lower Footer: Mandatory Government Disclaimers & Copyright */}
+          {/* Lower Footer: Disclaimers & Copyright */}
           <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 pt-1">
             <div className="space-y-1">
               <p>
-                Website Content Owned &amp; Managed by <strong>Department of Health &amp; Family Welfare, Government of Odisha &amp; National Health Mission</strong>.
+                TriaQ Clinical Platform • Outpatient Triage &amp; Queue Management Network.
               </p>
               <p>
-                Guidelines for Indian Government Websites (GIGW) Compliant • Best viewed in Chrome, Edge, Firefox at 1024x768 resolution and above.
+                Clinical Protocol Standardized • Best viewed in Chrome, Edge, Firefox at 1024x768 resolution and above.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span>Last Updated: <strong>28-09-2026</strong></span>
+              <span>Last Updated: <strong>2026</strong></span>
               <span>•</span>
-              <span>Version: <strong>2.4.0 (Govt. Release)</strong></span>
+              <span>Version: <strong>2.4.0</strong></span>
             </div>
           </div>
         </div>

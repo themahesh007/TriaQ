@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
+import { IconEdit, IconAlertCircle, IconCheckCircle } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -154,7 +155,7 @@ export default function DashboardPage({ onQueueUpdated }) {
       }, 250);
     }
 
-    setNotification(`📢 Calling Token ${token} to ${consultationRoom}...`);
+    setNotification(` Calling Token ${token} to ${consultationRoom}...`);
     setTimeout(() => setCallingToken(""), 5000);
   };
 
@@ -384,7 +385,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               className="px-3.5 py-2 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
               title="Download complete registry as CSV spreadsheet"
             >
-              <span>📥</span>
+              <span></span>
               <span>Export CSV</span>
             </button>
 
@@ -395,7 +396,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               disabled={loading}
               className="px-4 py-2 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1.5"
             >
-              <span>{loading ? "↻" : "🔄"}</span>
+              <span>{loading ? "↻" : ""}</span>
               <span>{loading ? "Updating..." : "Refresh Queue"}</span>
             </button>
           </div>
@@ -426,7 +427,7 @@ export default function DashboardPage({ onQueueUpdated }) {
             }`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider block">🔴 Urgent (RED)</span>
+              <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider block">• Urgent (RED)</span>
               {metrics.red > 0 && <span className="w-2.5 h-2.5 rounded-full bg-rose-600 animate-ping"></span>}
             </div>
             <span className="text-2xl font-black text-rose-700 mt-1 block">{metrics.red}</span>
@@ -441,7 +442,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                 : "bg-white hover:bg-amber-50/50 border-slate-200/90 shadow-xs"
             }`}
           >
-            <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider block">🟡 Moderate (YELLOW)</span>
+            <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider block">• Moderate (YELLOW)</span>
             <span className="text-2xl font-black text-amber-800 mt-1 block">{metrics.yellow}</span>
           </button>
 
@@ -454,7 +455,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                 : "bg-white hover:bg-emerald-50/50 border-slate-200/90 shadow-xs"
             }`}
           >
-            <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider block">🟢 Normal (GREEN)</span>
+            <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider block">• Normal (GREEN)</span>
             <span className="text-2xl font-black text-emerald-800 mt-1 block">{metrics.green}</span>
           </button>
         </div>
@@ -495,7 +496,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               placeholder="Search by Token ID or symptoms..."
               className="w-full pl-9 pr-8 py-2 text-[13px] bg-white rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 text-slate-900 shadow-2xs transition placeholder:text-slate-400 font-medium"
             />
-            <span className="absolute left-3 top-2.5 text-xs text-slate-400">🔍</span>
+            <span className="absolute left-3 top-2.5 text-xs text-slate-400"></span>
             {searchQuery && (
               <button
                 type="button"
@@ -512,7 +513,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               <div 
                 className="bg-white rounded-md p-8 border border-slate-200/90 text-center space-y-2 shadow-xs"
               >
-                <span className="text-3xl block mb-1">🎉</span>
+                <span className="text-3xl block mb-1"></span>
                 <p className="font-black text-[15px] text-slate-900">
                   {queue.length === 0 ? "Queue is clear" : "No matching patients"}
                 </p>
@@ -565,7 +566,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                           }`}
                           title={`Call patient to ${consultationRoom}`}
                         >
-                          <span>📢</span>
+                          <span></span>
                           <span>{callingToken === (item.patient?.tokenId || item.tokenId) ? "Calling..." : "Call"}</span>
                         </button>
                         <span 
@@ -617,7 +618,7 @@ export default function DashboardPage({ onQueueUpdated }) {
             <div 
               className="bg-white rounded-md p-12 border border-slate-200/90 text-center space-y-2 h-full min-h-[420px] flex flex-col items-center justify-center shadow-xs"
             >
-              <span className="text-4xl mb-1">🩺</span>
+              <span className="text-4xl mb-1"></span>
               <p className="text-[16px] font-black text-slate-900">
                 Select a patient from the queue
               </p>
@@ -655,7 +656,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                         : "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-600 hover:text-white"
                     }`}
                   >
-                    <span>📢</span>
+                    <span></span>
                     <span>{callingToken === (selectedNote.patient?.tokenId || selectedNote.tokenId) ? `Calling to ${consultationRoom}...` : `Call to ${consultationRoom}`}</span>
                   </button>
 
@@ -679,7 +680,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                 <div className="p-4 rounded-xl border border-slate-200/90 bg-white shadow-2xs space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[12px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      <span>🩺</span> Recorded Patient Vitals
+                      <span></span> Recorded Patient Vitals
                     </span>
                     <span className="text-[11px] font-bold text-slate-400">
                       Triage Baseline
@@ -693,7 +694,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                           {selectedNote.vitals.bpSystolic || "--"} / {selectedNote.vitals.bpDiastolic || "--"} <span className="text-[10px] text-slate-500 font-normal">mmHg</span>
                         </span>
                         {Number(selectedNote.vitals.bpSystolic) >= 180 || Number(selectedNote.vitals.bpDiastolic) >= 110 ? (
-                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">⚠ Hypertensive Crisis</span>
+                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">! Hypertensive Crisis</span>
                         ) : Number(selectedNote.vitals.bpSystolic) >= 140 ? (
                           <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mt-1 inline-block">Stage 2 High</span>
                         ) : (
@@ -709,7 +710,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                           {selectedNote.vitals.pulse} <span className="text-[10px] text-slate-500 font-normal">bpm</span>
                         </span>
                         {Number(selectedNote.vitals.pulse) > 130 || Number(selectedNote.vitals.pulse) < 45 ? (
-                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">⚠ Critical Pulse</span>
+                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">! Critical Pulse</span>
                         ) : Number(selectedNote.vitals.pulse) > 100 ? (
                           <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mt-1 inline-block">Tachycardia</span>
                         ) : (
@@ -725,7 +726,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                           {selectedNote.vitals.spo2} <span className="text-[10px] text-slate-500 font-normal">%</span>
                         </span>
                         {Number(selectedNote.vitals.spo2) < 90 ? (
-                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">⚠ Hypoxia (RED)</span>
+                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">! Hypoxia (RED)</span>
                         ) : Number(selectedNote.vitals.spo2) < 95 ? (
                           <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mt-1 inline-block">Borderline</span>
                         ) : (
@@ -741,7 +742,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                           {selectedNote.vitals.temp} <span className="text-[10px] text-slate-500 font-normal">°F</span>
                         </span>
                         {Number(selectedNote.vitals.temp) >= 103 ? (
-                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">⚠ High Pyrexia</span>
+                          <span className="text-[9.5px] font-black text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded mt-1 inline-block">! High Pyrexia</span>
                         ) : Number(selectedNote.vitals.temp) >= 100.4 ? (
                           <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded mt-1 inline-block">Fever</span>
                         ) : (
@@ -758,7 +759,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div className="flex items-center gap-2">
                     <label className="text-[14px] font-black text-slate-900 flex items-center gap-1.5">
-                      <span>📋</span> Patient Triage Summary
+                      <span></span> Patient Triage Summary
                     </label>
                     {hasEdits && (
                       <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-300">
@@ -779,18 +780,19 @@ export default function DashboardPage({ onQueueUpdated }) {
                             : "text-slate-600 hover:text-slate-900"
                         }`}
                       >
-                        📋 Clean Q&A Cards
+                         Clean Q&A Cards
                       </button>
                       <button
                         type="button"
                         onClick={() => setSummaryViewMode("edit")}
-                        className={`px-3 py-1 rounded-lg text-[12px] font-bold transition cursor-pointer ${
+                        className={`px-3 py-1 rounded-lg text-[12px] font-bold transition cursor-pointer flex items-center gap-1.5 ${
                           summaryViewMode === "edit"
                             ? "bg-white text-slate-900 shadow-xs"
                             : "text-slate-600 hover:text-slate-900"
                         }`}
                       >
-                        ✏️ Edit Text
+                        <IconEdit className="w-3.5 h-3.5" />
+                        <span>Edit Text</span>
                       </button>
                     </div>
 
@@ -848,7 +850,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               {selectedNote.extractedReportData && (
                 <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/70 space-y-1.5">
                   <span className="text-[11px] font-black uppercase tracking-wider text-emerald-800 block">
-                    📄 Lab Report OCR Findings
+                     Lab Report OCR Findings
                   </span>
                   <p className="text-[13px] text-slate-800 font-medium">
                     {selectedNote.extractedReportData.sampleLines?.join(" | ") || "Report parsed."}
@@ -859,7 +861,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               {/* Clinical Safety Checks & Questions (Collapsible Reference) */}
               <details className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3 transition">
                 <summary className="text-[13px] font-bold text-slate-700 cursor-pointer select-none flex items-center justify-between">
-                  <span>🛡️ Clinical Safety Checklist & Gaps Reference</span>
+                  <span> Clinical Safety Checklist & Gaps Reference</span>
                   <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
                     {(selectedNote.missingInfo || []).length} field gaps
                   </span>
@@ -886,7 +888,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                             }`}
                           >
                             <span className="font-semibold">
-                              {isResolved ? "✓ Verified: " : "⚠ Not explicitly noted: "} {item}
+                              {isResolved ? "Verified: " : "• Not explicitly noted: "} {item}
                             </span>
                             <button
                               type="button"
@@ -920,7 +922,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                             key={idx}
                             className="text-[13px] p-2.5 rounded-lg border border-slate-200 bg-white flex items-start justify-between gap-2 shadow-2xs"
                           >
-                            <span className="font-medium text-slate-800 leading-relaxed">❓ {q}</span>
+                            <span className="font-medium text-slate-800 leading-relaxed"><strong className="text-slate-900 font-bold">Q:</strong> {q}</span>
                             <button
                               type="button"
                               onClick={() => {
@@ -943,7 +945,7 @@ export default function DashboardPage({ onQueueUpdated }) {
               <div className="p-4 rounded-xl border border-emerald-300 bg-emerald-50/40 space-y-3.5">
                 <div className="flex items-center justify-between">
                   <label className="text-[13px] font-black text-emerald-950 flex items-center gap-1.5">
-                    <span>💊</span> Doctor Clinical Disposition & Prescription (Rx)
+                    <span></span> Doctor Clinical Disposition & Prescription (Rx)
                   </label>
                   <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
                     OPD CLINICAL ORDER
@@ -957,10 +959,10 @@ export default function DashboardPage({ onQueueUpdated }) {
                   </span>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                      { id: "Routine OPD Treatment", label: "Routine OPD", icon: "🩺" },
-                      { id: "Admit to Emergency Ward", label: "Admit Emergency", icon: "🚨" },
-                      { id: "Refer to District Hospital", label: "Refer District", icon: "🚑" },
-                      { id: "Discharged with Advice", label: "Discharged", icon: "🏠" }
+                      { id: "Routine OPD Treatment", label: "Routine OPD", icon: "" },
+                      { id: "Admit to Emergency Ward", label: "Admit Emergency", icon: "" },
+                      { id: "Refer to District Hospital", label: "Refer District", icon: "" },
+                      { id: "Discharged with Advice", label: "Discharged", icon: "" }
                     ].map((disp) => {
                       const isSelected = disposition === disp.id;
                       return (
@@ -1054,7 +1056,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                   onClick={() => handleAction("EDIT_APPROVE")}
                   className="px-6 py-2.5 rounded-xl font-black text-[13.5px] text-white transition-all cursor-pointer disabled:opacity-40 shadow-sm hover:shadow-md bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 active:scale-98"
                 >
-                  {actionLoading ? "Saving..." : "✏️ Save Edit & Approve"}
+                  {actionLoading ? "Saving..." : "Save Edit & Approve"}
                 </button>
 
                 <button
@@ -1139,7 +1141,7 @@ export default function DashboardPage({ onQueueUpdated }) {
                     )}
                     {entry.prescription && (
                       <span className="text-[11px] text-emerald-900 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200 font-medium">
-                        💊 {entry.prescription.length > 50 ? entry.prescription.slice(0, 50) + "..." : entry.prescription}
+                         {entry.prescription.length > 50 ? entry.prescription.slice(0, 50) + "..." : entry.prescription}
                       </span>
                     )}
                   </div>

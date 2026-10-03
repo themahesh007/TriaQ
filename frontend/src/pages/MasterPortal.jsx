@@ -10,7 +10,8 @@ import {
   IconShield,
   IconArrowRight,
   IconCheckCircle,
-  IconXCircle
+  IconXCircle,
+  IconAlertCircle
 } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -168,7 +169,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
   // Suspend Staff
   // Clear All Data (Fresh Start)
   const handleClearAllData = async () => {
-    if (!window.confirm("⚠️ ARE YOU SURE?\n\nThis will completely wipe all patient tickets, triage history, and test logs from both the cloud database and local memory to give you a 100% clean, fresh start.\n\nContinue?")) {
+    if (!window.confirm("WARNING: ARE YOU SURE?\n\nThis will completely wipe all patient tickets, triage history, and test logs from both the cloud database and local memory to give you a 100% clean, fresh start.\n\nContinue?")) {
       return;
     }
     setLoading(true);
@@ -182,7 +183,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to clear data");
-      alert("✨ All project data has been wiped! You now have a 100% fresh, clean system.");
+      alert("All project data has been wiped! You now have a 100% fresh, clean system.");
       setNotification("All project data wiped clean.");
       fetchMasterData();
     } catch (err) {
@@ -265,7 +266,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12px] font-black text-rose-700 uppercase tracking-wider flex items-center gap-1">
-            <span>🔐</span> Master System Administration (2FA)
+            <span></span> Master System Administration (2FA)
           </span>
         </div>
 
@@ -283,7 +284,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
               className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition cursor-pointer flex items-center gap-1"
               title="Wipe all patients and triage tickets for a clean slate"
             >
-              <span>🧹</span> Reset Data
+              <span></span> Reset Data
             </button>
             <button
               type="button"
@@ -304,7 +305,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
             <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-400 text-amber-950 shadow-xs space-y-2">
               <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping inline-block" />
-                <span>⚠️ {pendingNotice.count} Hospital Registration{pendingNotice.count > 1 ? "s" : ""} Awaiting Verification</span>
+                <span>Notice: {pendingNotice.count} Hospital Registration{pendingNotice.count > 1 ? "s" : ""} Awaiting Verification</span>
               </div>
               <p className="text-[12px] text-amber-800 font-medium">
                 Institutions waiting for approval: <strong className="font-bold text-amber-950">{pendingNotice.facilities.map((f) => f.name).join(", ")}</strong>
@@ -316,10 +317,10 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
           )}
 
           <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
-            {/* Official Government Header Ribbon */}
+            {/* Official Hospital Header Ribbon */}
             <div className="bg-[#0B2545] text-white px-5 py-3 border-b border-[#001833] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-base">🔐</span>
+                <span className="text-base"></span>
                 <h3 className="font-bold text-[13px] tracking-wide uppercase">
                   State Health Governance &amp; Registry
                 </h3>
@@ -343,7 +344,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
               <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-md space-y-2 text-[12px]">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sky-950 flex items-center gap-1.5">
-                    <span>⚡</span> Master Officer Credentials
+                    <span>•</span> Master Officer Credentials
                   </span>
                   <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-sky-200/80 text-sky-900">
                     Official
@@ -372,7 +373,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                     disabled={loading}
                     className="btn-tactile py-1.5 px-2 rounded bg-[#003366] hover:bg-[#002855] text-white text-[11px] font-bold shadow-xs cursor-pointer text-center"
                   >
-                    {loading ? "Signing in..." : "⚡ 1-Click Sign In"}
+                    {loading ? "Signing in..." : "1-Click Sign In"}
                   </button>
                 </div>
               </div>
@@ -424,7 +425,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
 
                 <div className="p-3 rounded bg-slate-50 border border-slate-300 space-y-2">
                   <label className="text-[12px] font-bold text-slate-800 flex items-center gap-1.5">
-                    <span>📱</span> Time-based One-Time Password (TOTP)
+                    <span></span> Time-based One-Time Password (TOTP)
                   </label>
                   <input
                     type="text"
@@ -456,7 +457,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
           {pendingFacilities.length > 0 && (
             <div className="p-4 rounded-md bg-amber-50 border-2 border-amber-400 text-amber-950 flex flex-wrap items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">⚠️</span>
+                <IconAlertCircle className="w-7 h-7 text-amber-800 shrink-0" />
                 <div>
                   <h4 className="font-black text-sm text-amber-900 uppercase tracking-wide">
                     {pendingFacilities.length} Healthcare Facilit{pendingFacilities.length > 1 ? "ies" : "y"} Awaiting Master Verification
@@ -523,7 +524,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 onClick={fetchMasterData}
                 className="px-3.5 py-1.5 rounded-xl font-bold text-[12px] bg-slate-100 hover:bg-slate-200 text-slate-800 transition cursor-pointer shadow-2xs"
               >
-                🔄 Sync Now
+                 Sync Now
               </button>
             </div>
           </div>
@@ -544,15 +545,15 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                   <span className="text-2xl font-black text-slate-900 block">{analytics.totalPatients}</span>
                 </div>
                 <div className="p-4 rounded-md bg-rose-50 border border-rose-200 shadow-xs space-y-1">
-                  <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider">🔴 Red Flags</span>
+                  <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider">• Red Flags</span>
                   <span className="text-2xl font-black text-rose-700 block">{analytics.priorityDistribution.red} ({analytics.priorityDistribution.redPercentage}%)</span>
                 </div>
                 <div className="p-4 rounded-md bg-amber-50 border border-amber-200 shadow-xs space-y-1">
-                  <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider">🟡 Yellow Flags</span>
+                  <span className="text-[11px] font-black uppercase text-amber-800 tracking-wider">• Yellow Flags</span>
                   <span className="text-2xl font-black text-amber-800 block">{analytics.priorityDistribution.yellow}</span>
                 </div>
                 <div className="p-4 rounded-md bg-emerald-50 border border-emerald-200 shadow-xs space-y-1">
-                  <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">🟢 Green Flags</span>
+                  <span className="text-[11px] font-black uppercase text-emerald-800 tracking-wider">• Green Flags</span>
                   <span className="text-2xl font-black text-emerald-800 block">{analytics.priorityDistribution.green}</span>
                 </div>
               </div>
@@ -678,10 +679,10 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                         <div>
                           <h5 className="font-black text-slate-900 text-base">{pf.name}</h5>
                           <p className="text-[12.5px] text-slate-700 font-medium">
-                            📍 {pf.city ? `${pf.city}, ${pf.district}, ${pf.state}` : pf.address}
+                            • {pf.city ? `${pf.city}, ${pf.district}, ${pf.state}` : pf.address}
                           </p>
                           <p className="text-[12px] text-slate-600 font-medium mt-0.5">
-                            ✉️ {pf.adminEmail} • 📞 +91 {pf.phone || "N/A"}
+                            <span className="font-semibold text-slate-700">Email:</span> {pf.adminEmail} • <span className="font-semibold text-slate-700">Phone:</span> +91 {pf.phone || "N/A"}
                           </p>
                           {pf.licenseNumber && (
                             <p className="text-[11.5px] font-bold text-slate-800 mt-1 flex items-center gap-1.5">
@@ -769,7 +770,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                           {fac.name}
                         </h4>
                         <p className="text-[12px] text-slate-500 font-medium line-clamp-1">
-                          📍 {fac.address || "Main Medical Hub"}
+                          • {fac.address || "Main Medical Hub"}
                         </p>
                         <p className="text-[11px] text-slate-400 font-mono mt-1">
                           Admin: {fac.adminEmail || "admin@facility.org"}
@@ -846,7 +847,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 onClick={() => window.print()}
                 className="btn-tactile w-full py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs cursor-pointer"
               >
-                🖨️ Print Reception Standee
+                 Print Reception Standee
               </button>
               <button
                 type="button"
@@ -860,7 +861,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 }}
                 className="btn-tactile w-full py-2 px-4 rounded-xl font-bold text-[12px] text-slate-700 bg-slate-100 hover:bg-slate-200 cursor-pointer"
               >
-                📋 Copy Check-In Link
+                 Copy Check-In Link
               </button>
             </div>
           </div>

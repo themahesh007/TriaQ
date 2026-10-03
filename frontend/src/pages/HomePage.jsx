@@ -7,7 +7,9 @@ import {
   IconShield,
   IconCheckCircle,
   IconGovtEmblem,
-  IconIndianFlag
+  IconIndianFlag,
+  IconClipboard,
+  IconCalendar
 } from "../components/Icons";
 
 export default function HomePage({ onNavigate, language = "en", onSelectLanguage, onOpenLanguageModal }) {
@@ -15,7 +17,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
 
   return (
     <div className="max-w-[1240px] mx-auto px-4 py-6 md:py-10 space-y-8">
-      {/* 1. Official Government Announcement Ticker / Bulletin */}
+      {/* 1. Official Public Health Announcement Ticker / Bulletin */}
       <div className="bg-[#FFF8E7] border-l-4 border-[#D97706] border-y border-r border-[#FDE68A] p-3 rounded-r-md shadow-2xs flex flex-wrap items-center justify-between gap-3 text-[12.5px]">
         <div className="flex items-center gap-2 text-slate-900 font-medium">
           <span className="bg-[#D97706] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded tracking-wider shrink-0">
@@ -30,7 +32,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
           </span>
         </div>
         <div className="flex items-center gap-2 text-[11px] text-slate-500 font-bold ml-auto shrink-0">
-          <span>📅 {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+          <span><IconCalendar className="w-3.5 h-3.5 inline mr-1 text-slate-500" /> {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
           <span>•</span>
           <span className="text-[#003366]">
             {language === "hi" ? "पोर्टल संस्करण 2.4.0" : language === "or" ? "ପୋର୍ଟାଲ ସଂସ୍କରଣ ୨.୪.୦" : "Portal Version 2.4.0"}
@@ -53,7 +55,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 ? "स्वास्थ्य एवं परिवार कल्याण विभाग • ओडिशा सरकार" 
                 : language === "or"
                 ? "ସ୍ୱାସ୍ଥ୍ୟ ଏବଂ ପରିବାର କଲ୍ୟାଣ ବିଭାଗ • ଓଡ଼ିଶା ସରକାର"
-                : "Department of Health & Family Welfare • Government of Odisha"}
+                : "Department of Health & Family Welfare • Public Health &amp; Clinical Network"}
             </span>
           </div>
 
@@ -113,7 +115,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
       <div>
         <div className="border-b-2 border-[#003366] pb-2 mb-4 flex items-center justify-between">
           <h2 className="text-[16px] font-black uppercase text-[#003366] tracking-wide flex items-center gap-2">
-            <span>🏛️</span>
+            <span>️</span>
             <span>
               {language === "hi" 
                 ? "पोर्टल सेवाएं एवं नागरिक डेस्क" 
@@ -335,7 +337,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
       <div className="govt-panel p-5 bg-white border border-slate-300 rounded-md space-y-3">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
           <h3 className="text-[13px] font-black uppercase tracking-wider text-slate-800">
-            📊 {language === "hi" 
+             {language === "hi" 
               ? "प्रमुख राष्ट्रीय स्वास्थ्य संकेतक" 
               : language === "or" 
               ? "ପ୍ରମୁଖ ଜାତୀୟ ସ୍ୱାସ୍ଥ୍ୟ ସୂଚକାଙ୍କ" 
@@ -361,7 +363,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
             <span className="block text-[11px] font-bold text-slate-500 uppercase">Standards Compliance</span>
-            <span className="text-xl sm:text-2xl font-black text-blue-900">ABDM &amp; GIGW</span>
+            <span className="text-xl sm:text-2xl font-black text-blue-900">Clinical &amp; Health Protocols</span>
             <span className="block text-[10.5px] text-slate-500 mt-0.5">National Health Guidelines</span>
           </div>
 
@@ -377,7 +379,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12.5px]">
         <div className="govt-panel p-4 border border-slate-300 rounded-md space-y-2">
           <h4 className="font-bold text-[#003366] uppercase text-[12px] border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
-            <span>📋</span>
+            <IconClipboard className="w-4 h-4 inline text-[#003366]" />
             <span>
               {language === "hi" 
                 ? "नागरिक मार्गदर्शन" 
@@ -404,7 +406,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
 
         <div className="govt-panel p-4 border border-slate-300 rounded-md space-y-2">
           <h4 className="font-bold text-[#003366] uppercase text-[12px] border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
-            <span>🛡️</span>
+            <IconShield className="w-4 h-4 inline text-[#003366]" />
             <span>
               {language === "hi" 
                 ? "सुरक्षा एवं डेटा नीतियां" 

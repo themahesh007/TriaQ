@@ -25,7 +25,20 @@ import {
   IconShield,
   IconArrowRight,
   IconCheckCircle,
-  IconXCircle
+  IconXCircle,
+  IconGlobe,
+  IconFileText,
+  IconRefresh,
+  IconSearch,
+  IconPill,
+  IconAlertCircle,
+  IconDownload,
+  IconPhone,
+  IconMicrophone,
+  IconStethoscope,
+  IconLock,
+  IconPrint,
+  IconIndianFlag
 } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -40,7 +53,7 @@ export const ODISHA_QUICK_HOSPITALS = [
   "Pandit Raghunath Murmu Medical College – Baripada, Mayurbhanj",
   "Saheed Laxman Nayak Medical College – Koraput",
   "Bhima Bhoi Medical College – Balangir",
-  "Government Medical College – Sundargarh"
+  "Hospital Medical College – Sundargarh"
 ];
 
 
@@ -1000,7 +1013,7 @@ export default function PatientPortal({
             className="btn-tactile text-[12px] font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500 px-3 py-1.5 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
             title={language === "hi" ? "भाषा बदलें" : language === "or" ? "ଭାଷା ବଦଳାନ୍ତୁ" : "Change Language"}
           >
-            <span className="text-sm">🌐</span>
+            <IconGlobe className="w-3.5 h-3.5 inline mr-1 text-[#003366]" />
             <span className="font-bold text-emerald-950">
               {language === "or" ? "ଓଡ଼ିଆ" : language === "hi" ? "हिन्दी" : "English"}
             </span>
@@ -1034,7 +1047,7 @@ export default function PatientPortal({
       {!isOnline && (
         <div className="bg-amber-500 text-slate-950 p-4 rounded-md font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
           <div className="flex items-center gap-2.5 text-left">
-            <span className="text-xl">⚡</span>
+            <IconShield className="w-5 h-5 text-amber-950 shrink-0" />
             <div>
               <span className="font-black uppercase tracking-wider text-[10.5px] block text-amber-950">Offline Resilience Active</span>
               <span>No internet connection. Your symptom drafts and intake submissions are safely saved in local offline storage and will auto-sync when online.</span>
@@ -1068,7 +1081,7 @@ export default function PatientPortal({
       {hasDraftRestored && (
         <div className="bg-teal-50 border border-teal-300 text-teal-900 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-2xs">
           <span className="flex items-center gap-2">
-            <span>📝</span>
+            <IconFileText className="w-4 h-4 inline" />
             <span>Restored your unsaved symptom draft from local offline storage.</span>
           </span>
           <button
@@ -1084,7 +1097,7 @@ export default function PatientPortal({
       {offlineQueueCount > 0 && isOnline && (
         <div className="bg-blue-50 border border-blue-200 text-blue-950 p-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs">
           <span className="flex items-center gap-2">
-            <span>🔄</span>
+            <IconRefresh className="w-3.5 h-3.5 inline" />
             <span>You have {offlineQueueCount} queued offline case(s) waiting to sync.</span>
           </span>
           <button
@@ -1123,7 +1136,7 @@ export default function PatientPortal({
               : "text-slate-700 hover:text-slate-900"
           }`}
         >
-          <span>📝</span>
+          <IconFileText className="w-4 h-4 inline" />
           <span>{t.bookTokenTab || "Book OPD Token"}</span>
         </button>
         <button
@@ -1138,7 +1151,7 @@ export default function PatientPortal({
               : "text-slate-700 hover:text-slate-900"
           }`}
         >
-          <span>🔍</span>
+          <IconSearch className="w-3.5 h-3.5 inline" />
           <span>{t.showStatusTab || "SHOW STATUS"}</span>
         </button>
       </div>
@@ -1151,7 +1164,7 @@ export default function PatientPortal({
           <div className="max-w-2xl mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
             <div className="bg-[#003366] text-white px-5 py-4 flex items-center justify-between border-b border-[#0B2545]">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">🏛️</span>
+                <IconHospital className="w-7 h-7 inline text-[#003366]" />
                 <div>
                   <h3 className="font-bold text-[15px] leading-tight text-white tracking-wide">
                     {t.lookupTitle || "National OPD Patient Status & Queue Tracker"}
@@ -1162,7 +1175,7 @@ export default function PatientPortal({
                 </div>
               </div>
               <span className="text-[10.5px] font-black px-2.5 py-1 rounded bg-emerald-800 text-white border border-emerald-600">
-                ABDM Live
+                Active Station
               </span>
             </div>
 
@@ -1203,8 +1216,9 @@ export default function PatientPortal({
                 </div>
 
                 {lookupError && (
-                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold">
-                    ⚠️ {lookupError}
+                  <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[12.5px] font-bold flex items-center gap-1.5">
+                    <IconAlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+                    <span>{lookupError}</span>
                   </div>
                 )}
               </form>
@@ -1212,7 +1226,7 @@ export default function PatientPortal({
               {/* Not Found State */}
               {hasSearched && !lookupResult && !lookupLoading && (
                 <div className="p-6 rounded-xl border border-dashed border-amber-300 bg-amber-50/60 text-center space-y-3">
-                  <span className="text-3xl block">🔍</span>
+                  <IconSearch className="w-8 h-8 mx-auto text-slate-400 block" />
                   <h4 className="text-[14.5px] font-bold text-slate-800">
                     {language === "or" ? "କୌଣସି ସକ୍ରିୟ ଓପିଡି ରେକର୍ଡ ମିଳିଲା ନାହିଁ" : language === "hi" ? "कोई सक्रिय ओपीडी रिकॉर्ड नहीं मिला" : "No Active OPD Record Found"}
                   </h4>
@@ -1228,7 +1242,7 @@ export default function PatientPortal({
                     onClick={() => setPortalMode("book")}
                     className="mt-2 px-5 py-2.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[12.5px] transition cursor-pointer shadow-2xs"
                   >
-                    📝 {t.bookTokenTab || "Book New OPD Token"}
+                    {t.bookTokenTab || "Book New OPD Token"}
                   </button>
                 </div>
               )}
@@ -1256,7 +1270,7 @@ export default function PatientPortal({
                         ) : lookupResult.status === "REJECTED" ? (
                           <><span>✕</span> {language === "or" ? "ଜରୁରୀକାଳୀନ ଡେସ୍କକୁ ଯାଆନ୍ତୁ" : language === "hi" ? "आपातकालीन डेस्क से संपर्क करें" : "Direct to Emergency Desk"}</>
                         ) : (
-                          <><span>⏳</span> {language === "or" ? "ଡାକ୍ତରୀ ସମୀକ୍ଷା ପାଇଁ ଧାଡ଼ିରେ ବିଚାରାଧୀନ" : language === "hi" ? "डॉक्टर समीक्षा हेतु कतार में प्रतीक्षारत" : "In Priority Queue — Awaiting Doctor"}</>
+                          <>{language === "or" ? "• ଡାକ୍ତରୀ ସମୀକ୍ଷା ପାଇଁ ଧାଡ଼ିରେ ବିଚାରାଧୀନ" : language === "hi" ? "• डॉक्टर समीक्षा हेतु कतार में प्रतीक्षारत" : "• In Priority Queue — Awaiting Doctor"}</>
                         )}
                       </span>
                     </div>
@@ -1274,7 +1288,7 @@ export default function PatientPortal({
                     <div className="p-4 rounded-xl bg-blue-50 border-2 border-blue-300 text-blue-950 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[12px] font-black uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
-                          <span className="animate-pulse">🟢</span> {t.queueAhead || "Queue Position"}
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse mr-1" /> {t.queueAhead || "Queue Position"}
                         </span>
                         <span className="text-[11px] font-bold text-blue-700">Live Status</span>
                       </div>
@@ -1307,7 +1321,7 @@ export default function PatientPortal({
                       <span className="text-[11px] font-bold text-slate-500 uppercase block">{t.hospitalClinic || "Hospital / OPD Room"}</span>
                       <strong className="text-slate-900 text-[14px] block">{lookupResult.facility || "Assigned Facility"}</strong>
                       <span className="text-emerald-800 font-bold text-[12px] block">
-                        🏛️ {lookupResult.assignedRoom ? `${lookupResult.assignedRoom.roomNumber} - ${lookupResult.assignedRoom.name}` : "General OPD Room 101"}
+                        {lookupResult.assignedRoom ? `${lookupResult.assignedRoom.roomNumber} - ${lookupResult.assignedRoom.name}` : "General OPD Room 101"}
                       </span>
                     </div>
                   </div>
@@ -1376,7 +1390,7 @@ export default function PatientPortal({
                     <div className="p-4 rounded-xl border-2 border-emerald-400 bg-white space-y-2 shadow-xs">
                       <div className="flex items-center justify-between border-emerald-100 border-b pb-1.5">
                         <span className="text-[11.5px] font-black uppercase text-emerald-900 tracking-wider flex items-center gap-1.5">
-                          <span>💊</span> {t.prescriptionTitle || "Doctor's Prescription & Clinical Advice (Rx)"}
+                          <IconPill className="w-4 h-4 inline text-emerald-700 mr-1" /> {t.prescriptionTitle || "Doctor's Prescription & Clinical Advice (Rx)"}
                         </span>
                         <span className="text-[10px] font-black px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
                           Official Rx
@@ -1392,10 +1406,10 @@ export default function PatientPortal({
                   {lookupResult.referral && (
                     <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50 space-y-2">
                       <span className="text-[12px] font-black uppercase text-teal-950 block">
-                        🚨 Escalated / Referred to Higher Facility
+                        Escalated / Referred to Higher Facility
                       </span>
                       <p className="text-[13px] text-slate-800">
-                        Referred To: <strong>🏥 {lookupResult.referral.targetFacility}</strong>
+                        Referred To: <strong>{lookupResult.referral.targetFacility}</strong>
                       </p>
                       <a
                         href={`${API_BASE}/api/referrals/${lookupResult.referral.id}/pdf`}
@@ -1403,7 +1417,7 @@ export default function PatientPortal({
                         rel="noreferrer"
                         className="inline-block mt-2 px-4 py-2 rounded-lg bg-teal-900 text-white font-bold text-xs"
                       >
-                        📥 Download Official Referral Pass (PDF)
+                        Download Official Referral Pass (PDF)
                       </a>
                     </div>
                   )}
@@ -1415,7 +1429,7 @@ export default function PatientPortal({
                       download={`${lookupResult.receiptNumber}.pdf`}
                       className="btn-tactile py-3 px-4 rounded-xl font-black text-[13px] text-white bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                     >
-                      <span>📄</span>
+                      <IconFileText className="w-4 h-4 inline mr-1" />
                       <span>{t.downloadSlipBtn || "Download Official OPD Slip (PDF)"}</span>
                     </a>
 
@@ -1428,7 +1442,7 @@ export default function PatientPortal({
                       }}
                       className="btn-tactile py-3 px-4 rounded-xl font-bold text-[13px] text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <span>🔍</span>
+                      <IconSearch className="w-3.5 h-3.5 inline" />
                       <span>Check Another Number</span>
                     </button>
                   </div>
@@ -1450,18 +1464,18 @@ export default function PatientPortal({
         <div className="max-w-md mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs">
           <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between border-b border-[#0B2545]">
             <div className="flex items-center gap-2">
-              <span className="text-lg">🏛️</span>
+              <IconHospital className="w-5 h-5 inline text-[#003366]" />
               <div>
                 <h3 className="font-bold text-[13.5px] leading-tight text-white tracking-wide">
                   {t.authTitle || "Citizen OPD Token Booking Desk"}
                 </h3>
                 <p className="text-[10.5px] text-amber-300">
-                  Department of Health &amp; Family Welfare • Government of Odisha
+                  Department of Health &amp; Clinical Services
                 </p>
               </div>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
-              ABDM Verified
+              Verified Registry
             </span>
           </div>
 
@@ -1482,7 +1496,7 @@ export default function PatientPortal({
                   authTab === "otp" ? "bg-[#003366] text-white shadow-xs" : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                📱 {t.phoneOtpTab || "Mobile & OTP"}
+                {t.phoneOtpTab || "Mobile & OTP"}
               </button>
               <button
                 type="button"
@@ -1494,7 +1508,7 @@ export default function PatientPortal({
                   authTab === "password" ? "bg-[#003366] text-white shadow-xs" : "text-slate-700 hover:text-slate-900"
                 }`}
               >
-                ✉️ {t.passwordTab || "Email & Password"}
+                {t.passwordTab || "Email & Password"}
               </button>
             </div>
 
@@ -1517,7 +1531,7 @@ export default function PatientPortal({
                   </label>
                   <div className="flex gap-2">
                     <span className="px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
-                      <span>🇮🇳</span>
+                      <IconIndianFlag className="w-4 h-3 inline mr-1" />
                       <span>+91</span>
                     </span>
                     <input
@@ -1548,7 +1562,7 @@ export default function PatientPortal({
                     <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-950 space-y-1 shadow-2xs">
                       <div className="flex items-center justify-between font-black text-emerald-900 text-[12px]">
                         <span className="flex items-center gap-1.5">
-                          <span>📩</span> {language === "or" ? "ମୋବାଇଲ୍ ନମ୍ବରକୁ SMS ପଠାଗଲା" : language === "hi" ? "मोबाइल नंबर पर SMS भेजा गया" : "SMS Delivered to Contact Number"}
+                          <IconFileText className="w-4 h-4 inline mr-1" /> {language === "or" ? "ମୋବାଇଲ୍ ନମ୍ବରକୁ SMS ପଠାଗଲା" : language === "hi" ? "मोबाइल नंबर पर SMS भेजा गया" : "SMS Delivered to Contact Number"}
                         </span>
                         <span className="text-[10.5px] bg-white font-mono px-2 py-0.5 rounded border border-emerald-200">
                           +91-{phone}
@@ -1618,7 +1632,7 @@ export default function PatientPortal({
             <div className="space-y-4 max-w-sm mx-auto">
               {isSignup && (
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-[12px] font-bold text-center">
-                  ✨ Register New Patient Account
+                  Register New Patient Account
                 </div>
               )}
 
@@ -1647,7 +1661,7 @@ export default function PatientPortal({
                     </label>
                     <div className="flex gap-2">
                       <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
-                        <span>🇮🇳</span>
+                        <IconIndianFlag className="w-4 h-3 inline mr-1" />
                         <span>+91</span>
                       </span>
                       <input
@@ -1781,7 +1795,7 @@ export default function PatientPortal({
           <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
             <div className="flex items-center gap-2">
               <span className="font-bold text-amber-300 uppercase tracking-wide">
-                📋 {t.demographicsStep || "Step 1 of 2 • Patient Demographics & Registration"}
+                {t.demographicsStep || "Step 1 of 2 • Patient Demographics & Registration"}
               </span>
               <span className="text-slate-300 hidden sm:inline">|</span>
               <span className="text-slate-200 hidden sm:inline">Official OPD Desk</span>
@@ -1834,7 +1848,7 @@ export default function PatientPortal({
                 </div>
               </div>
               <span className="text-[11px] font-black uppercase px-3 py-1 rounded-full bg-emerald-200 text-emerald-900 border border-emerald-300">
-                {t.qrLocked || "🔒 QR Locked"}
+                {t.qrLocked || "QR Locked"}
               </span>
             </div>
           ) : (
@@ -1864,7 +1878,7 @@ export default function PatientPortal({
                 
                 {/* Active Registered Healthcare Facilities (e.g. MKCG MEDICAL, Satya Nagar) */}
                 {facilities.length > 0 && (
-                  <optgroup label={language === "or" ? "🏥 ସକ୍ରିୟ ପଞ୍ଜୀକୃତ ଡାକ୍ତରଖାନା (Active Registered Hospitals)" : language === "hi" ? "🏥 सक्रिय पंजीकृत अस्पताल (Active Registered Hospitals)" : "🏥 Active Registered Healthcare Facilities"}>
+                  <optgroup label={language === "or" ? "ସକ୍ରିୟ ପଞ୍ଜୀକୃତ ଡାକ୍ତରଖାନା (Active Registered Hospitals)" : language === "hi" ? "सक्रिय पंजीकृत अस्पताल (Active Registered Hospitals)" : "Active Registered Healthcare Facilities"}>
                     {facilities.map((f) => (
                       <option key={f.id} value={f.name}>
                         {f.name} ({f.type === "CLINIC" ? (language === "or" ? "କ୍ଲିନିକ୍" : language === "hi" ? "क्लिनिक" : "Clinic") : (language === "or" ? "ଡାକ୍ତରଖାନା" : language === "hi" ? "अस्पताल" : "Hospital")}{f.city ? ` - ${f.city}` : ""})
@@ -1873,8 +1887,8 @@ export default function PatientPortal({
                   </optgroup>
                 )}
 
-                {/* 10 Major Odisha Apex & Government Medical Colleges */}
-                <optgroup label={language === "or" ? "🏛️ ଓଡ଼ିଶାର ପ୍ରମୁଖ ୧୦ ଡାକ୍ତରଖାନା (Top 10 Odisha Hospitals)" : language === "hi" ? "🏛️ ओडिशा के प्रमुख 10 अस्पताल (Top 10 Odisha Hospitals)" : "🏛️ Top 10 Odisha Apex & Govt Hospitals"}>
+                {/* 10 Major Odisha Apex & Hospital Medical Colleges */}
+                <optgroup label={language === "or" ? "ଓଡ଼ିଶାର ପ୍ରମୁଖ ୧୦ ଡାକ୍ତରଖାନା (Top 10 Odisha Hospitals)" : language === "hi" ? "ओडिशा के प्रमुख 10 अस्पताल (Top 10 Odisha Hospitals)" : "Top 10 Odisha Apex & Govt Hospitals"}>
                   {ODISHA_QUICK_HOSPITALS.filter(
                     (oh) => !facilities.some((f) => f.name.toLowerCase() === oh.toLowerCase())
                   ).map((oh, idx) => (
@@ -1932,7 +1946,7 @@ export default function PatientPortal({
                 </label>
                 <div className="flex gap-2">
                   <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
-                    <span>🇮🇳</span>
+                    <IconIndianFlag className="w-4 h-3 inline mr-1" />
                     <span>+91</span>
                   </span>
                   <input
@@ -2017,7 +2031,7 @@ export default function PatientPortal({
           <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
             <div className="flex items-center gap-2">
               <span className="font-bold text-amber-300 uppercase tracking-wide">
-                🩺 {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms & Triage Intake"}
+                {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms & Triage Intake"}
               </span>
               <span className="text-slate-300 hidden sm:inline">|</span>
               <span className="text-slate-200 hidden sm:inline">Algorithmic Risk Prioritization</span>
@@ -2054,7 +2068,7 @@ export default function PatientPortal({
             {/* Target Hospital Indicator with 1-click change */}
             <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex flex-wrap items-center justify-between gap-2 shadow-2xs">
               <div className="flex items-center gap-2">
-                <span className="text-xl">🏥</span>
+                <IconHospital className="w-5 h-5 inline text-[#003366]" />
                 <div>
                   <span className="text-[10.5px] font-bold text-emerald-800 uppercase tracking-wide block">
                     {language === "or" ? "ଚୟନିତ ଡାକ୍ତରଖାନା / ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର:" : language === "hi" ? "चयनित अस्पताल / स्वास्थ्य केंद्र:" : "Selected Health Facility / OPD Desk:"}
@@ -2104,7 +2118,7 @@ export default function PatientPortal({
                   }`}
                   title={isRecording ? (language === "or" ? "ଭଏସ୍ ରେକର୍ଡିଂ ବନ୍ଦ କରିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ" : language === "hi" ? "आवाज रिकॉर्डिंग बंद करने के लिए क्लिक करें" : "Click to finish voice recording") : (t.voiceRecordBtn || "Speak symptoms via microphone")}
                 >
-                  <span className="text-base">🎙️</span>
+                  <IconMicrophone className="w-4 h-4 inline text-rose-600" />
                   <span>{isRecording ? (language === "or" ? "ବନ୍ଦ" : language === "hi" ? "रोकें" : "Stop") : (language === "or" ? "କହନ୍ତୁ (Mic)" : language === "hi" ? "बोलें (Mic)" : "Mic")}</span>
                 </button>
               </div>
@@ -2141,7 +2155,7 @@ export default function PatientPortal({
               {micError && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 text-[12px] font-medium flex items-start justify-between gap-2 shadow-2xs">
                   <div className="flex items-start gap-2">
-                    <span className="text-base">⚠️</span>
+                    <IconAlertCircle className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
                     <p>{micError}</p>
                   </div>
                   <button
@@ -2160,7 +2174,7 @@ export default function PatientPortal({
             <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                  <span>🩺</span> {t.vitalsTitle || (language === "or" ? "ଶାରୀରିକ ମାପଦଣ୍ଡ (ଇଚ୍ଛାଧୀନ ଟ୍ରାକର୍)" : language === "hi" ? "शारीरिक माप (वैकल्पिक)" : "Patient Vital Signs (Optional Triage Tracker)")}
+                  <IconStethoscope className="w-4 h-4 inline text-emerald-800 mr-1" /> {t.vitalsTitle || (language === "or" ? "ଶାରୀରିକ ମାପଦଣ୍ଡ (ଇଚ୍ଛାଧୀନ ଟ୍ରାକର୍)" : language === "hi" ? "शारीरिक माप (वैकल्पिक)" : "Patient Vital Signs (Optional Triage Tracker)")}
                 </span>
                 <span className="text-[11px] text-slate-400 font-medium">
                   {language === "or" ? "ସ୍ୱୟଂଚାଳିତ ଜରୁରୀକାଳୀନ ସତର୍କତା" : language === "hi" ? "स्वचालित आपातकालीन चेतावनी" : "Auto-emergency alerts"}
@@ -2238,7 +2252,7 @@ export default function PatientPortal({
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3">
                 <div>
                   <h3 className="text-[16px] font-semibold text-slate-800 flex items-center gap-2">
-                    <span className="text-lg">📋</span> {t.additionalBoxTitle}
+                    <IconClipboard className="w-4 h-4 inline text-[#003366] mr-1" /> {t.additionalBoxTitle}
                   </h3>
                   <p className="text-[12.5px] text-slate-500 mt-0.5 font-normal">
                     {t.additionalBoxHelp}
@@ -2385,7 +2399,7 @@ export default function PatientPortal({
               </label>
               <div className="flex items-center gap-3">
                 <label className="px-4 py-2 rounded-xl border border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/50 transition cursor-pointer text-[12.5px] font-bold text-slate-700 flex items-center gap-2">
-                  <span>📄</span>
+                  <IconFileText className="w-4 h-4 inline mr-1" />
                   <span>{reportFileName ? reportFileName : (t.uploadReportBtn || (language === "or" ? "ଫଟୋ ବାଛନ୍ତୁ..." : language === "hi" ? "फोटो चुनें..." : "Choose photo..."))}</span>
                   <input
                     type="file"
@@ -2420,7 +2434,7 @@ export default function PatientPortal({
             {/* MANDATORY WARNING IF ADDITIONAL QUESTIONS REMAIN */}
             {dynamicQuestions.length > 0 && (
               <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[12.5px] font-bold flex items-start gap-2 shadow-2xs">
-                <span className="text-base mt-0.5">⚠️</span>
+                <IconAlertCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-black text-[13px] text-amber-950">
                     {language === "or"
@@ -2459,7 +2473,7 @@ export default function PatientPortal({
                   </span>
                   {!consentChecked && (
                     <span className="text-[11.5px] font-bold text-amber-700 block">
-                      ⚠️ {language === "or" ? "ଦାଖଲ କରିବା ପୂର୍ବରୁ ଦୟାକରି ଏହି ସମ୍ମତି ବକ୍ସ ଚେକ୍ କରନ୍ତୁ।" : language === "hi" ? "सबमिट करने से पहले कृपया इस सहमति बॉक्स को टिक करें।" : "Please check this box to confirm consent before submitting."}
+                      • {language === "or" ? "ଦାଖଲ କରିବା ପୂର୍ବରୁ ଦୟାକରି ଏହି ସମ୍ମତି ବକ୍ସ ଚେକ୍ କରନ୍ତୁ।" : language === "hi" ? "सबमिट करने से पहले कृपया इस सहमति बॉक्स को टिक करें।" : "Please check this box to confirm consent before submitting."}
                     </span>
                   )}
                   <span className="text-[11px] text-slate-500 block pt-0.5">
@@ -2503,7 +2517,7 @@ export default function PatientPortal({
           <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex items-center justify-between text-[12px]">
             <div className="flex items-center gap-2">
               <span className="font-bold text-amber-300 uppercase tracking-wide">
-                🎫 Official OPD Token Pass &amp; Clinical Triage Receipt
+                Official OPD Token Pass &amp; Clinical Triage Receipt
               </span>
             </div>
             <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
@@ -2571,7 +2585,7 @@ export default function PatientPortal({
             <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-md text-xs text-amber-950 text-left space-y-2 shadow-2xs max-w-md mx-auto">
               <div className="font-black flex items-center justify-between text-amber-950 text-sm">
                 <span className="flex items-center gap-1.5">
-                  <span>⚡</span>
+                  <IconShield className="w-4 h-4 text-amber-900" />
                   <span>{language === "or" ? "ସ୍ଥାନୀୟ ଅଫଲାଇନ୍ ଡାଟାରେ ସାଇତା ହୋଇଛି" : language === "hi" ? "ऑफ़लाइन सुरक्षित रखा गया" : "Saved Locally (Offline Queue)"}</span>
                 </span>
                 <span className="bg-amber-200 text-amber-900 px-2 py-0.5 rounded text-[10.5px] uppercase font-black">
@@ -2606,7 +2620,7 @@ export default function PatientPortal({
                   }}
                   className="w-full py-2.5 px-3 rounded-xl text-xs font-black text-white bg-amber-800 hover:bg-amber-900 transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                 >
-                  <span>🔄</span>
+                  <IconRefresh className="w-3.5 h-3.5 inline" />
                   <span>{isSyncingOffline ? (language === "or" ? "ସିଙ୍କ୍ ଯାଞ୍ଚ ହେଉଛି..." : language === "hi" ? "कनेक्शन जांच रहे हैं..." : "Checking Connection...") : (t.syncNow || "Sync to Hospital Cloud (If Online)")}</span>
                 </button>
               </div>
@@ -2623,7 +2637,7 @@ export default function PatientPortal({
                 rel="noopener noreferrer"
                 className="btn-tactile w-full py-2.5 px-3 rounded font-bold text-[13px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs flex items-center justify-center gap-1.5 cursor-pointer text-center"
               >
-                <span>📄</span>
+                <IconFileText className="w-4 h-4 inline mr-1" />
                 <span>{t.downloadPdfPass || "Download PDF Pass"}</span>
               </a>
 
@@ -2632,7 +2646,7 @@ export default function PatientPortal({
                 onClick={() => setShowPrintSlipModal(true)}
                 className="w-full py-3 px-3 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-98"
               >
-                <span>🖨️</span>
+                <IconPrint className="w-4 h-4 inline" />
                 <span>{t.printOpdSlip || "Print OPD Slip"}</span>
               </button>
             </div>
@@ -2710,7 +2724,7 @@ export default function PatientPortal({
                     ? (language === "or" ? "✓ ଡାକ୍ତରଙ୍କ ଦ୍ୱାରା ସମୀକ୍ଷା ଓ ସଂଶୋଧିତ" : language === "hi" ? "✓ डॉक्टर द्वारा समीक्षा एवं संपादित" : "✓ Reviewed & Edited by Doctor")
                     : statusData.status === "REJECTED"
                     ? (language === "or" ? "✕ ପ୍ରତ୍ୟାଖ୍ୟାତ (ଦୟାକରି ଜରୁରୀକାଳୀନ ଡେସ୍କକୁ ଯାଆନ୍ତୁ)" : language === "hi" ? "✕ अस्वीकृत (कृपया आपातकालीन डेस्क से संपर्क करें)" : "✕ Rejected (Please see Emergency Desk)")
-                    : (t.awaitingReview || "⏳ Awaiting Doctor Review")}
+                    : (t.awaitingReview || "• Awaiting Doctor Review")}
                 </span>
               </div>
 
@@ -2738,7 +2752,7 @@ export default function PatientPortal({
                 <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50/90 space-y-2 shadow-sm text-left">
                   <div className="flex items-center justify-between border-b border-teal-200 pb-2">
                     <span className="text-[12px] font-black uppercase text-teal-950 tracking-wider flex items-center gap-1.5">
-                      <span>🚨</span> {t.hospitalTransferAlert || "Hospital Transfer & Referral Issued"}
+                      <IconAlertCircle className="w-4 h-4 inline text-rose-600 mr-1" /> {t.hospitalTransferAlert || "Hospital Transfer & Referral Issued"}
                     </span>
                     <span className="text-[10px] font-black px-2 py-0.5 rounded bg-teal-200 text-teal-950 uppercase">
                       {t.actionRequired || "Action Required"}
@@ -2748,7 +2762,7 @@ export default function PatientPortal({
                     <p>
                       {t.referredToPrefix || "Your attending physician has officially referred your case to:"}
                       <strong className="block text-base font-black text-slate-950 mt-0.5">
-                        🏥 {statusData.referral.targetFacility}
+                        {statusData.referral.targetFacility}
                       </strong>
                     </p>
                     <p className="text-[12px] text-slate-700">
@@ -2762,7 +2776,7 @@ export default function PatientPortal({
                       rel="noreferrer"
                       className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-teal-900 hover:bg-teal-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <span>{t.downloadReferralPdf || "📥 Download Official Referral Letter (PDF)"}</span>
+                      <span>{t.downloadReferralPdf || "Download Official Referral Letter (PDF)"}</span>
                     </a>
                     <p className="text-[11px] text-teal-800 mt-1 text-center font-medium">
                       {t.presentReferralNotice || "Please present this official referral pass directly upon arrival at the receiving facility emergency or intake counter."}
@@ -2777,14 +2791,14 @@ export default function PatientPortal({
                   download={`${statusData.receiptNumber}.pdf`}
                   className="w-full py-3 px-4 rounded-xl font-black text-[13.5px] text-white bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <span>📄</span>
+                  <IconFileText className="w-4 h-4 inline mr-1" />
                   <span>{t.downloadReceiptAgain || "Download Receipt Again (PDF)"}</span>
                 </a>
               </div>
             </div>
           ) : (
             <div className="text-center py-8 space-y-2">
-              <span className="text-3xl block">📋</span>
+              <IconClipboard className="w-8 h-8 text-slate-300 block mx-auto" />
               <p className="text-[14.5px] font-bold text-slate-800">No active triage submission found.</p>
               <p className="text-[12.5px] text-slate-500 max-w-xs mx-auto">
                 Submit your symptoms through the intake desk to generate a triage pass.

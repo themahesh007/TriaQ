@@ -104,7 +104,7 @@ export default function TriageSlipModal({ note, onClose }) {
               onClick={handlePrint}
               className="btn-tactile px-3.5 py-1.5 rounded font-bold text-[12px] text-slate-900 bg-amber-400 hover:bg-amber-300 transition shadow-xs cursor-pointer flex items-center gap-1.5"
             >
-              <span>🖨️ Print Slip</span>
+              <span>️ Print Slip</span>
             </button>
             <button
               type="button"

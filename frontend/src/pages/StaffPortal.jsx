@@ -18,7 +18,18 @@ import {
   IconArrowRight,
   IconCheckCircle,
   IconXCircle,
-  IconGovtEmblem
+  IconGovtEmblem,
+  IconLock,
+  IconPin,
+  IconUsers,
+  IconDownload,
+  IconUpload,
+  IconRefresh,
+  IconSpeaker,
+  IconPill,
+  IconTestTube,
+  IconAlertCircle,
+  IconGlobe
 } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -33,7 +44,7 @@ export const REFERRAL_HOSPITALS = [
   "Pandit Raghunath Murmu Medical College – Baripada, Mayurbhanj",
   "Saheed Laxman Nayak Medical College – Koraput",
   "Bhima Bhoi Medical College – Balangir",
-  "Government Medical College – Sundargarh"
+  "Hospital Medical College – Sundargarh"
 ];
 
 // Helpers for Indian 10-digit Contact Number validation
@@ -264,11 +275,11 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
     }
 
     const langBadge = (language === "or")
-      ? ` [ 🌐 ଟୋକନ୍ ${toOdiaDigits(cleanTokenNum)} ]`
+      ? ` [ ଟୋକନ୍ ${toOdiaDigits(cleanTokenNum)} ]`
       : (language === "hi")
-      ? ` [ 🌐 टोकन ${toHindiDigits(cleanTokenNum)} ]`
+      ? ` [ टोकन ${toHindiDigits(cleanTokenNum)} ]`
       : "";
-    setNotification(`📢 Calling Token Number ${cleanTokenNum}${langBadge} to ${targetDestination}...`);
+    setNotification(`Calling Token Number ${cleanTokenNum}${langBadge} to ${targetDestination}...`);
     setTimeout(() => setCallingToken(""), 5000);
   };
 
@@ -586,7 +597,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
       {!isOnline && (
         <div className="bg-amber-500 text-slate-950 p-3.5 rounded-md font-bold text-xs flex items-center justify-between shadow-md border border-amber-600 animate-pulse">
           <div className="flex items-center gap-2.5 text-left">
-            <span className="text-xl">⚡</span>
+            <IconShield className="w-5 h-5 text-amber-950 shrink-0" />
             <span>
               <strong>Staff Station Offline:</strong> Internet connection lost. Clinical queue and triage reviews are cached in local browser memory and will auto-sync when connection restores.
             </span>
@@ -619,7 +630,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                 {/* Amber Caution Alert Box */}
                 <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/90 text-amber-950 space-y-2.5 shadow-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">⚠️</span>
+                    <IconAlertCircle className="w-5 h-5 text-amber-800 shrink-0" />
                     <h4 className="font-black text-[14px] uppercase tracking-wide text-amber-900">
                       CAUTION: Registration Submitted — Awaiting HOD Approval
                     </h4>
@@ -629,7 +640,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     <strong> Under clinical safety governance and patient privacy protocols, your clinical station login remains strictly locked until your department Head of Department (HOD) verifies and approves your credentials in the Hospital Portal.</strong>
                   </p>
                   <div className="p-2.5 rounded-lg bg-amber-100 border border-amber-200 text-[11.5px] font-bold text-amber-900 flex items-center gap-2">
-                    <span>📌</span>
+                    <span>•</span>
                     <span>Once approved by your HOD, you can sign in immediately with your email and password to review patient triage queues.</span>
                   </div>
                 </div>
@@ -641,7 +652,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       Clinician Profile Summary
                     </span>
                     <span className="text-[10.5px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                      ⏳ PENDING HOD CLEARANCE
+                      PENDING HOD CLEARANCE
                     </span>
                   </div>
 
@@ -769,7 +780,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                 </div>
                 <div className="relative flex items-center">
                   <span className="absolute left-3 text-[12px] font-black text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                    🇮🇳 +91
+                    +91
                   </span>
                   <input
                     type="tel"
@@ -821,7 +832,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                   />
                 )}
                 <p className="text-[11px] text-slate-500 mt-1">
-                  🔒 Your account approval request will route strictly and exclusively to the HOD desk of the selected hospital.
+                  Your account approval request will route strictly and exclusively to the HOD desk of the selected hospital.
                 </p>
               </div>
 
@@ -922,7 +933,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
               loginError.toLowerCase().includes("pending") || loginError.toLowerCase().includes("hod") ? (
                 <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-1.5 shadow-xs animate-fade-in">
                   <div className="flex items-center gap-2 font-black text-[13px] text-amber-900">
-                    <span className="text-lg">⚠️</span>
+                    <IconAlertCircle className="w-4 h-4 text-amber-800 shrink-0" />
                     <span>CAUTION: Staff Account Pending HOD Clearance</span>
                   </div>
                   <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-6">
@@ -1020,11 +1031,11 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
         <div className="space-y-6">
           {/* Executive Hospital Workstation Header */}
           <div className="govt-panel border border-slate-300 rounded-md shadow-xs">
-            {/* Government Workstation Top Ribbon */}
+            {/* Hospital Workstation Top Ribbon */}
             <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex flex-wrap items-center justify-between gap-3 text-[12px]">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-amber-300 uppercase tracking-wide">
-                  🏥 Government Health Facility Workstation
+                  Hospital Clinical Workstation
                 </span>
                 <span className="text-slate-300 hidden sm:inline">|</span>
                 <span className="text-slate-200 hidden sm:inline">OPD Queue &amp; Clinical Management Console</span>
@@ -1045,9 +1056,9 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                   </label>
                   <div className="flex items-center gap-2 flex-wrap">
                     <div className="inline-flex items-center gap-2 bg-[#003366] text-white px-3.5 py-1.5 rounded-lg shadow-xs">
-                      <span className="text-base">🏥</span>
+                      <IconHospital className="w-4 h-4 text-white inline" />
                       <span className="text-sm sm:text-base font-black tracking-wide">{currentHospitalName}</span>
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500 text-white ml-1">🔒 Assigned Hospital</span>
+                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-500 text-white ml-1">Assigned Hospital</span>
                     </div>
                     <span className="text-[11.5px] font-semibold text-slate-500">
                       • Station ID: {currentHospitalName?.replace(/\s+/g, '-').toUpperCase()}-OPD-01
@@ -1061,7 +1072,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     {staffSession.staff?.name || "Medical Officer"} ({staffSession.staff?.role || "DOCTOR"})
                   </span>
                   <span className="text-[11px] font-semibold text-slate-600 block">
-                    📍 {currentHospitalName} • General OPD Desk
+                    • {currentHospitalName} • General OPD Desk
                   </span>
                 </div>
               </div>
@@ -1105,7 +1116,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     activeAdminTab === "queue" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600"
                   }`}
                 >
-                  🩺 Priority Queue ({queue.length})
+                  Priority Queue ({queue.length})
                 </button>
                 {isAdmin && (
                   <button
@@ -1115,7 +1126,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       activeAdminTab === "staff_manage" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600"
                     }`}
                   >
-                    👥 Staff Management
+                    Staff Management
                   </button>
                 )}
               </div>
@@ -1141,8 +1152,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                 onClick={handleExportCSV}
                 className="px-3.5 py-2 rounded-xl font-bold text-[12.5px] border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 transition cursor-pointer shadow-2xs flex items-center gap-1.5"
               >
-                <span>📥</span>
-                <span>Export CSV</span>
+                <IconDownload className="w-3.5 h-3.5 inline mr-1" /><span>Export CSV</span>
               </button>
 
               <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-[11px] font-bold text-emerald-800 shadow-2xs">
@@ -1162,7 +1172,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                 onClick={fetchDashboardData}
                 className="px-3 py-2 rounded-xl font-bold text-[12.5px] bg-slate-100 hover:bg-slate-200 text-slate-800 transition cursor-pointer shadow-2xs"
               >
-                🔄 Sync
+                Sync
               </button>
             </div>
           </div>
@@ -1266,12 +1276,12 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                               </span>
                               {language === "or" && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Selected language: Odia">
-                                  🌐 ଟୋକନ୍ {toOdiaDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
+                                  ଟୋକନ୍ {toOdiaDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
                                 </span>
                               )}
                               {language === "hi" && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200" title="Selected language: Hindi">
-                                  🌐 टोकन {toHindiDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
+                                  टोकन {toHindiDigits(item.patient?.tokenId?.match(/\d+/)?.[0] || item.tokenId?.match(/\d+/)?.[0] || "")}
                                 </span>
                               )}
                             </div>
@@ -1289,7 +1299,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                                     : "bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-600 hover:text-white"
                                 }`}
                               >
-                                📢 Call
+                                Call
                               </button>
                               <span
                                 className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
@@ -1326,7 +1336,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
               <div className="lg:col-span-7">
                 {!selectedNote ? (
                   <div className="bg-white rounded-md p-12 border border-slate-200 text-center text-slate-400 space-y-3 min-h-[420px] flex flex-col items-center justify-center">
-                    <span className="text-4xl block">🩺</span>
+                    <IconStethoscope className="w-12 h-12 text-slate-300 block mx-auto" />
                     <p className="font-bold text-[15px] text-slate-700">No Patient Case Selected</p>
                     <p className="text-[13px] text-slate-400 max-w-sm">
                       Select a patient from the active queue on the left to review vitals, symptoms, disposition, and issue medical approvals or referrals.
@@ -1351,12 +1361,12 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                           </h2>
                           {language === "or" && (
                             <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
-                              🌐 ଟୋକନ୍ ନମ୍ବର {toOdiaDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
+                              ଟୋକନ୍ ନମ୍ବର {toOdiaDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
                             </span>
                           )}
                           {language === "hi" && (
                             <span className="text-[12px] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-300">
-                              🌐 टोकन संख्या {toHindiDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
+                              टोकन संख्या {toHindiDigits(selectedNote.patient?.tokenId?.match(/\d+/)?.[0] || selectedNote.tokenId?.match(/\d+/)?.[0] || "")}
                             </span>
                           )}
                         </div>
@@ -1368,7 +1378,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                           onClick={() => handleCallPatient(selectedNote)}
                           className="px-3 py-1.5 rounded-xl font-black text-[12px] bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-800 border border-emerald-300 transition cursor-pointer"
                         >
-                          📢 Call Patient to {consultationRoom}
+                          Call Patient to {consultationRoom}
                         </button>
                         <span
                           className={`px-3 py-1 rounded-full font-black text-[12px] ${
@@ -1392,7 +1402,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                         </span>
                         {!isDoctor && (
                           <span className="text-[10px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                            🔒 PII Protected
+                            PII Protected
                           </span>
                         )}
                       </div>
@@ -1412,7 +1422,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                                 className="text-[11px] px-1.5 py-0.5 rounded hover:bg-slate-200 text-slate-500 transition cursor-pointer"
                                 title={revealFullName ? "Click to mask name" : "Click to unmask full name"}
                               >
-                                {revealFullName ? "🙈" : "👁️"}
+                                {revealFullName ? <IconEyeOff className="w-3.5 h-3.5 inline" /> : <IconEye className="w-3.5 h-3.5 inline" />}
                               </button>
                             )}
                           </div>
@@ -1457,7 +1467,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       <div className="p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/60 space-y-2 shadow-2xs">
                         <div className="flex items-center justify-between border-b border-indigo-200/70 pb-1.5">
                           <span className="text-[11.5px] font-black uppercase text-indigo-950 tracking-wider flex items-center gap-1.5">
-                            <span>🧪</span> Extracted Pathology Lab Values (OCR Scanner)
+                            <IconTestTube className="w-4 h-4 inline mr-1 text-indigo-700" /> Extracted Pathology Lab Values (OCR Scanner)
                           </span>
                           <span className="text-[10px] font-bold text-indigo-800 bg-white px-2 py-0.5 rounded border border-indigo-200">
                             Automated Pattern Extraction
@@ -1488,7 +1498,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-[13px] font-black text-slate-900 flex items-center gap-1.5">
-                          <span>📋</span> Structured Patient Clinical Summary
+                          <IconClipboard className="w-4 h-4 inline mr-1 text-[#003366]" /> Structured Patient Clinical Summary
                         </label>
                         <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px] font-bold">
                           <button
@@ -1507,7 +1517,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                               summaryViewMode === "edit" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
                             }`}
                           >
-                            ✏️ Edit Text
+                            Edit Text
                           </button>
                         </div>
                       </div>
@@ -1526,7 +1536,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                             className="w-full p-3 rounded-xl border border-slate-300 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white shadow-2xs leading-relaxed"
                           />
                           <p className="text-[11px] text-slate-400 font-medium">
-                            Tip: After editing the summary, click <strong>"✏️ Save & Edit"</strong> below to save changes and approve.
+                            Tip: After editing the summary, click <strong>"Save & Edit"</strong> below to save changes and approve.
                           </p>
                         </div>
                       )}
@@ -1536,7 +1546,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     <div className="p-4 rounded-xl border border-emerald-300/80 bg-emerald-50/30 space-y-3">
                       <div className="flex items-center justify-between">
                         <label className="text-[12.5px] font-black text-emerald-950 flex items-center gap-1.5">
-                          <span>💊</span> Clinical Disposition & Prescription (Rx)
+                          <IconPill className="w-4 h-4 inline mr-1 text-emerald-800" /> Clinical Disposition & Prescription (Rx)
                         </label>
                         <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-100/80 text-emerald-800">
                           Role: {userRole}
@@ -1597,22 +1607,22 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                     <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3 shadow-2xs">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-base">📍</span>
+                          <IconPin className="w-3.5 h-3.5 inline text-slate-500" />
                           <label className="text-[12.5px] font-black text-slate-900 uppercase tracking-wide">
                             Assign Clinical Room / Ward
                           </label>
                         </div>
                         {selectedNote.riskTag === "RED" ? (
                           <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
-                            🚨 Emergency Ward Required (Severe)
+                            Emergency Ward Required (Severe)
                           </span>
                         ) : selectedNote.riskTag === "YELLOW" || selectedNote.riskTag === "AMBER" ? (
                           <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            ⚠️ Acute Care / Urgent OPD
+                            ! Acute Care / Urgent OPD
                           </span>
                         ) : (
                           <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300">
-                            🟢 OPD Consultation (Routine Mild)
+                            OPD Consultation (Routine Mild)
                           </span>
                         )}
                       </div>
@@ -1772,7 +1782,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                           className="btn-tactile w-full py-2.5 px-4 rounded-xl font-bold text-[13px] text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-300 transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
                           title="Generate official referral letter for secondary/tertiary hospital"
                         >
-                          <span>📤</span>
+                          <IconUpload className="w-3.5 h-3.5 inline" />
                           <span>Refer to Higher Facility</span>
                         </button>
 
@@ -1875,7 +1885,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
           <div className="bg-white w-full max-w-lg rounded-md shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-teal-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <span className="text-2xl">🏥</span>
+                <IconHospital className="w-6 h-6 text-emerald-700 inline" />
                 <div>
                   <h3 className="font-black text-[16px] tracking-tight">Refer Patient to Higher Facility</h3>
                   <p className="text-[12px] text-teal-200">
@@ -1924,7 +1934,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       rel="noreferrer"
                       className="w-full py-3 px-4 rounded-xl font-black text-sm text-white bg-teal-900 hover:bg-teal-800 transition flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                     >
-                      <span>📥 Download &amp; Print Official Referral Letter (PDF)</span>
+                      <span>Download &amp; Print Official Referral Letter (PDF)</span>
                     </a>
                     <button
                       type="button"
@@ -1949,10 +1959,10 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                       onChange={(e) => setReferralTargetFacility(e.target.value)}
                       className="w-full p-2.5 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-teal-600 text-slate-900 cursor-pointer shadow-2xs"
                     >
-                      <optgroup label="Government Medical Colleges & Specialty Centers">
+                      <optgroup label="Hospital Medical Colleges & Specialty Centers">
                         {REFERRAL_HOSPITALS.map((hospital) => (
                           <option key={hospital} value={hospital}>
-                            🏥 {hospital}
+                            {hospital}
                           </option>
                         ))}
                       </optgroup>
@@ -1962,7 +1972,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
                             .filter((f) => f.name !== (staffSession?.staff?.facility))
                             .map((fac) => (
                               <option key={fac.id} value={fac.name}>
-                                🏥 {fac.name} ({fac.city || fac.district || "Network"})
+                                {fac.name} ({fac.city || fac.district || "Network"})
                               </option>
                             ))}
                         </optgroup>

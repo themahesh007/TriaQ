@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import ClinicalSummaryCard from "../components/ClinicalSummaryCard";
 import TriageSlipModal from "../components/TriageSlipModal";
+import { IconAlertCircle } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -21,9 +22,9 @@ const UI_TEXT = {
     micCaptured: "Speech captured! Tap again if needed.",
     quickLabel: "Quick templates:",
     templates: [
-      { label: "🔴 Urgent: Chest Pain", text: "Sudden severe chest pain and breathlessness since morning, no medicine taken." },
-      { label: "🟡 Moderate: Fever (Yellow)", text: "High fever and vomiting for 2 days, taking paracetamol tablet." },
-      { label: "🟢 Normal: Headache (Green)", text: "Mild headache and slight tiredness today, no previous medical history." }
+      { label: "• Urgent: Chest Pain", text: "Sudden severe chest pain and breathlessness since morning, no medicine taken." },
+      { label: "• Moderate: Fever (Yellow)", text: "High fever and vomiting for 2 days, taking paracetamol tablet." },
+      { label: "• Normal: Headache (Green)", text: "Mild headache and slight tiredness today, no previous medical history." }
     ],
     additionalBoxTitle: "Some Additional Questions",
     additionalBoxHelp: "Answer the relevant questions below. Answered questions will disappear and save into the summary.",
@@ -60,9 +61,9 @@ const UI_TEXT = {
     micCaptured: "आवाज दर्ज हो गई! और बोलने के लिए फिर दबाएं।",
     quickLabel: "त्वरित उदाहरण (Quick templates):",
     templates: [
-      { label: "🔴 गंभीर: छाती में दर्द (Urgent)", text: "सुबह से अचानक छाती में तेज दर्द और सांस फूलने की समस्या है, कोई दवा नहीं ली।" },
-      { label: "🟡 मध्यम: बुखार (Yellow)", text: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।" },
-      { label: "🟢 सामान्य: सिरदर्द (Green)", text: "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।" }
+      { label: "• गंभीर: छाती में दर्द (Urgent)", text: "सुबह से अचानक छाती में तेज दर्द और सांस फूलने की समस्या है, कोई दवा नहीं ली।" },
+      { label: "• मध्यम: बुखार (Yellow)", text: "2 दिनों से तेज बुखार और उल्टी हो रही है, पैरासिटामोल गोली ली है।" },
+      { label: "• सामान्य: सिरदर्द (Green)", text: "आज से हल्का सिरदर्द और हल्की थकान है, कोई पुरानी बीमारी नहीं है।" }
     ],
     additionalBoxTitle: "कुछ अतिरिक्त प्रश्न (Some Additional Questions)",
     additionalBoxHelp: "नीचे दिए गए प्रश्नों के उत्तर दें। उत्तर देने पर प्रश्न हट जाएगा और सारांश में जुड़ जाएगा।",
@@ -99,9 +100,9 @@ const UI_TEXT = {
     micCaptured: "ସ୍ୱର ରେକର୍ଡ ହେଲା! ଆହୁରି କହିବା ପାଇଁ ପୁଣି ଦବାନ୍ତୁ।",
     quickLabel: "ଉଦାହରଣ ଟେମ୍ପଲେଟ୍ (Quick templates):",
     templates: [
-      { label: "🔴 ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା (Urgent)", text: "ସକାଳୁ ହଠାତ୍ ପ୍ରବଳ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।" },
-      { label: "🟡 ମଧ୍ୟମ: ଜ୍ୱର (Yellow)", text: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।" },
-      { label: "🟢 ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)", text: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।" }
+      { label: "• ଜରୁରୀ: ଛାତି ଯନ୍ତ୍ରଣା (Urgent)", text: "ସକାଳୁ ହଠାତ୍ ପ୍ରବଳ ଛାତି ଯନ୍ତ୍ରଣା ଏବଂ ନିଶ୍ୱାସ ନେବାରେ କଷ୍ଟ, କୌଣସି ଔଷଧ ଖାଇନାହାଁନ୍ତି।" },
+      { label: "• ମଧ୍ୟମ: ଜ୍ୱର (Yellow)", text: "୨ ଦିନ ଧରି ପ୍ରବଳ ଜ୍ୱର ଏବଂ ବାନ୍ତି ହେଉଛି, ପାରାସିଟାମୋଲ୍ ଔଷଧ ଖାଉଛନ୍ତି।" },
+      { label: "• ସାଧାରଣ: ମୁଣ୍ଡବିନ୍ଧା (Green)", text: "ଆଜି ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା ଏବଂ କ୍ଳାନ୍ତ ଲାଗୁଛି, ପୂର୍ବର କୌଣସି ରୋଗ ନାହିଁ।" }
     ],
     additionalBoxTitle: "କିଛି ଅତିରିକ୍ତ ପ୍ରଶ୍ନ (Some Additional Questions)",
     additionalBoxHelp: "ତଳେ ଥିବା ପ୍ରଶ୍ନଗୁଡ଼ିକର ଉତ୍ତର ଦିଅନ୍ତୁ। ଉତ୍ତର ଦେବା ପରେ ପ୍ରଶ୍ନଟି ହଟିଯିବ ଏବଂ ନୋଟରେ ସାଇତା ହେବ।",
@@ -631,7 +632,7 @@ export default function IntakePage({ onTriageCreated }) {
                       isRecording ? "animate-pulse ring-2 ring-rose-500 bg-rose-50 text-rose-600" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                     }`}
                   >
-                    <span className="text-base">🎙</span>
+                    <span className="text-base"></span>
                   </button>
                 </div>
               </div>
@@ -651,7 +652,7 @@ export default function IntakePage({ onTriageCreated }) {
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div>
                   <h3 className="text-[17px] font-black text-slate-900 flex items-center gap-2">
-                    <span className="text-lg">🩺</span> Patient Vital Signs (Optional)
+                    <span className="text-lg"></span> Patient Vital Signs (Optional)
                   </h3>
                   <p className="text-[12.5px] text-slate-500 mt-0.5">
                     Record baseline vitals if medical instruments (BP monitor, pulse oximeter, thermometer) are available.
@@ -671,7 +672,7 @@ export default function IntakePage({ onTriageCreated }) {
                     </label>
                     {vitals.bpSystolic ? (
                       (Number(vitals.bpSystolic) >= 180 || Number(vitals.bpDiastolic) >= 110) ? (
-                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Crisis ⚠️</span>
+                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Crisis [!]</span>
                       ) : (Number(vitals.bpSystolic) >= 140 || Number(vitals.bpDiastolic) >= 90) ? (
                         <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">High</span>
                       ) : (
@@ -706,7 +707,7 @@ export default function IntakePage({ onTriageCreated }) {
                     </label>
                     {vitals.pulse ? (
                       (Number(vitals.pulse) > 130 || (Number(vitals.pulse) > 0 && Number(vitals.pulse) < 45)) ? (
-                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Abnormal ⚠️</span>
+                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Abnormal [!]</span>
                       ) : Number(vitals.pulse) > 105 ? (
                         <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">High</span>
                       ) : (
@@ -731,7 +732,7 @@ export default function IntakePage({ onTriageCreated }) {
                     </label>
                     {vitals.spo2 ? (
                       Number(vitals.spo2) < 90 ? (
-                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Critical (&lt;90%) ⚠️</span>
+                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">Critical (&lt;90%) [!]</span>
                       ) : Number(vitals.spo2) <= 93 ? (
                         <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">Low (90-93%)</span>
                       ) : (
@@ -756,7 +757,7 @@ export default function IntakePage({ onTriageCreated }) {
                     </label>
                     {vitals.temp ? (
                       Number(vitals.temp) >= 103 ? (
-                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">High Fever ⚠️</span>
+                        <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-rose-100 text-rose-800">High Fever [!]</span>
                       ) : Number(vitals.temp) >= 99.5 ? (
                         <span className="text-[9.5px] font-black px-1.5 py-0.2 rounded bg-amber-100 text-amber-800">Fever</span>
                       ) : (
@@ -783,7 +784,7 @@ export default function IntakePage({ onTriageCreated }) {
               <div className="flex items-start justify-between gap-3 border-b border-slate-200 pb-3.5">
                 <div>
                   <h3 className="text-[18px] font-black text-slate-900 flex items-center gap-2">
-                    <span className="text-lg">📋</span> {t.additionalBoxTitle}
+                    <span className="text-lg"></span> {t.additionalBoxTitle}
                   </h3>
                   <p className="text-[13px] text-slate-500 mt-0.5">
                     {t.additionalBoxHelp}
@@ -949,7 +950,7 @@ export default function IntakePage({ onTriageCreated }) {
                   htmlFor="report-file-input"
                   className="block text-center p-6 rounded-xl border-2 border-dashed border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/20 transition-all cursor-pointer group"
                 >
-                  <span className="text-2xl block mb-1.5 group-hover:scale-110 transition-transform">📄</span>
+                  <span className="text-2xl block mb-1.5 group-hover:scale-110 transition-transform"></span>
                   <p className="text-[13.5px] font-bold text-slate-800">
                     {t.uploadPlaceholder}
                   </p>
@@ -989,7 +990,7 @@ export default function IntakePage({ onTriageCreated }) {
             {/* MANDATORY WARNING IF ADDITIONAL QUESTIONS REMAIN */}
             {dynamicQuestions.length > 0 && (
               <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-[12.5px] font-bold flex items-start gap-2 shadow-2xs">
-                <span className="text-base mt-0.5">⚠️</span>
+                <IconAlertCircle className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="font-black text-[13px] text-amber-950">
                     Mandatory Step: {dynamicQuestions.length} Additional Question{dynamicQuestions.length > 1 ? "s" : ""} Required
@@ -1044,7 +1045,7 @@ export default function IntakePage({ onTriageCreated }) {
 
           {errorMessage && (
             <div className="p-4 rounded-xl border border-rose-300 bg-rose-50 text-rose-800 font-bold text-[13.5px] shadow-2xs">
-              ⚠ Error: {errorMessage}
+              Error: {errorMessage}
             </div>
           )}
         </div>
@@ -1083,7 +1084,7 @@ export default function IntakePage({ onTriageCreated }) {
                   onClick={() => setShowPrintSlipModal(true)}
                   className="w-full py-2.5 px-3 rounded-xl font-black text-[13px] border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 transition shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-98"
                 >
-                  <span>🖨️</span>
+                  <span></span>
                   <span>Print OPD Slip</span>
                 </button>
 
@@ -1094,7 +1095,7 @@ export default function IntakePage({ onTriageCreated }) {
                   download={`TriaQ_Pass_${resultNote.receiptNumber}.pdf`}
                   className="w-full py-2.5 px-3 rounded-xl font-black text-[13px] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-98 text-center"
                 >
-                  <span>📄</span>
+                  <span></span>
                   <span>Download PDF Pass</span>
                 </a>
               </div>
@@ -1211,7 +1212,7 @@ export default function IntakePage({ onTriageCreated }) {
             <div 
               className="bg-white rounded-md p-8 border border-slate-300 text-center space-y-3 shadow-xs govt-panel"
             >
-              <span className="text-4xl block mb-1">📋</span>
+              <span className="text-4xl block mb-1"></span>
               <h2 className="text-[18px] font-bold text-[#003366]">
                 {t.resultAwaiting}
               </h2>
@@ -1230,7 +1231,7 @@ export default function IntakePage({ onTriageCreated }) {
             className="bg-white rounded-md max-w-md w-full border border-slate-300 shadow-2xl overflow-hidden govt-panel"
           >
             <div className="bg-[#003366] text-white px-5 py-3 border-b border-[#002244] flex items-center gap-2">
-              <span className="text-base">⚠️</span>
+              <IconAlertCircle className="w-5 h-5 text-amber-300 shrink-0" />
               <h3 className="font-bold text-[13px] tracking-wide uppercase">
                 {t.modalTitle}
               </h3>

@@ -1,4 +1,5 @@
 import React from "react";
+import { IconGlobe } from "./Icons";
 import { LANGUAGES } from "../utils/translations";
 
 export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage, onSelectLanguage }) {
@@ -13,7 +14,7 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
         {/* Header matching Official Government Portal style */}
         <div className="px-5 py-3.5 bg-[#003366] text-white flex items-center justify-between border-b border-[#002244]">
           <div className="flex items-center gap-2">
-            <span className="text-xl">🌐</span>
+            <IconGlobe className="w-5 h-5 text-emerald-700" />
             <div>
               <h3 className="font-bold text-[14px] leading-tight tracking-wide uppercase">
                 Select Portal Language
@@ -53,7 +54,7 @@ export default function LanguageSelectorModal({ isOpen, onClose, currentLanguage
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
-                    {lang.code === "en" ? "🇬🇧" : lang.code === "or" ? "🇮🇳" : "🇮🇳"}
+                    {lang.code === "en" ? "EN" : lang.code === "or" ? "IN" : "IN"}
                   </span>
                   <div>
                     <span className="text-[14px] block">

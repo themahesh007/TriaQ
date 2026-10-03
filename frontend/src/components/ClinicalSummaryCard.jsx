@@ -89,7 +89,7 @@ export default function ClinicalSummaryCard({ summary = "", language = "en", cla
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm shadow-2xs font-bold">
-              🩺
+              
             </span>
             <div>
               <h4 className="text-[13px] font-black uppercase tracking-wider text-slate-900">
@@ -115,7 +115,7 @@ export default function ClinicalSummaryCard({ summary = "", language = "en", cla
         <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-sm shadow-2xs font-bold">
-              📋
+              
             </span>
             <div>
               <h4 className="text-[13px] font-black uppercase tracking-wider text-slate-900">

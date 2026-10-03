@@ -12,7 +12,8 @@ import {
   IconXCircle,
   IconArrowRight,
   IconShield,
-  IconPatient
+  IconPatient,
+  IconAlertCircle
 } from "../components/Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
@@ -461,10 +462,10 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
       {/* LOGIN OR REGISTER VIEW IF NOT LOGGED IN */}
       {!session ? (
         <div className="max-w-xl mx-auto govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs space-y-0">
-          {/* Official Government Header Ribbon */}
+          {/* Official Hospital Header Ribbon */}
           <div className="bg-[#003366] text-white px-5 py-3 border-b border-[#002244] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-base">🏥</span>
+              <span className="text-base"></span>
               <h3 className="font-bold text-[13px] tracking-wide uppercase">
                 Health Facility &amp; Clinical Administration
               </h3>
@@ -525,7 +526,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   loginError.toLowerCase().includes("pending") ? (
                     <div className="p-3.5 rounded bg-amber-50 border border-amber-300 text-amber-950 space-y-1.5 shadow-2xs">
                       <div className="flex items-center gap-2 font-bold text-[13px] text-amber-900">
-                        <span className="text-base">⚠️</span>
+                        <IconAlertCircle className="w-4 h-4 text-amber-800 shrink-0" />
                         <span>NOTICE: Facility Registration Under Verification</span>
                       </div>
                       <p className="text-[12px] font-medium text-amber-900 leading-relaxed pl-5">
@@ -597,7 +598,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 {/* Dedicated Amber Caution Banner */}
                 <div className="p-4 rounded-xl border-2 border-amber-300 bg-amber-50/90 text-amber-950 space-y-2.5 shadow-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">⚠️</span>
+                    <IconAlertCircle className="w-5 h-5 text-amber-800 shrink-0" />
                     <h4 className="font-black text-[14px] uppercase tracking-wide text-amber-900">
                       CAUTION: Facility Registration Submitted — Master Verification Required
                     </h4>
@@ -607,7 +608,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     <strong> To safeguard patient health records and prevent unauthorized access, hospital portal login remains strictly locked until identity verification is completed and approved by the State Master Administration.</strong>
                   </p>
                   <div className="p-2.5 rounded-lg bg-amber-100 border border-amber-200 text-[11.5px] font-bold text-amber-900 flex items-center gap-2">
-                    <span>📌</span>
+                    <span>•</span>
                     <span>Once approved by Master, your reception QR standee and sequential OPD token queue will unlock immediately.</span>
                   </div>
                 </div>
@@ -619,7 +620,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                       Application Summary
                     </span>
                     <span className="text-[10.5px] font-black px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                      ⏳ AWAITING MASTER APPROVAL
+                      AWAITING MASTER APPROVAL
                     </span>
                   </div>
 
@@ -692,7 +693,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
             ) : (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[12px] font-medium leading-relaxed">
-                  <strong>🛡️ Master Verification:</strong> Newly registered healthcare facilities require verification & approval by the State Master Administration before logging in.
+                  <strong> Master Verification:</strong> Newly registered healthcare facilities require verification & approval by the State Master Administration before logging in.
                 </div>
 
                 {regError && (
@@ -891,7 +892,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 {session.facility?.name}
               </h1>
               <p className="text-[13px] text-slate-800 font-bold leading-relaxed">
-                <span className="text-rose-600 font-bold">📍</span> <strong className="font-black text-slate-900">{session.facility?.address || "Registered Clinical Location"}</strong> • <span className="font-bold text-slate-700">Nodal Officer Email:</span> <strong className="font-black text-[#003366]">{session.facility?.adminEmail || "Healthcare Admin"}</strong>
+                <span className="text-rose-600 font-bold">•</span> <strong className="font-black text-slate-900">{session.facility?.address || "Registered Clinical Location"}</strong> • <span className="font-bold text-slate-700">Nodal Officer Email:</span> <strong className="font-black text-[#003366]">{session.facility?.adminEmail || "Healthcare Admin"}</strong>
               </p>
             </div>
 
@@ -997,7 +998,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     onClick={() => window.print()}
                     className="btn-tactile w-full py-2.5 px-4 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>🖨️ Print Reception Standee</span>
+                    <span> Print Reception Standee</span>
                   </button>
                   <button
                     type="button"
@@ -1007,7 +1008,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     }}
                     className="btn-tactile w-full py-2 px-4 rounded-xl font-bold text-[12px] text-slate-700 bg-slate-100 hover:bg-slate-200 transition flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>📋 Copy Patient Check-In URL</span>
+                    <span> Copy Patient Check-In URL</span>
                   </button>
                 </div>
               </div>
@@ -1119,11 +1120,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                             {s.name}
                           </h4>
                           <p className="text-[12.5px] text-slate-600 font-medium">
-                            ✉️ {s.email}
+                            <span className="font-semibold text-slate-700">Email:</span> {s.email}
                           </p>
                           {s.phone && (
                             <p className="text-[12px] font-mono text-slate-500">
-                              📞 +91 {s.phone}
+                               +91 {s.phone}
                             </p>
                           )}
                           <p className="text-[11px] text-slate-400 font-medium mt-1">
@@ -1212,7 +1213,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                           </p>
                           {s.phone && (
                             <p className="text-[11px] font-mono text-slate-400 mt-0.5">
-                              📞 +91 {s.phone}
+                               +91 {s.phone}
                             </p>
                           )}
                         </div>
@@ -1254,7 +1255,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   onClick={() => setShowAddRoomModal(true)}
                   className="btn-tactile px-4 py-2.5 rounded-xl font-black text-[13px] text-white bg-emerald-600 hover:bg-emerald-700 shadow-xs flex items-center gap-2 cursor-pointer"
                 >
-                  <span>➕ Add Room / OPD Ward</span>
+                  <span>+ Add Room / OPD Ward</span>
                 </button>
               </div>
 
@@ -1263,7 +1264,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 <div className="p-5 rounded-md border-2 border-emerald-400 bg-emerald-50/40 shadow-xs space-y-4 animate-fade-in">
                   <div className="flex items-center justify-between">
                     <h4 className="font-black text-slate-900 text-sm flex items-center gap-1.5 uppercase tracking-wide">
-                      <span>🏥</span> Add New Room or Ward
+                      <span></span> Add New Room or Ward
                     </h4>
                     <button
                       type="button"
@@ -1312,11 +1313,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         onChange={(e) => setNewRoomCategory(e.target.value)}
                         className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold bg-white outline-none focus:border-emerald-600 cursor-pointer"
                       >
-                        <option value="EMERGENCY">🔴 Emergency Ward (Severe)</option>
-                        <option value="OPD">🟢 OPD Consultation (Routine)</option>
-                        <option value="SPECIALIST">🩺 Specialist Clinic</option>
-                        <option value="ICU">🟣 ICU / Critical Care</option>
-                        <option value="TRIAGE">🟡 Secondary Triage Desk</option>
+                        <option value="EMERGENCY">• Emergency Ward (Severe)</option>
+                        <option value="OPD">• OPD Consultation (Routine)</option>
+                        <option value="SPECIALIST"> Specialist Clinic</option>
+                        <option value="ICU">• ICU / Critical Care</option>
+                        <option value="TRIAGE">• Secondary Triage Desk</option>
                       </select>
                     </div>
 
@@ -1399,11 +1400,11 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                             {room.name}
                           </h4>
                           <p className="text-[12px] text-slate-500 font-medium">
-                            📍 {room.floor || "Ground Floor"}
+                            • {room.floor || "Ground Floor"}
                           </p>
                           <p className="text-[11px] font-bold mt-1 text-slate-600">
                             {isEmerg
-                              ? "⚠️ Priority: High / Immediate (Emergency Ward)"
+                              ? "! Priority: High / Immediate (Emergency Ward)"
                               : "✓ Priority: Routine OPD (Walk-in Consult)"}
                           </p>
                         </div>
@@ -1495,7 +1496,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xl">📋</span>
+                    <span className="text-xl"></span>
                     <h3 className="text-lg font-black text-slate-900">
                       Patient Records &amp; Clinical Visits Registry
                     </h3>
@@ -1512,7 +1513,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   className="btn-tactile px-4 py-2 rounded-lg bg-emerald-800 hover:bg-emerald-900 text-white font-black text-[12.5px] transition flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
                   title="Export filtered records as a CSV spreadsheet"
                 >
-                  <span>📥</span>
+                  <span></span>
                   <span>Export Registry (CSV)</span>
                 </button>
               </div>
@@ -1569,7 +1570,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     placeholder="Search by patient name, phone, token (e.g. 01), receipt, or symptom keyword..."
                     className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-slate-300 focus:border-[#003366] focus:outline-none text-[13px] font-medium text-slate-800 bg-white placeholder:text-slate-400 shadow-2xs"
                   />
-                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm">🔍</span>
+                  <span className="absolute left-3 top-2.5 text-slate-400 text-sm"></span>
                   {patientSearchQuery && (
                     <button
                       type="button"
@@ -1590,9 +1591,9 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     className="px-3 py-2 rounded-lg border border-slate-300 text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none"
                   >
                     <option value="ALL">All Triage Tiers</option>
-                    <option value="RED">🔴 RED (Critical)</option>
-                    <option value="YELLOW">🟡 YELLOW (Urgent)</option>
-                    <option value="GREEN">🟢 GREEN (Routine)</option>
+                    <option value="RED">• RED (Critical)</option>
+                    <option value="YELLOW">• YELLOW (Urgent)</option>
+                    <option value="GREEN">• GREEN (Routine)</option>
                   </select>
                 </div>
 
@@ -1605,10 +1606,10 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     className="px-3 py-2 rounded-lg border border-slate-300 text-[12.5px] font-bold text-slate-800 bg-white focus:outline-none"
                   >
                     <option value="ALL">All Statuses</option>
-                    <option value="PENDING">⏳ PENDING (Waiting)</option>
+                    <option value="PENDING">• PENDING (Waiting)</option>
                     <option value="APPROVED">✓ APPROVED / DONE</option>
                     <option value="EDITED">✓ EDITED BY DOCTOR</option>
-                    <option value="REFERRED">🚨 REFERRED OUT</option>
+                    <option value="REFERRED"> REFERRED OUT</option>
                     <option value="REJECTED">✕ REJECTED</option>
                   </select>
                 </div>
@@ -1617,7 +1618,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
               {/* Records List / Table */}
               {filteredPatients.length === 0 ? (
                 <div className="text-center py-12 text-slate-400 space-y-2 border border-dashed border-slate-200 rounded-xl">
-                  <span className="text-3xl block">📋</span>
+                  <span className="text-3xl block"></span>
                   <p className="font-bold text-slate-700 text-sm">No Patient Visits Match Criteria</p>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
                     {allPatientsList.length === 0
@@ -1718,7 +1719,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                   : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                               }`}
                             >
-                              {item.riskTag === "RED" ? "🔴 RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine"}
+                              {item.riskTag === "RED" ? "• RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "• YELLOW Urgent" : "• GREEN Routine"}
                             </span>
                           </td>
 
@@ -1735,7 +1736,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                   : "bg-amber-50 text-amber-900 border border-amber-200"
                               }`}
                             >
-                              {item.status === "APPROVED" ? "✓ Approved" : item.status === "EDITED" ? "✓ Edited" : item.status === "REFERRED" ? "🚨 Referred" : item.status === "REJECTED" ? "✕ Rejected" : "⏳ Pending"}
+                              {item.status === "APPROVED" ? "✓ Approved" : item.status === "EDITED" ? "✓ Edited" : item.status === "REFERRED" ? "Referred" : item.status === "REJECTED" ? "✕ Rejected" : "• Pending"}
                             </span>
                             {item.disposition && (
                               <span className="block text-[10.5px] text-slate-500 font-medium max-w-[130px] truncate mt-0.5" title={item.disposition}>
@@ -1751,7 +1752,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                               onClick={() => setSelectedPatientModal(item)}
                               className="btn-tactile px-3 py-1.5 rounded-lg bg-[#003366] hover:bg-[#002244] text-white font-bold text-[11.5px] transition cursor-pointer shadow-2xs inline-flex items-center gap-1"
                             >
-                              <span>🔍</span>
+                              <span></span>
                               <span>Details</span>
                             </button>
                             {item.receiptNumber && (
@@ -1762,7 +1763,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                 className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11.5px] transition inline-flex items-center gap-1 border border-slate-300"
                                 title="Download Slip PDF"
                               >
-                                <span>📄</span>
+                                <span></span>
                               </a>
                             )}
                           </td>
@@ -1783,7 +1784,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                 {/* Modal Header */}
                 <div className="bg-[#003366] text-white p-4 sm:p-5 flex items-center justify-between sticky top-0 z-10">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl">📋</span>
+                    <span className="text-xl"></span>
                     <div>
                       <h4 className="font-black text-[15px] leading-tight text-white">
                         OPD Patient Clinical Details
@@ -1842,7 +1843,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                     <div>
                       <span className="text-[11px] font-black uppercase tracking-wider block opacity-80">Triage Priority Assessment</span>
                       <strong className="text-base font-black">
-                        {selectedPatientModal.riskTag === "RED" ? "🔴 RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "🟡 YELLOW Urgent" : "🟢 GREEN Routine Priority"}
+                        {selectedPatientModal.riskTag === "RED" ? "• RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "• YELLOW Urgent" : "• GREEN Routine Priority"}
                       </strong>
                     </div>
                     <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-300 font-mono">
@@ -1908,7 +1909,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   {selectedPatientModal.prescription && (
                     <div className="space-y-2">
                       <h5 className="font-black text-[13px] text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                        <span>💊</span> Doctor's Prescription (Rx)
+                        <span></span> Doctor's Prescription (Rx)
                       </h5>
                       <div className="p-4 rounded-xl border-2 border-emerald-400 bg-white text-[13px] font-semibold text-slate-800 whitespace-pre-line leading-relaxed shadow-xs">
                         {selectedPatientModal.prescription}
@@ -1920,10 +1921,10 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                   {selectedPatientModal.referral && (
                     <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50 space-y-2 text-[13px]">
                       <span className="font-black uppercase text-teal-950 block text-[12px]">
-                        🚨 Case Referred / Escalated
+                         Case Referred / Escalated
                       </span>
                       <p className="text-slate-800">
-                        Target Facility: <strong>🏥 {selectedPatientModal.referral.targetFacility}</strong>
+                        Target Facility: <strong> {selectedPatientModal.referral.targetFacility}</strong>
                       </p>
                       <p className="text-slate-700 text-xs">
                         Reason: {selectedPatientModal.referral.referralReason}
@@ -1940,7 +1941,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                         rel="noreferrer"
                         className="btn-tactile flex-1 py-2.5 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                       >
-                        <span>📄</span>
+                        <span></span>
                         <span>Open Official OPD Slip (PDF)</span>
                       </a>
                     )}

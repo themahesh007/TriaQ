@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { IconAlertCircle, IconCheckCircle, IconLock, IconRefresh, IconPhone } from "./Icons";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -159,7 +160,7 @@ export default function ForgotPasswordModal({
             ✕
           </button>
           <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center mx-auto mb-2 border border-white/20">
-            <span className="text-xl">🔐</span>
+            <span className="text-xl"></span>
           </div>
           <h3 className="text-base font-bold tracking-wide uppercase">Identity Verification & Recovery</h3>
           <p className="text-xs text-amber-200 mt-0.5">
@@ -187,7 +188,7 @@ export default function ForgotPasswordModal({
         <div className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded text-rose-800 text-xs flex items-start gap-2">
-              <span className="text-base shrink-0">⚠️</span>
+              <IconAlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold">Verification Error</p>
                 <p>{error}</p>
@@ -203,8 +204,8 @@ export default function ForgotPasswordModal({
                   Registered Email Address or Mobile Number
                 </label>
                 <div className="relative">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">
-                    ✉️
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <IconPhone className="w-4 h-4" />
                   </span>
                   <input
                     type="text"
@@ -216,13 +217,13 @@ export default function ForgotPasswordModal({
                   />
                 </div>
                 <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
-                  <span>⚡</span> An official 6-digit OTP will be dispatched to your registered contact.
+                  <span>•</span> An official 6-digit OTP will be dispatched to your registered contact.
                 </p>
               </div>
 
               <div className="p-3 bg-slate-50 border border-slate-200 rounded flex items-center gap-2.5 text-xs text-slate-600">
-                <span className="text-base">🛡️</span>
-                <span>Government Certified Security Protocol.</span>
+                <IconLock className="w-4 h-4 text-slate-500" />
+                <span>Secure Authentication Protocol.</span>
               </div>
 
               <div className="flex gap-2 pt-2">
@@ -240,7 +241,7 @@ export default function ForgotPasswordModal({
                 >
                   {loading ? (
                     <>
-                      <span className="animate-spin text-sm">⏳</span> Dispatching...
+                      <IconRefresh className="w-3.5 h-3.5 animate-spin" /> Dispatching...
                     </>
                   ) : (
                     <>Send Security Code →</>
@@ -255,7 +256,7 @@ export default function ForgotPasswordModal({
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               {liveEmailSent ? (
                 <div className="p-3 bg-emerald-50 border border-emerald-300 rounded text-xs text-emerald-900 flex items-start gap-2">
-                  <span className="text-base shrink-0">📩</span>
+                  <span className="text-base shrink-0"></span>
                   <div>
                     <p className="font-bold">Official Verification Dispatched</p>
                     <p className="mt-0.5">
@@ -266,7 +267,7 @@ export default function ForgotPasswordModal({
               ) : (
                 <div className="p-3 bg-amber-50 border border-amber-300 rounded text-xs text-amber-900">
                   <p className="font-bold flex items-center gap-1">
-                    <span>📬</span> Security Code Preview:
+                    <span></span> Security Code Preview:
                   </p>
                   <p className="mt-1 font-mono text-base font-extrabold text-amber-950 tracking-wider">
                     [ {demoOtp || "123456"} ]
@@ -333,7 +334,7 @@ export default function ForgotPasswordModal({
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">
-                    🔒
+                    
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -360,7 +361,7 @@ export default function ForgotPasswordModal({
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-sm">
-                    🔒
+                    
                   </span>
                   <input
                     type={showPassword ? "text" : "password"}
@@ -389,7 +390,7 @@ export default function ForgotPasswordModal({
                 >
                   {loading ? (
                     <>
-                      <span className="animate-spin text-sm">⏳</span> Updating...
+                      <IconRefresh className="w-3.5 h-3.5 animate-spin" /> Updating...
                     </>
                   ) : (
                     <>Save New Password ✓</>
@@ -402,8 +403,8 @@ export default function ForgotPasswordModal({
           {/* STEP 4: SUCCESS */}
           {step === 4 && (
             <div className="text-center py-4 space-y-4">
-              <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto text-2xl border border-emerald-300">
-                ✓
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-800 rounded-full flex items-center justify-center mx-auto border border-emerald-300">
+                <IconCheckCircle className="w-8 h-8 text-emerald-700" />
               </div>
               <div>
                 <h4 className="text-base font-bold text-slate-900">

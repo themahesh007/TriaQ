@@ -25,18 +25,15 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
           <div className="border-l border-slate-300 pl-3">
             <div className="flex items-center gap-2">
               <span className="text-[17px] sm:text-[19px] font-black tracking-tight text-[#003366] uppercase">
-                TriaQ • National Health Portal
-              </span>
-              <span className="hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 uppercase tracking-wider">
-                ABDM Compliant
+                TriaQ • Healthcare Platform
               </span>
             </div>
             <p className="text-[11.5px] font-semibold text-slate-600">
               {language === "hi" 
-                ? "एकीकृत बाह्यरोगी (OPD) ट्राइएज एवं टोकन प्रणाली • स्वास्थ्य एवं परिवार कल्याण विभाग"
+                ? "एकीकृत बाह्यरोगी (OPD) ट्राइएज एवं टोकन प्रणाली"
                 : language === "or"
-                ? "ଏକୀକୃତ ବାହ୍ୟରୋଗୀ (OPD) ଟ୍ରାଇଏଜ୍ ଓ ଟୋକନ୍ ବ୍ୟବସ୍ଥା • ସ୍ୱାସ୍ଥ୍ୟ ଏବଂ ପରିବାର କଲ୍ୟାଣ ବିଭାଗ"
-                : "Integrated Outpatient (OPD) Triage & Token Platform • Department of Health & Family Welfare"}
+                ? "ଏକୀକୃତ ବାହ୍ୟରୋଗୀ (OPD) ଟ୍ରାଇଏଜ୍ ଓ ଟୋକନ୍ ବ୍ୟବସ୍ଥା"
+                : "Integrated Outpatient (OPD) Clinical Triage & Token Platform"}
             </p>
           </div>
         </div>
@@ -44,8 +41,8 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
         {/* Right Badges & Multilingual Switcher */}
         <div className="flex items-center gap-3 ml-auto">
           <div className="hidden lg:flex flex-col text-right text-[11px] font-medium text-slate-500 border-r border-slate-200 pr-3">
-            <span className="font-bold text-slate-800">Government Health Facility Network</span>
-            <span>Odisha State &amp; National Public Health</span>
+            <span className="font-bold text-slate-800">Clinical Healthcare Network</span>
+            <span>Healthcare &amp; Outpatient System</span>
           </div>
 
           {/* Multilingual Selector */}
@@ -56,11 +53,11 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
               className="text-[12px] font-bold text-[#003366] bg-slate-50 hover:bg-[#EBF3FA] border border-[#003366]/30 px-3 py-1.5 rounded transition flex items-center gap-1.5 shadow-2xs cursor-pointer"
               title="Change Portal Language"
             >
-              <span className="text-sm">🌐</span>
+              <IconGlobe className="w-3.5 h-3.5 text-[#003366]" />
               <span className="font-extrabold text-slate-900">
                 {language === "or" ? "ଓଡ଼ିଆ" : language === "hi" ? "हिन्दी" : "English"}
               </span>
-              <span className="text-[9px] text-slate-500">▼</span>
+              <span className="text-[9px] text-slate-500">&#9662;</span>
             </button>
           )}
         </div>
