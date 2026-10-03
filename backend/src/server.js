@@ -448,7 +448,7 @@ app.post("/api/patients/profile", async (req, res) => {
  */
 app.get("/api/patients/status", async (req, res) => {
   try {
-    const query = req.query.query || req.query.phone || req.query.token || req.query.patientId || req.user?.id;
+    const query = req.query.query || req.query.phone || req.query.token || req.query.identifier || req.query.patientId || req.user?.id;
     if (!query) {
       return res.status(400).json({ error: "Mobile number, Token ID, or Patient ID is required." });
     }
