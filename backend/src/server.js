@@ -1508,10 +1508,12 @@ app.get("/api/triage-notes", async (req, res) => {
   try {
     const role = req.user?.role || "DOCTOR";
     let facility = req.query.facility;
-    if (facility === "ALL" || facility === "All Facilities") {
-      facility = null;
-    } else if (!facility && req.user && req.user.role !== "MASTER" && req.user.facility && req.user.facility !== "GLOBAL" && req.user.facility !== "Global Central Hub") {
+
+    // Strict Facility Locking: Staff can ONLY access the facility they are registered for
+    if (req.user && req.user.role !== "MASTER" && req.user.facility && req.user.facility !== "GLOBAL" && req.user.facility !== "Global Central Hub") {
       facility = req.user.facility;
+    } else if (facility === "ALL" || facility === "All Facilities") {
+      facility = null;
     }
 
     const isAll = req.query.status === "ALL" || req.query.all === "true" || req.query.history === "true";
