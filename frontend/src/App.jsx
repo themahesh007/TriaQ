@@ -204,11 +204,15 @@ export default function App() {
                   TriaQ • Clinical OPD Portal
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold">
-                  Clinical Certified
+                  {language === "hi" ? "चिकित्सकीय प्रमाणित" : language === "or" ? "କ୍ଲିନିକାଲ୍ ପ୍ରମାଣିତ" : "Clinical Certified"}
                 </span>
               </div>
               <p className="text-[12px] text-slate-300 leading-relaxed">
-                Integrated Outpatient Department (OPD) queue management, algorithmic clinical risk triage, and referral infrastructure for Primary Healthcare Centers (PHCs), District Hospitals &amp; Registered Clinics.
+                {language === "hi"
+                  ? "प्राथमिक स्वास्थ्य केंद्रों (PHCs), जिला अस्पतालों एवं पंजीकृत क्लीनिकों हेतु एकीकृत बाह्यरोगी विभाग (OPD) कतार प्रबंधन, क्लिनिकल जोखिम मूल्यांकन एवं रेफरल अवसंरचना।"
+                  : language === "or"
+                  ? "ପ୍ରାଥମିକ ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର (PHC), ଜିଲ୍ଲା ଡାକ୍ତରଖାନା ଏବଂ ପଞ୍ଜୀକୃତ କ୍ଲିନିକ୍ ପାଇଁ ଏକୀକୃତ ବାହ୍ୟରୋଗୀ ବିଭାଗ (OPD) ଧାଡ଼ି ପରିଚାଳନା, କ୍ଲିନିକାଲ୍ ଟ୍ରାଇଏଜ୍ ଓ ରେଫରାଲ୍ ବ୍ୟବସ୍ଥା।"
+                  : "Integrated Outpatient Department (OPD) queue management, algorithmic clinical risk triage, and referral infrastructure for Primary Healthcare Centers (PHCs), District Hospitals & Registered Clinics."}
               </p>
             </div>
 
@@ -216,9 +220,15 @@ export default function App() {
               <h4 className="font-bold text-amber-300 uppercase tracking-wider text-[11px]">
                 {language === "hi" ? "आपातकालीन दूरभाष" : language === "or" ? "ଜରୁରୀକାଳୀନ ହେଲ୍ପଲାଇନ୍" : "Emergency & Helplines"}
               </h4>
-              <p className="text-slate-300">National Health Helpline: <strong className="text-white">1075</strong> (Toll Free)</p>
-              <p className="text-slate-300">Medical Advice Desk: <strong className="text-white">104</strong></p>
-              <p className="text-slate-300">Ambulance Emergency Dispatch: <strong className="text-white">108 / 102</strong></p>
+              <p className="text-slate-300">
+                {language === "hi" ? "राष्ट्रीय स्वास्थ्य हेल्पलाइन:" : language === "or" ? "ଜାତୀୟ ସ୍ୱାସ୍ଥ୍ୟ ହେଲ୍ପଲାଇନ୍:" : "National Health Helpline:"} <strong className="text-white">1075</strong> {language === "hi" ? "(टोल फ्री)" : language === "or" ? "(ଟୋଲ୍ ଫ୍ରି)" : "(Toll Free)"}
+              </p>
+              <p className="text-slate-300">
+                {language === "hi" ? "चिकित्सा परामर्श डेस्क:" : language === "or" ? "ଡାକ୍ତରୀ ପରାମର୍ଶ ଡେସ୍କ:" : "Medical Advice Desk:"} <strong className="text-white">104</strong>
+              </p>
+              <p className="text-slate-300">
+                {language === "hi" ? "एम्बुलेंस आपातकालीन सेवा:" : language === "or" ? "ଆମ୍ବୁଲାନ୍ସ ଜରୁରୀକାଳୀନ ସେବା:" : "Ambulance Emergency Dispatch:"} <strong className="text-white">108 / 102</strong>
+              </p>
             </div>
 
             <div className="space-y-2 text-[12px]">
@@ -231,28 +241,44 @@ export default function App() {
                   onClick={() => setActivePortal("patient-portal")}
                   className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
                 >
-                  › Citizen Portal: Book OPD Token &amp; Check Status
+                  {language === "hi" 
+                    ? "› नागरिक सेवा: ओपीडी टोकन बुक करें और स्थिति जांचें" 
+                    : language === "or" 
+                    ? "› ନାଗରିକ ସେବା: OPD ଟୋକନ୍ ବୁକ୍ କରନ୍ତୁ ଓ ସ୍ଥିତି ଦେଖନ୍ତୁ" 
+                    : "› Citizen Portal: Book OPD Token & Check Status"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActivePortal("staff-portal")}
                   className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
                 >
-                  › Medical Officer Clinical Workstation
+                  {language === "hi" 
+                    ? "› चिकित्सा अधिकारी क्लिनिकल वर्कस्टेशन" 
+                    : language === "or" 
+                    ? "› ଚିକିତ୍ସା ଅଧିକାରୀ କ୍ଲିନିକାଲ୍ ୱାର୍କଷ୍ଟେସନ୍" 
+                    : "› Medical Officer Clinical Workstation"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActivePortal("hospital-portal")}
                   className="text-left text-slate-300 hover:text-white hover:underline transition cursor-pointer"
                 >
-                  › Hospital Administration &amp; QR Standees
+                  {language === "hi" 
+                    ? "› अस्पताल प्रशासन एवं क्यूआर स्टैंडी" 
+                    : language === "or" 
+                    ? "› ହସ୍ପିଟାଲ୍ ପ୍ରଶାସନ ଓ QR ଷ୍ଟାଣ୍ଡି" 
+                    : "› Hospital Administration & QR Standees"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActivePortal("master-portal")}
                   className="text-left text-amber-400 hover:text-amber-300 hover:underline font-bold transition cursor-pointer"
                 >
-                  › Master Control Desk (2FA Required)
+                  {language === "hi" 
+                    ? "› मास्टर कंट्रोल डेस्क (2FA आवश्यक)" 
+                    : language === "or" 
+                    ? "› ମାଷ୍ଟର କଣ୍ଟ୍ରୋଲ୍ ଡେସ୍କ (2FA ଆବଶ୍ୟକ)" 
+                    : "› Master Control Desk (2FA Required)"}
                 </button>
               </div>
             </div>
@@ -262,16 +288,30 @@ export default function App() {
           <div className="flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-400 pt-1">
             <div className="space-y-1">
               <p>
-                TriaQ Clinical Platform • Outpatient Triage &amp; Queue Management Network.
+                {language === "hi" 
+                  ? "ट्रायैक क्लिनिकल प्लेटफॉर्म • बाह्यरोगी ट्राइएज एवं कतार प्रबंधन नेटवर्क।" 
+                  : language === "or" 
+                  ? "ଟ୍ରାୟାକ୍ କ୍ଲିନିକାଲ୍ ପ୍ଲାଟଫର୍ମ • ବାହ୍ୟରୋଗୀ ଟ୍ରାଇଏଜ୍ ଓ ଧାଡ଼ି ପରିଚାଳନା ନେଟୱର୍କ।" 
+                  : "TriaQ Clinical Platform • Outpatient Triage & Queue Management Network."}
               </p>
               <p>
-                Clinical Protocol Standardized • Best viewed in Chrome, Edge, Firefox at 1024x768 resolution and above.
+                {language === "hi" 
+                  ? "मानकीकृत क्लिनिकल प्रोटोकॉल • क्रोम, एज, फायरफॉक्स 1024x768 रेजोल्यूशन एवं उससे ऊपर सर्वश्रेष्ठ।" 
+                  : language === "or" 
+                  ? "ମାନକୀକୃତ କ୍ଲିନିକାଲ୍ ପ୍ରୋଟୋକଲ୍ • Chrome, Edge, Firefox ରେ 1024x768 ରେଜୋଲ୍ୟୁସନ ବା ତା'ଠାରୁ ଅଧିକରେ ସର୍ବୋତ୍ତମ।" 
+                  : "Clinical Protocol Standardized • Best viewed in Chrome, Edge, Firefox at 1024x768 resolution and above."}
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <span>Last Updated: <strong>2026</strong></span>
+              <span>
+                {language === "hi" ? "अंतिम अद्यतन: " : language === "or" ? "ଶେଷ ଅଦ୍ୟତନ: " : "Last Updated: "}
+                <strong>2026</strong>
+              </span>
               <span>•</span>
-              <span>Version: <strong>2.4.0</strong></span>
+              <span>
+                {language === "hi" ? "संस्करण: " : language === "or" ? "ସଂସ୍କରଣ: " : "Version: "}
+                <strong>2.4.0</strong>
+              </span>
             </div>
           </div>
         </div>

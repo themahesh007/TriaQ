@@ -557,11 +557,11 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
             onClick={onNavigateHome}
             className="text-[12px] font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer"
           >
-            ← Home
+            {language === "or" ? "← ମୁଖ୍ୟ ପୃଷ୍ଠା" : language === "hi" ? "← मुख्य पृष्ठ" : "← Home"}
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12.5px] font-black text-slate-800 uppercase tracking-wider">
-            Staff Clinical Station
+            {language === "or" ? "କର୍ମଚାରୀ କ୍ଲିନିକାଲ୍ ଷ୍ଟେସନ୍" : language === "hi" ? "कर्मचारी क्लीनिकल स्टेशन" : "Staff Clinical Station"}
           </span>
           {staffSession && (
             <>
@@ -587,7 +587,7 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
               onClick={handleLogout}
               className="text-[11.5px] font-bold text-rose-600 hover:underline cursor-pointer"
             >
-              Sign Out
+              {language === "or" ? "ଲଗ୍ ଆଉଟ୍" : language === "hi" ? "लॉग आउट" : "Sign Out"}
             </button>
           </div>
         )}
@@ -599,11 +599,16 @@ export default function StaffPortal({ onNavigateHome, language = "en" }) {
           <div className="flex items-center gap-2.5 text-left">
             <IconShield className="w-5 h-5 text-amber-950 shrink-0" />
             <span>
-              <strong>Staff Station Offline:</strong> Internet connection lost. Clinical queue and triage reviews are cached in local browser memory and will auto-sync when connection restores.
+              <strong>{language === "or" ? "କର୍ମଚାରୀ ଷ୍ଟେସନ୍ ଅଫଲାଇନ୍:" : language === "hi" ? "कर्मचारी स्टेशन ऑफ़लाइन:" : "Staff Station Offline:"}</strong>{" "}
+              {language === "or"
+                ? "ଇଣ୍ଟରନେଟ୍ ସଂଯୋଗ ବିଚ୍ଛିନ୍ନ। କ୍ଲିନିକାଲ୍ ଧାଡ଼ି ଓ ଟ୍ରାଏଜ୍ ସମୀକ୍ଷା ବ୍ରାଉଜର ମେମୋରୀରେ ସାଇତା ହୋଇଛି ଏବଂ ସଂଯୋଗ ପୁନଃସ୍ଥାପିତ ହେଲେ ଆପେ ଆପେ ସିଙ୍କ୍ ହେବ।"
+                : language === "hi"
+                ? "इंटरनेट कनेक्शन कट गया। क्लीनिकल कतार और ट्राइएज समीक्षाएं स्थानीय ब्राउज़र मेमोरी में सुरक्षित हैं और कनेक्शन वापस आने पर स्वतः सिंक हो जाएंगी।"
+                : "Internet connection lost. Clinical queue and triage reviews are cached in local browser memory and will auto-sync when connection restores."}
             </span>
           </div>
           <span className="bg-amber-950 text-amber-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap ml-2">
-            Offline
+            {language === "or" ? "ଅଫଲାଇନ୍" : language === "hi" ? "ऑफ़लाइन" : "Offline"}
           </span>
         </div>
       )}

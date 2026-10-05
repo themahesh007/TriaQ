@@ -68,7 +68,11 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 : "National Outpatient Department (OPD) Digital Token & Triage System"}
             </h2>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-[#003366] tracking-tight">
-              TriaQ National Health Portal
+              {language === "hi" 
+                ? "ट्रायैक राष्ट्रीय स्वास्थ्य पोर्टल" 
+                : language === "or" 
+                ? "ଟ୍ରାୟାକ୍ ଜାତୀୟ ସ୍ୱାସ୍ଥ୍ୟ ପୋର୍ଟାଲ" 
+                : "TriaQ National Health Portal"}
             </h1>
           </div>
 
@@ -124,7 +128,9 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 : "Digital Services & Public Portals"}
             </span>
           </h2>
-          <span className="text-[11px] font-semibold text-slate-500">Official Access Desks</span>
+          <span className="text-[11px] font-semibold text-slate-500">
+            {language === "hi" ? "आधिकारिक प्रवेश डेस्क" : language === "or" ? "ସରକାରୀ ପ୍ରବେଶ ଡେସ୍କ" : "Official Access Desks"}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -166,15 +172,21 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
               <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-[11.5px] text-slate-700 space-y-1">
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span>Sequential token format (TOKEN NUMBER 01, 02)</span>
+                  <span>
+                    {language === "hi" ? "क्रमिक टोकन प्रारूप (टोकन 01, 02)" : language === "or" ? "କ୍ରମିକ ଟୋକନ୍ ଫର୍ମାଟ୍ (ଟୋକନ୍ ୦୧, ୦୨)" : "Sequential token format (TOKEN NUMBER 01, 02)"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span>Instant PDF receipt with QR validation</span>
+                  <span>
+                    {language === "hi" ? "क्यूआर सत्यापन युक्त त्वरित PDF रसीद" : language === "or" ? "QR ଯାଞ୍ଚ ସହିତ ତୁରନ୍ତ PDF ରସିଦ" : "Instant PDF receipt with QR validation"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                  <span>Available in Odia, Hindi, and English</span>
+                  <span>
+                    {language === "hi" ? "ओडिया, हिन्दी एवं अंग्रेजी में उपलब्ध" : language === "or" ? "ଓଡ଼ିଆ, ହିନ୍ଦୀ ଏବଂ ଇଂରାଜୀରେ ଉପଲବ୍ଧ" : "Available in Odia, Hindi, and English"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -215,7 +227,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 </div>
                 <div>
                   <h3 className="text-[16px] font-black text-slate-900 leading-tight">
-                    Medical Officer Workstation
+                    {t.staffCardTitle || "Medical Officer Workstation"}
                   </h3>
                   <span className="text-[11.5px] font-medium text-slate-500">
                     {language === "hi" 
@@ -228,21 +240,28 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
               </div>
 
               <p className="text-[12.5px] text-slate-600 leading-relaxed">
-                Authorized clinical console for duty physicians and nursing officers. Manage prioritized patient triage queues, inspect vitals, and issue clinical disposition.
+                {t.staffCardDesc ||
+                  "Authorized clinical console for duty physicians and nursing officers. Manage prioritized patient triage queues, inspect vitals, and issue clinical disposition."}
               </p>
 
               <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-[11.5px] text-slate-700 space-y-1">
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                  <span>Real-time hospital workstation selector</span>
+                  <span>
+                    {language === "hi" ? "लाइव अस्पताल कार्यस्थल चयनकर्ता" : language === "or" ? "ଲାଇଭ୍ ହସ୍ପିଟାଲ୍ କନସୋଲ୍ ଚୟନକାରୀ" : "Real-time hospital workstation selector"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                  <span>Official Inter-Hospital Referral Pass generation</span>
+                  <span>
+                    {language === "hi" ? "आधिकारिक अंतर-अस्पताल रेफरल पास" : language === "or" ? "ସରକାରୀ ଆନ୍ତଃ-ଡାକ୍ତରଖାନା ରେଫରାଲ୍ ପାସ୍" : "Official Inter-Hospital Referral Pass generation"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-blue-700 shrink-0" />
-                  <span>Audited electronic clinical review log</span>
+                  <span>
+                    {language === "hi" ? "प्रमाणित इलेक्ट्रॉनिक क्लिनिकल समीक्षा रजिस्टर" : language === "or" ? "ପ୍ରମାଣିତ ଇଲେକ୍ଟ୍ରୋନିକ୍ କ୍ଲିନିକାଲ୍ ସମୀକ୍ଷା ରେଜିଷ୍ଟର" : "Audited electronic clinical review log"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -254,11 +273,11 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13px] text-white bg-[#133B5C] hover:bg-[#0B2545] border border-blue-900 text-center shadow-xs flex items-center justify-center gap-2"
               >
                 <span>
-                  {language === "hi" 
+                  {t.openStaffDeskBtn || (language === "hi" 
                     ? "स्टाफ डेस्क लॉगिन →" 
                     : language === "or" 
                     ? "ଷ୍ଟାଫ୍ ଡେସ୍କ ଲଗଇନ୍ →" 
-                    : "Staff Desk Login →"}
+                    : "Staff Desk Login →")}
                 </span>
               </button>
             </div>
@@ -282,7 +301,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 </div>
                 <div>
                   <h3 className="text-[16px] font-black text-slate-900 leading-tight">
-                    Health Facility Registry
+                    {t.hospitalCardTitle || "Health Facility Registry"}
                   </h3>
                   <span className="text-[11.5px] font-medium text-slate-500">
                     {language === "hi" 
@@ -295,21 +314,28 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
               </div>
 
               <p className="text-[12.5px] text-slate-600 leading-relaxed">
-                Health facility administrative desk for verified clinics and hospitals. Generate standardized printable reception QR standees and manage medical officer accounts.
+                {t.hospitalCardDesc ||
+                  "Health facility administrative desk for verified clinics and hospitals. Generate standardized printable reception QR standees and manage medical officer accounts."}
               </p>
 
               <div className="bg-slate-50 p-2.5 rounded border border-slate-200 text-[11.5px] text-slate-700 space-y-1">
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  <span>Download official Reception QR Standee PDF</span>
+                  <span>
+                    {language === "hi" ? "आधिकारिक रिसेप्शन QR स्टैंडी PDF डाउनलोड" : language === "or" ? "ଅଫିସିଆଲ୍ ରିସେପସନ୍ QR ଷ୍ଟାଣ୍ଡି PDF ଡାଉନଲୋଡ୍" : "Download official Reception QR Standee PDF"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  <span>Hospital Doctor &amp; Nurse staff roster</span>
+                  <span>
+                    {language === "hi" ? "अस्पताल डॉक्टर एवं नर्स स्टाफ तालिका" : language === "or" ? "ଡାକ୍ତରଖାନା ଡାକ୍ତର ଓ ନର୍ସ ଷ୍ଟାଫ୍ ତାଲିକା" : "Hospital Doctor & Nurse staff roster"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-1.5 font-medium">
                   <IconCheckCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                  <span>Standardized HFR health facility verification</span>
+                  <span>
+                    {language === "hi" ? "प्रमाणीकृत HFR स्वास्थ्य संस्थान सत्यापन" : language === "or" ? "ପ୍ରମାଣୀକୃତ HFR ସ୍ୱାସ୍ଥ୍ୟ ସୁବିଧା ଯାଞ୍ଚ" : "Standardized HFR health facility verification"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -321,11 +347,11 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
                 className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13px] text-white bg-[#D97706] hover:bg-[#B45309] border border-amber-700 text-center shadow-xs flex items-center justify-center gap-2"
               >
                 <span>
-                  {language === "hi" 
+                  {t.openHospitalPortalBtn || (language === "hi" 
                     ? "अस्पताल पोर्टल लॉगिन →" 
                     : language === "or" 
                     ? "ହସ୍ପିଟାଲ୍ ଆଡମିନ୍ ଲଗଇନ୍ →" 
-                    : "Hospital Admin Login →"}
+                    : "Hospital Admin Login →")}
                 </span>
               </button>
             </div>
@@ -344,33 +370,57 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
               : "Key Operational Infrastructure"}
           </h3>
           <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            Live Central Telemetry
+            {language === "hi" ? "लाइव केंद्रीय डेटा" : language === "or" ? "ଲାଇଭ୍ କେନ୍ଦ୍ରୀୟ ତଥ୍ୟ" : "Live Central Telemetry"}
           </span>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-            <span className="block text-[11px] font-bold text-slate-500 uppercase">Registered Facilities</span>
-            <span className="text-xl sm:text-2xl font-black text-[#003366]">Verified Network</span>
-            <span className="block text-[10.5px] text-slate-500 mt-0.5">District Hospitals, CHCs &amp; PHCs</span>
+            <span className="block text-[11px] font-bold text-slate-500 uppercase">
+              {language === "hi" ? "पंजीकृत संस्थान" : language === "or" ? "ପଞ୍ଜୀକୃତ ସଂସ୍ଥା" : "Registered Facilities"}
+            </span>
+            <span className="text-xl sm:text-2xl font-black text-[#003366]">
+              {language === "hi" ? "सत्यापित नेटवर्क" : language === "or" ? "ଯାଞ୍ଚ ହୋଇଥିବା ନେଟୱର୍କ" : "Verified Network"}
+            </span>
+            <span className="block text-[10.5px] text-slate-500 mt-0.5">
+              {language === "hi" ? "जिला अस्पताल, CHC एवं PHC" : language === "or" ? "ଜିଲ୍ଲା ଡାକ୍ତରଖାନା, CHC ଓ PHC" : "District Hospitals, CHCs & PHCs"}
+            </span>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-            <span className="block text-[11px] font-bold text-slate-500 uppercase">Token Architecture</span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-700">Sequential</span>
-            <span className="block text-[10.5px] text-slate-500 mt-0.5">Zero Duplicate Counter</span>
+            <span className="block text-[11px] font-bold text-slate-500 uppercase">
+              {language === "hi" ? "टोकन संरचना" : language === "or" ? "ଟୋକନ୍ ସଂରଚନା" : "Token Architecture"}
+            </span>
+            <span className="text-xl sm:text-2xl font-black text-emerald-700">
+              {language === "hi" ? "क्रमिक (Sequential)" : language === "or" ? "କ୍ରମିକ (Sequential)" : "Sequential"}
+            </span>
+            <span className="block text-[10.5px] text-slate-500 mt-0.5">
+              {language === "hi" ? "शून्य डुप्लिकेट काउंटर" : language === "or" ? "ଶୂନ ଡୁପ୍ଲିକେଟ୍ କାଉଣ୍ଟର" : "Zero Duplicate Counter"}
+            </span>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-            <span className="block text-[11px] font-bold text-slate-500 uppercase">Standards Compliance</span>
-            <span className="text-xl sm:text-2xl font-black text-blue-900">Clinical &amp; Health Protocols</span>
-            <span className="block text-[10.5px] text-slate-500 mt-0.5">National Health Guidelines</span>
+            <span className="block text-[11px] font-bold text-slate-500 uppercase">
+              {language === "hi" ? "मानक अनुपालन" : language === "or" ? "ମାନକ ଅନୁପାଳନ" : "Standards Compliance"}
+            </span>
+            <span className="text-xl sm:text-2xl font-black text-blue-900">
+              {language === "hi" ? "क्लिनिकल प्रोटोकॉल" : language === "or" ? "କ୍ଲିନିକାଲ୍ ପ୍ରୋଟୋକଲ୍" : "Clinical & Health Protocols"}
+            </span>
+            <span className="block text-[10.5px] text-slate-500 mt-0.5">
+              {language === "hi" ? "राष्ट्रीय स्वास्थ्य दिशा-निर्देश" : language === "or" ? "ଜାତୀୟ ସ୍ୱାସ୍ଥ୍ୟ ମାର୍ଗଦର୍ଶିକା" : "National Health Guidelines"}
+            </span>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded">
-            <span className="block text-[11px] font-bold text-slate-500 uppercase">Emergency Protocol</span>
-            <span className="text-xl sm:text-2xl font-black text-rose-700">Priority Triage</span>
-            <span className="block text-[10.5px] text-slate-500 mt-0.5">Immediate Red/Amber Tagging</span>
+            <span className="block text-[11px] font-bold text-slate-500 uppercase">
+              {language === "hi" ? "आपातकालीन प्रोटोकॉल" : language === "or" ? "ଜରୁରୀକାଳୀନ ପ୍ରୋଟୋକଲ୍" : "Emergency Protocol"}
+            </span>
+            <span className="text-xl sm:text-2xl font-black text-rose-700">
+              {language === "hi" ? "प्राथमिकता ट्राइएज" : language === "or" ? "ପ୍ରାଥମିକତା ଟ୍ରାଇଏଜ୍" : "Priority Triage"}
+            </span>
+            <span className="block text-[10.5px] text-slate-500 mt-0.5">
+              {language === "hi" ? "त्वरित लाल/पीला टैगिंग" : language === "or" ? "ତୁରନ୍ତ ଲାଲ୍/ହଳଦିଆ ଟ୍ୟାଗିଂ" : "Immediate Red/Amber Tagging"}
+            </span>
           </div>
         </div>
       </div>
@@ -391,15 +441,33 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
           <ul className="space-y-1.5 text-slate-600">
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">1.</span>
-              <span>Keep your registered Indian 10-digit mobile number ready for instant OTP authentication.</span>
+              <span>
+                {language === "hi" 
+                  ? "त्वरित OTP प्रमाणीकरण हेतु अपना पंजीकृत 10-अंकीय भारतीय मोबाइल नंबर तैयार रखें।" 
+                  : language === "or" 
+                  ? "ତୁରନ୍ତ OTP ପ୍ରମାଣୀକରଣ ପାଇଁ ଆପଣଙ୍କର ୧୦-ଅଙ୍କ ବିଶିଷ୍ଟ ଭାରତୀୟ ମୋବାଇଲ୍ ନମ୍ବର ପ୍ରସ୍ତୁତ ରଖନ୍ତୁ।" 
+                  : "Keep your registered Indian 10-digit mobile number ready for instant OTP authentication."}
+              </span>
             </li>
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">2.</span>
-              <span>If you are at the clinic premises, you can scan the reception QR standee to automatically lock into the clinic desk.</span>
+              <span>
+                {language === "hi" 
+                  ? "यदि आप अस्पताल परिसर में हैं, तो क्लिनिक डेस्क में स्वतः कनेक्ट होने हेतु रिसेप्शन QR स्टैंडी स्कैन करें।" 
+                  : language === "or" 
+                  ? "ଯଦି ଆପଣ ଡାକ୍ତରଖାନା ପରିସରରେ ଅଛନ୍ତି, ତେବେ ସିଧାସଳଖ ଯୋଡ଼ି ହେବା ପାଇଁ ରିସେପସନ୍ QR ଷ୍ଟାଣ୍ଡି ସ୍କାନ୍ କରନ୍ତୁ।" 
+                  : "If you are at the clinic premises, you can scan the reception QR standee to automatically lock into the clinic desk."}
+              </span>
             </li>
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">3.</span>
-              <span>Your OPD token number is sequential and verified. Present the digital or printed slip when your token is called.</span>
+              <span>
+                {language === "hi" 
+                  ? "आपका ओपीडी टोकन नंबर क्रमिक एवं सत्यापित है। टोकन पुकारे जाने पर डिजिटल या मुद्रित पर्ची प्रस्तुत करें।" 
+                  : language === "or" 
+                  ? "ଆପଣଙ୍କର OPD ଟୋକନ୍ ନମ୍ବର କ୍ରମିକ ଏବଂ ପ୍ରମାଣିତ। ଆପଣଙ୍କ ଟୋକନ୍ ଡକାଗଲେ ଡିଜିଟାଲ୍ ବା ଛାପା ରସିଦ ଦେଖାନ୍ତୁ।" 
+                  : "Your OPD token number is sequential and verified. Present the digital or printed slip when your token is called."}
+              </span>
             </li>
           </ul>
         </div>
@@ -418,15 +486,33 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
           <ul className="space-y-1.5 text-slate-600">
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">1.</span>
-              <span>All patient Personally Identifiable Information (PII) is encrypted at rest using AES-256 protocols.</span>
+              <span>
+                {language === "hi" 
+                  ? "मरीजों की सभी व्यक्तिगत पहचान योग्य जानकारी (PII) AES-256 प्रोटोकॉल द्वारा एन्क्रिप्टेड रहती है।" 
+                  : language === "or" 
+                  ? "ରୋଗୀଙ୍କ ସମସ୍ତ ବ୍ୟକ୍ତିଗତ ତଥ୍ୟ (PII) AES-256 ପ୍ରୋଟୋକଲ୍ ଦ୍ୱାରା ସମ୍ପୂର୍ଣ୍ଣ ଏନକ୍ରିପ୍ଟ ହୋଇ ସୁରକ୍ଷିତ ରହିଥାଏ।" 
+                  : "All patient Personally Identifiable Information (PII) is encrypted at rest using AES-256 protocols."}
+              </span>
             </li>
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">2.</span>
-              <span>Clinical review actions are permanently logged in the departmental audit registry for medico-legal governance.</span>
+              <span>
+                {language === "hi" 
+                  ? "विधिक-चिकित्सा अनुपालन हेतु सभी चिकित्सीय समीक्षाएं विभागीय ऑडिट रजिस्टर में स्थायी रूप से दर्ज होती हैं।" 
+                  : language === "or" 
+                  ? "ଚିକିତ୍ସା-ଆଇନଗତ ନିୟମାବଳୀ ପାଇଁ ସମସ୍ତ ଡାକ୍ତରୀ ସମୀକ୍ଷା ବିଭାଗୀୟ ଅଡିଟ୍ ରେଜିଷ୍ଟ୍ରିରେ ସାଇତା ଯାଏ।" 
+                  : "Clinical review actions are permanently logged in the departmental audit registry for medico-legal governance."}
+              </span>
             </li>
             <li className="flex items-start gap-1.5">
               <span className="text-[#003366] font-bold">3.</span>
-              <span>Inter-hospital referrals generate cryptographically signed transfer slips for tertiary care center handover.</span>
+              <span>
+                {language === "hi" 
+                  ? "अंतर-अस्पताल रेफरल हेतु तृतीयक स्वास्थ्य केंद्रों के लिए डिजिटल रूप से हस्ताक्षरित ट्रांसफर पर्ची जारी होती है।" 
+                  : language === "or" 
+                  ? "ଉଚ୍ଚତର ଚିକିତ୍ସାଳୟକୁ ସ୍ଥାନାନ୍ତର ପାଇଁ ଡିଜିଟାଲ୍ ଦସ୍ତଖତ ଯୁକ୍ତ ସରକାରୀ ରେଫରାଲ୍ ପାସ୍ ପ୍ରଦାନ କରାଯାଏ।" 
+                  : "Inter-hospital referrals generate cryptographically signed transfer slips for tertiary care center handover."}
+              </span>
             </li>
           </ul>
         </div>

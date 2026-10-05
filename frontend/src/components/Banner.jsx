@@ -46,7 +46,9 @@ export default function Banner({ language = "en" }) {
             </div>
 
             <div className="hidden sm:flex items-center gap-1 border-l border-slate-700 pl-2.5 text-slate-300">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold">Text:</span>
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                {language === "hi" ? "अक्षर आकार:" : language === "or" ? "ଅକ୍ଷର ଆକାର:" : "Text:"}
+              </span>
               <button
                 type="button"
                 onClick={() => handleFontSize(-1)}

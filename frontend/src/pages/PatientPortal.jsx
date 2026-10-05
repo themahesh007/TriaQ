@@ -1049,12 +1049,16 @@ export default function PatientPortal({
           <div className="flex items-center gap-2.5 text-left">
             <IconShield className="w-5 h-5 text-amber-950 shrink-0" />
             <div>
-              <span className="font-black uppercase tracking-wider text-[10.5px] block text-amber-950">Offline Resilience Active</span>
-              <span>No internet connection. Your symptom drafts and intake submissions are safely saved in local offline storage and will auto-sync when online.</span>
+              <span className="font-black uppercase tracking-wider text-[10.5px] block text-amber-950">
+                {t.offlineTitle || "Offline Resilience Active"}
+              </span>
+              <span>
+                {t.offlineNotice || "No internet connection. Your symptom drafts and intake submissions are safely saved in local offline storage and will auto-sync when online."}
+              </span>
             </div>
           </div>
           <span className="bg-amber-950 text-amber-200 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider whitespace-nowrap ml-2">
-            Offline
+            {language === "hi" ? "ऑफ़लाइन" : language === "or" ? "ଅଫଲାଇନ୍" : "Offline"}
           </span>
         </div>
       )}
@@ -1064,7 +1068,9 @@ export default function PatientPortal({
           <div className="flex items-center gap-2.5 text-left">
             <span className="text-xl">✓</span>
             <div>
-              <span className="font-black uppercase tracking-wider text-[10.5px] block text-emerald-200">Network Restored</span>
+              <span className="font-black uppercase tracking-wider text-[10.5px] block text-emerald-200">
+                {t.networkRestored || "Network Restored"}
+              </span>
               <span>{offlineSyncNotice}</span>
             </div>
           </div>
@@ -1082,7 +1088,7 @@ export default function PatientPortal({
         <div className="bg-teal-50 border border-teal-300 text-teal-900 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center justify-between shadow-2xs">
           <span className="flex items-center gap-2">
             <IconFileText className="w-4 h-4 inline" />
-            <span>Restored your unsaved symptom draft from local offline storage.</span>
+            <span>{t.draftRestored || "Restored your unsaved symptom draft from local offline storage."}</span>
           </span>
           <button
             type="button"
@@ -1098,7 +1104,13 @@ export default function PatientPortal({
         <div className="bg-blue-50 border border-blue-200 text-blue-950 p-3 rounded-xl text-xs font-bold flex items-center justify-between shadow-2xs">
           <span className="flex items-center gap-2">
             <IconRefresh className="w-3.5 h-3.5 inline" />
-            <span>You have {offlineQueueCount} queued offline case(s) waiting to sync.</span>
+            <span>
+              {language === "hi" 
+                ? `आपके पास ${offlineQueueCount} ऑफ़लाइन केस सिंक होने की प्रतीक्षा में हैं।` 
+                : language === "or" 
+                ? `ଆପଣଙ୍କର ${toOdiaDigits(offlineQueueCount)} ଟି ଅଫଲାଇନ୍ କେସ୍ ସିଙ୍କ୍ ହେବାକୁ ବାକି ଅଛି।` 
+                : `You have ${offlineQueueCount} queued offline case(s) waiting to sync.`}
+            </span>
           </span>
           <button
             type="button"
@@ -1108,7 +1120,13 @@ export default function PatientPortal({
               try {
                 const { synced } = await syncAllQueuedSubmissions(API_BASE);
                 if (synced > 0) {
-                  setOfflineSyncNotice(`✓ Successfully synced ${synced} offline case(s) to cloud database!`);
+                  setOfflineSyncNotice(
+                    language === "hi" 
+                      ? `✓ सफलतापूर्वक ${synced} ऑफ़लाइन केस डेटाबेस में सिंक हो गए!` 
+                      : language === "or" 
+                      ? `✓ ସଫଳତାର ସହ ${toOdiaDigits(synced)} ଟି ଅଫଲାଇନ୍ କେସ୍ ସିଙ୍କ୍ ହେଲା!` 
+                      : `✓ Successfully synced ${synced} offline case(s) to cloud database!`
+                  );
                   setOfflineQueueCount(0);
                 }
               } finally {
@@ -1117,7 +1135,9 @@ export default function PatientPortal({
             }}
             className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] cursor-pointer"
           >
-            {isSyncingOffline ? "Syncing..." : "Sync Now"}
+            {isSyncingOffline 
+              ? (language === "hi" ? "सिंक हो रहा है..." : language === "or" ? "ସିଙ୍କ୍ ହେଉଛି..." : "Syncing...") 
+              : (t.syncNow || "Sync Now")}
           </button>
         </div>
       )}
@@ -1170,12 +1190,16 @@ export default function PatientPortal({
                     {t.lookupTitle || "National OPD Patient Status & Queue Tracker"}
                   </h3>
                   <p className="text-[11px] text-amber-300 font-semibold">
-                    Department of Health &amp; Family Welfare • National Health Mission
+                    {language === "hi" 
+                      ? "स्वास्थ्य एवं परिवार कल्याण विभाग • राष्ट्रीय स्वास्थ्य मिशन" 
+                      : language === "or" 
+                      ? "ସ୍ୱାସ୍ଥ୍ୟ ଏବଂ ପରିବାର କଲ୍ୟାଣ ବିଭାଗ • ଜାତୀୟ ସ୍ୱାସ୍ଥ୍ୟ ମିଶନ" 
+                      : "Department of Health & Family Welfare • National Health Mission"}
                   </p>
                 </div>
               </div>
               <span className="text-[10.5px] font-black px-2.5 py-1 rounded bg-emerald-800 text-white border border-emerald-600">
-                Active Station
+                {language === "hi" ? "सक्रिय स्टेशन" : language === "or" ? "ସକ୍ରିୟ ଷ୍ଟେସନ୍" : "Active Station"}
               </span>
             </div>
 
@@ -1207,7 +1231,7 @@ export default function PatientPortal({
                       className="btn-tactile px-6 py-3 rounded-lg bg-[#003366] hover:bg-[#002244] text-white font-black text-[13.5px] transition shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
                       {lookupLoading ? (
-                        <span>Searching...</span>
+                        <span>{language === "hi" ? "खोजा जा रहा है..." : language === "or" ? "ଖୋଜା ଚାଲିଛି..." : "Searching..."}</span>
                       ) : (
                         <span>{t.lookupBtn || "Check Live Status →"}</span>
                       )}
@@ -1276,7 +1300,9 @@ export default function PatientPortal({
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[11px] font-bold block text-slate-500">Token ID</span>
+                      <span className="text-[11px] font-bold block text-slate-500">
+                        {language === "hi" ? "टोकन संख्या" : language === "or" ? "ଟୋକନ୍ ନମ୍ବର" : "Token ID"}
+                      </span>
                       <span className="text-lg font-black text-slate-900 bg-white px-3 py-1 rounded-lg border border-slate-300 inline-block font-mono">
                         {getLocalizedToken(lookupResult.tokenId, language)}
                       </span>
@@ -1290,20 +1316,32 @@ export default function PatientPortal({
                         <span className="text-[12px] font-black uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
                           <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse mr-1" /> {t.queueAhead || "Queue Position"}
                         </span>
-                        <span className="text-[11px] font-bold text-blue-700">Live Status</span>
+                        <span className="text-[11px] font-bold text-blue-700">
+                          {language === "hi" ? "लाइव स्थिति" : language === "or" ? "ଲାଇଭ୍ ସ୍ଥିତି" : "Live Status"}
+                        </span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 pt-1">
                         <div className="bg-white p-3 rounded-lg border border-blue-200">
-                          <span className="text-[11px] font-bold text-slate-500 block">Current Queue Spot</span>
+                          <span className="text-[11px] font-bold text-slate-500 block">
+                            {language === "hi" ? "कतार में आपका स्थान" : language === "or" ? "ଧାଡ଼ିରେ ଆପଣଙ୍କ ସ୍ଥାନ" : "Current Queue Spot"}
+                          </span>
                           <span className="text-xl font-black text-[#003366]">#{lookupResult.queuePosition + 1}</span>
                           <span className="text-[11px] text-slate-600 block">
-                            {lookupResult.queuePosition === 0 ? "You are next in turn!" : `${lookupResult.queuePosition} patient(s) ahead`}
+                            {lookupResult.queuePosition === 0 
+                              ? (language === "hi" ? "अगली बारी आपकी है!" : language === "or" ? "ପରବର୍ତ୍ତୀ ପାଳି ଆପଣଙ୍କର!" : "You are next in turn!") 
+                              : (language === "hi" ? `${lookupResult.queuePosition} मरीज आपसे आगे हैं` : language === "or" ? `${toOdiaDigits(lookupResult.queuePosition)} ଜଣ ରୋଗୀ ଆପଣଙ୍କ ଆଗରେ ଅଛନ୍ତି` : `${lookupResult.queuePosition} patient(s) ahead`)}
                           </span>
                         </div>
                         <div className="bg-white p-3 rounded-lg border border-blue-200">
-                          <span className="text-[11px] font-bold text-slate-500 block">Estimated Wait</span>
-                          <span className="text-xl font-black text-amber-700">~{Math.max(5, (lookupResult.queuePosition + 1) * 7)} min</span>
-                          <span className="text-[11px] text-slate-600 block">Subject to triage priority</span>
+                          <span className="text-[11px] font-bold text-slate-500 block">
+                            {language === "hi" ? "अनुमानित प्रतीक्षा" : language === "or" ? "ଆନୁମାନିକ ଅପେକ୍ଷା ସମୟ" : "Estimated Wait"}
+                          </span>
+                          <span className="text-xl font-black text-amber-700">
+                            ~{Math.max(5, (lookupResult.queuePosition + 1) * 7)} {language === "hi" ? "मिनट" : language === "or" ? "ମିନିଟ୍" : "min"}
+                          </span>
+                          <span className="text-[11px] text-slate-600 block">
+                            {language === "hi" ? "ट्राइएज प्राथमिकता पर निर्भर" : language === "or" ? "ଟ୍ରାଇଏଜ୍ ପ୍ରାଥମିକତା ଆଧାରିତ" : "Subject to triage priority"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -1314,14 +1352,18 @@ export default function PatientPortal({
                     <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
                       <span className="text-[11px] font-bold text-slate-500 uppercase block">{t.patient || "Patient"}</span>
                       <strong className="text-slate-900 text-[14px] block">{lookupResult.patientName}</strong>
-                      <span className="text-slate-600 text-[12px] font-mono">Receipt: {lookupResult.receiptNumber}</span>
+                      <span className="text-slate-600 text-[12px] font-mono">
+                        {language === "hi" ? "रसीद: " : language === "or" ? "ରସିଦ: " : "Receipt: "}{lookupResult.receiptNumber}
+                      </span>
                     </div>
 
                     <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1">
                       <span className="text-[11px] font-bold text-slate-500 uppercase block">{t.hospitalClinic || "Hospital / OPD Room"}</span>
                       <strong className="text-slate-900 text-[14px] block">{lookupResult.facility || "Assigned Facility"}</strong>
                       <span className="text-emerald-800 font-bold text-[12px] block">
-                        {lookupResult.assignedRoom ? `${lookupResult.assignedRoom.roomNumber} - ${lookupResult.assignedRoom.name}` : "General OPD Room 101"}
+                        {lookupResult.assignedRoom 
+                          ? `${lookupResult.assignedRoom.roomNumber} - ${lookupResult.assignedRoom.name}` 
+                          : (language === "hi" ? "सामान्य ओपीडी कक्ष 101" : language === "or" ? "ସାଧାରଣ ଓପିଡି କୋଠରୀ ୧୦୧" : "General OPD Room 101")}
                       </span>
                     </div>
                   </div>
@@ -1339,7 +1381,7 @@ export default function PatientPortal({
                           ? "bg-amber-100 text-amber-900 border border-amber-300"
                           : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                       }`}>
-                        {lookupResult.riskTag || "GREEN"} Priority
+                        {lookupResult.riskTag || "GREEN"} {language === "hi" ? "प्राथमिकता" : language === "or" ? "ପ୍ରାଥମିକତା" : "Priority"}
                       </span>
                     </div>
                     <p className="text-[13px] text-slate-800 leading-relaxed font-medium">
@@ -1406,10 +1448,11 @@ export default function PatientPortal({
                   {lookupResult.referral && (
                     <div className="p-4 rounded-xl border-2 border-teal-600 bg-teal-50 space-y-2">
                       <span className="text-[12px] font-black uppercase text-teal-950 block">
-                        Escalated / Referred to Higher Facility
+                        {language === "hi" ? "उच्च अस्पताल में स्थानांतरित / रेफर किया गया" : language === "or" ? "ଉଚ୍ଚତର ଚିକିତ୍ସାଳୟକୁ ସ୍ଥାନାନ୍ତରିତ / ରେଫର୍ ହୋଇଛି" : "Escalated / Referred to Higher Facility"}
                       </span>
                       <p className="text-[13px] text-slate-800">
-                        Referred To: <strong>{lookupResult.referral.targetFacility}</strong>
+                        {language === "hi" ? "रेफरल अस्पताल: " : language === "or" ? "ରେଫର୍ ହୋଇଥିବା ହସ୍ପିଟାଲ୍: " : "Referred To: "}
+                        <strong>{lookupResult.referral.targetFacility}</strong>
                       </p>
                       <a
                         href={`${API_BASE}/api/referrals/${lookupResult.referral.id}/pdf`}
@@ -1417,7 +1460,7 @@ export default function PatientPortal({
                         rel="noreferrer"
                         className="inline-block mt-2 px-4 py-2 rounded-lg bg-teal-900 text-white font-bold text-xs"
                       >
-                        Download Official Referral Pass (PDF)
+                        {language === "hi" ? "आधिकारिक रेफरल पास डाउनलोड करें (PDF)" : language === "or" ? "ସରକାରୀ ରେଫରାଲ୍ ପାସ୍ ଡାଉନଲୋଡ୍ କରନ୍ତୁ (PDF)" : "Download Official Referral Pass (PDF)"}
                       </a>
                     </div>
                   )}
@@ -1443,7 +1486,7 @@ export default function PatientPortal({
                       className="btn-tactile py-3 px-4 rounded-xl font-bold text-[13px] text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 transition flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <IconSearch className="w-3.5 h-3.5 inline" />
-                      <span>Check Another Number</span>
+                      <span>{language === "hi" ? "दूसरा नंबर जांचें" : language === "or" ? "ଅନ୍ୟ ନମ୍ବର ଯାଞ୍ଚ କରନ୍ତୁ" : "Check Another Number"}</span>
                     </button>
                   </div>
                 </div>
@@ -1470,12 +1513,16 @@ export default function PatientPortal({
                   {t.authTitle || "Citizen OPD Token Booking Desk"}
                 </h3>
                 <p className="text-[10.5px] text-amber-300">
-                  Department of Health &amp; Clinical Services
+                  {language === "hi" 
+                    ? "स्वास्थ्य एवं क्लिनिकल सेवा विभाग" 
+                    : language === "or" 
+                    ? "ସ୍ୱାସ୍ଥ୍ୟ ଏବଂ କ୍ଲିନିକାଲ୍ ସେବା ବିଭାଗ" 
+                    : "Department of Health & Clinical Services"}
                 </p>
               </div>
             </div>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
-              Verified Registry
+              {language === "hi" ? "सत्यापित रजिस्ट्री" : language === "or" ? "ପ୍ରମାଣିତ ରେଜିଷ୍ଟ୍ରି" : "Verified Registry"}
             </span>
           </div>
 
@@ -1526,7 +1573,11 @@ export default function PatientPortal({
                   <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
                     <span>{t.enterPhoneLabel || "Contact Number (India)"}</span>
                     <span className="text-[11px] font-bold text-emerald-700">
-                      {phone.length}/10 digits
+                      {language === "hi" 
+                        ? `${phone.length}/10 अंक` 
+                        : language === "or" 
+                        ? `${toOdiaDigits(phone.length)}/୧୦ ଅଙ୍କ` 
+                        : `${phone.length}/10 digits`}
                     </span>
                   </label>
                   <div className="flex gap-2">
@@ -1607,7 +1658,7 @@ export default function PatientPortal({
               {/* REGISTER NOW PLACED DIRECTLY UNDER LOGIN */}
               <div className="text-center pt-3 border-t border-slate-100 space-y-1">
                 <p className="text-[12.5px] text-slate-600 font-medium">
-                  Don't have an account?{" "}
+                  {t.noAccount || (language === "hi" ? "खाता नहीं है?" : language === "or" ? "ଖାତା ନାହିଁ କି?" : "Don't have an account?")}{" "}
                   <button
                     type="button"
                     onClick={() => {
@@ -1617,11 +1668,15 @@ export default function PatientPortal({
                     }}
                     className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                   >
-                    Register Now →
+                    {language === "hi" ? "अभी पंजीकरण करें →" : language === "or" ? "ଏବେ ପଞ୍ଜୀକରଣ କରନ୍ତୁ →" : "Register Now →"}
                   </button>
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  (Or simply verify OTP above for instant mobile sign-in)
+                  {language === "hi" 
+                    ? "(या तुरंत मोबाइल लॉगिन हेतु ऊपर OTP सत्यापित करें)" 
+                    : language === "or" 
+                    ? "(କିମ୍ବା ତୁରନ୍ତ ଲଗଇନ୍ ପାଇଁ ଉପରେ OTP ଯାଞ୍ଚ କରନ୍ତୁ)" 
+                    : "(Or simply verify OTP above for instant mobile sign-in)"}
                 </p>
               </div>
             </div>
@@ -1632,7 +1687,7 @@ export default function PatientPortal({
             <div className="space-y-4 max-w-sm mx-auto">
               {isSignup && (
                 <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-[12px] font-bold text-center">
-                  Register New Patient Account
+                  {language === "hi" ? "नया मरीज खाता पंजीकृत करें" : language === "or" ? "ନୂତନ ରୋଗୀ ଆକାଉଣ୍ଟ ପଞ୍ଜୀକରଣ କରନ୍ତୁ" : "Register New Patient Account"}
                 </div>
               )}
 
@@ -1640,14 +1695,14 @@ export default function PatientPortal({
                 {isSignup && (
                   <div>
                     <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                      Full Name <span className="text-rose-600">*</span>
+                      {t.fullNameLabel || "Full Name"} <span className="text-rose-600">*</span>
                     </label>
                     <input
                       type="text"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Enter full legal name"
+                      placeholder={t.fullNamePlaceholder || "Enter full legal name"}
                       className="w-full p-2.5 rounded-xl border border-slate-200 text-[13px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                     />
                   </div>
@@ -1656,8 +1711,10 @@ export default function PatientPortal({
                 {isSignup && (
                   <div>
                     <label className="block text-[12px] font-bold text-slate-700 mb-1 flex items-center justify-between">
-                      <span>Contact Number (India) <span className="text-rose-600">*</span></span>
-                      <span className="text-[11px] font-bold text-emerald-700">{phone.length}/10</span>
+                      <span>{t.contactPhoneLabel || "Contact Number (India)"} <span className="text-rose-600">*</span></span>
+                      <span className="text-[11px] font-bold text-emerald-700">
+                        {language === "hi" ? `${phone.length}/10 अंक` : language === "or" ? `${toOdiaDigits(phone.length)}/୧୦ ଅଙ୍କ` : `${phone.length}/10`}
+                      </span>
                     </label>
                     <div className="flex gap-2">
                       <span className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-black text-slate-700 flex items-center gap-1">
@@ -1670,7 +1727,7 @@ export default function PatientPortal({
                         maxLength={10}
                         value={phone}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                        placeholder="9876543210"
+                        placeholder={t.phonePlaceholder || "9876543210"}
                         className="flex-1 p-2.5 rounded-xl border border-slate-200 text-[13px] font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                       />
                     </div>
@@ -1679,7 +1736,7 @@ export default function PatientPortal({
 
                 <div>
                   <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Email Address <span className="text-rose-600">*</span>
+                    {t.emailLabel || "Email Address"} <span className="text-rose-600">*</span>
                   </label>
                   <input
                     type="email"
@@ -1694,7 +1751,7 @@ export default function PatientPortal({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[12px] font-bold text-slate-700">
-                      Password (min 8 characters) <span className="text-rose-600">*</span>
+                      {language === "hi" ? "पासवर्ड (न्यूनतम 8 अक्षर)" : language === "or" ? "ପାସୱାର୍ଡ (ଅତିକମରେ ୮ ଅକ୍ଷର)" : "Password (min 8 characters)"} <span className="text-rose-600">*</span>
                     </label>
                     {!isSignup && (
                       <button
@@ -1702,7 +1759,7 @@ export default function PatientPortal({
                         onClick={() => setShowForgotPassword(true)}
                         className="text-[11.5px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
                       >
-                        Forgot Password?
+                        {t.forgotPassword || "Forgot Password?"}
                       </button>
                     )}
                   </div>
@@ -1731,7 +1788,11 @@ export default function PatientPortal({
                   disabled={loading}
                   className="btn-tactile w-full py-2.5 px-4 rounded font-bold text-[13.5px] text-white bg-[#003366] hover:bg-[#0B2545] border border-[#002244] shadow-xs text-center transition cursor-pointer disabled:opacity-40"
                 >
-                  {loading ? "Please wait..." : isSignup ? "Register & Check In →" : "Sign In & Continue →"}
+                  {loading 
+                    ? (language === "hi" ? "कृपया प्रतीक्षा करें..." : language === "or" ? "ଦୟାକରି ଅପେକ୍ଷା କରନ୍ତୁ..." : "Please wait...") 
+                    : isSignup 
+                    ? (t.signupBtn || (language === "hi" ? "पंजीकरण करें और आगे बढ़ें →" : language === "or" ? "ପଞ୍ଜୀକରଣ କରନ୍ତୁ ଓ ଆଗକୁ ବଢ଼ନ୍ତୁ →" : "Register & Check In →")) 
+                    : (t.loginBtn || (language === "hi" ? "साइन इन करें और आगे बढ़ें →" : language === "or" ? "ଲଗଇନ୍ କରନ୍ତୁ ଓ ଆଗକୁ ବଢ଼ନ୍ତୁ →" : "Sign In & Continue →"))}
                 </button>
               </form>
 
@@ -1739,7 +1800,7 @@ export default function PatientPortal({
               <div className="text-center pt-3 border-t border-slate-100 space-y-1">
                 {isSignup ? (
                   <p className="text-[12.5px] text-slate-600 font-medium">
-                    Already have an account?{" "}
+                    {t.hasAccount || (language === "hi" ? "पहले से खाता है?" : language === "or" ? "ପୂର୍ବରୁ ଆକାଉଣ୍ଟ ଅଛି କି?" : "Already have an account?")}{" "}
                     <button
                       type="button"
                       onClick={() => {
@@ -1748,12 +1809,12 @@ export default function PatientPortal({
                       }}
                       className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                     >
-                      Sign In here →
+                      {language === "hi" ? "यहाँ साइन इन करें →" : language === "or" ? "ଏଠାରେ ଲଗଇନ୍ କରନ୍ତୁ →" : "Sign In here →"}
                     </button>
                   </p>
                 ) : (
                   <p className="text-[12.5px] text-slate-600 font-medium">
-                    Don't have an account?{" "}
+                    {t.noAccount || (language === "hi" ? "खाता नहीं है?" : language === "or" ? "ଖାତା ନାହିଁ କି?" : "Don't have an account?")}{" "}
                     <button
                       type="button"
                       onClick={() => {
@@ -1762,12 +1823,12 @@ export default function PatientPortal({
                       }}
                       className="font-black text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
                     >
-                      Register Now →
+                      {language === "hi" ? "अभी पंजीकरण करें →" : language === "or" ? "ଏବେ ପଞ୍ଜୀକରଣ କରନ୍ତୁ →" : "Register Now →"}
                     </button>
                   </p>
                 )}
                 <p className="text-[11.5px] text-slate-400">
-                  Or switch to{" "}
+                  {language === "hi" ? "अथवा उपयोग करें " : language === "or" ? "କିମ୍ବା ବ୍ୟବହାର କରନ୍ତୁ " : "Or switch to "}
                   <button
                     type="button"
                     onClick={() => {
@@ -1777,7 +1838,7 @@ export default function PatientPortal({
                     }}
                     className="font-bold text-slate-700 hover:underline cursor-pointer"
                   >
-                    Mobile OTP Login
+                    {t.phoneOtpTab || "Mobile OTP Login"}
                   </button>
                 </p>
               </div>
@@ -1798,7 +1859,9 @@ export default function PatientPortal({
                 {t.demographicsStep || "Step 1 of 2 • Patient Demographics & Registration"}
               </span>
               <span className="text-slate-300 hidden sm:inline">|</span>
-              <span className="text-slate-200 hidden sm:inline">Official OPD Desk</span>
+              <span className="text-slate-200 hidden sm:inline">
+                {language === "or" ? "ସରକାରୀ ଓପିଡି ଡେସ୍କ" : language === "hi" ? "आधिकारिक ओपीडी डेस्क" : "Official OPD Desk"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="inline-flex rounded border border-blue-900/50 bg-[#133B5C] p-0.5">
@@ -2034,7 +2097,9 @@ export default function PatientPortal({
                 {t.symptomsStep || "Step 2 of 2 • Clinical Symptoms & Triage Intake"}
               </span>
               <span className="text-slate-300 hidden sm:inline">|</span>
-              <span className="text-slate-200 hidden sm:inline">Algorithmic Risk Prioritization</span>
+              <span className="text-slate-200 hidden sm:inline">
+                {language === "or" ? "ସ୍ୱୟଂଚାଳିତ ପ୍ରାଥମିକତା ମୂଲ୍ୟାଙ୍କନ" : language === "hi" ? "एल्गोरिदम जोखिम प्राथमिकता" : "Algorithmic Risk Prioritization"}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="inline-flex rounded border border-blue-900/50 bg-[#133B5C] p-0.5">
@@ -2074,7 +2139,7 @@ export default function PatientPortal({
                     {language === "or" ? "ଚୟନିତ ଡାକ୍ତରଖାନା / ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର:" : language === "hi" ? "चयनित अस्पताल / स्वास्थ्य केंद्र:" : "Selected Health Facility / OPD Desk:"}
                   </span>
                   <span className="text-[14px] font-black text-slate-900">
-                    {selectedFacility || "General Health Facility"}
+                    {selectedFacility || (language === "or" ? "ସାଧାରଣ ସ୍ୱାସ୍ଥ୍ୟ କେନ୍ଦ୍ର" : language === "hi" ? "सामान्य स्वास्थ्य केंद्र" : "General Health Facility")}
                   </span>
                 </div>
               </div>
@@ -2517,11 +2582,11 @@ export default function PatientPortal({
           <div className="bg-[#003366] text-white px-4 py-2.5 rounded-t-[5px] flex items-center justify-between text-[12px]">
             <div className="flex items-center gap-2">
               <span className="font-bold text-amber-300 uppercase tracking-wide">
-                Official OPD Token Pass &amp; Clinical Triage Receipt
+                {language === "or" ? "ସରକାରୀ ଓପିଡି ଟୋକନ୍ ପାସ୍ ଏବଂ କ୍ଲିନିକାଲ୍ ଟ୍ରାଏଜ୍ ରସିଦ" : language === "hi" ? "आधिकारिक ओपीडी टोकन पास एवं क्लीनिकल ट्राइएज रसीद" : "Official OPD Token Pass & Clinical Triage Receipt"}
               </span>
             </div>
             <span className="text-[10.5px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
-              Issued
+              {language === "or" ? "ପ୍ରଦାନ କରାଗଲା" : language === "hi" ? "जारी किया गया" : "Issued"}
             </span>
           </div>
 
@@ -2799,16 +2864,18 @@ export default function PatientPortal({
           ) : (
             <div className="text-center py-8 space-y-2">
               <IconClipboard className="w-8 h-8 text-slate-300 block mx-auto" />
-              <p className="text-[14.5px] font-bold text-slate-800">No active triage submission found.</p>
+              <p className="text-[14.5px] font-bold text-slate-800">
+                {language === "or" ? "କୌଣସି ସକ୍ରିୟ ଟ୍ରାଏଜ୍ ଦାଖଲ ମିଳିଲା ନାହିଁ।" : language === "hi" ? "कोई सक्रिय ट्राइएज सबमिशन नहीं मिला।" : "No active triage submission found."}
+              </p>
               <p className="text-[12.5px] text-slate-500 max-w-xs mx-auto">
-                Submit your symptoms through the intake desk to generate a triage pass.
+                {language === "or" ? "ଟ୍ରାଏଜ୍ ପାସ୍ ପାଇବା ପାଇଁ ଇନଟେକ୍ ଡେସ୍କରେ ଆପଣଙ୍କ ଲକ୍ଷଣ ଦାଖଲ କରନ୍ତୁ।" : language === "hi" ? "ट्राइएज पास प्राप्त करने के लिए इनटेक डेस्क पर अपने लक्षण सबमिट करें।" : "Submit your symptoms through the intake desk to generate a triage pass."}
               </p>
               <button
                 type="button"
                 onClick={() => setCurrentStep("symptoms")}
                 className="mt-2 px-5 py-2 rounded-xl text-[12.5px] font-black text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer"
               >
-                Submit Symptoms Now →
+                {language === "or" ? "ବର୍ତ୍ତମାନ ଲକ୍ଷଣ ଦାଖଲ କରନ୍ତୁ →" : language === "hi" ? "अभी लक्षण सबमिट करें →" : "Submit Symptoms Now →"}
               </button>
             </div>
           )}
@@ -2816,7 +2883,12 @@ export default function PatientPortal({
           {/* Hospital Helpline Banner */}
           <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-[12px] text-rose-900 flex items-center justify-between">
             <div>
-              <strong>Emergency Helpline:</strong> If your condition worsens, call <strong>+91-11-2338-9000</strong> or alert hospital triage immediately.
+              <strong>{language === "or" ? "ଜରୁରୀକାଳୀନ ହେଲ୍ପଲାଇନ:" : language === "hi" ? "आपातकालीन हेल्पलाइन:" : "Emergency Helpline:"}</strong>{" "}
+              {language === "or"
+                ? "ଯଦି ଆପଣଙ୍କ ସ୍ୱାସ୍ଥ୍ୟାବସ୍ଥା ଅଧିକ ଖରାପ ହୁଏ, ତେବେ ତୁରନ୍ତ 1075 / 108 ରେ କଲ୍ କରନ୍ତୁ କିମ୍ବା ଡାକ୍ତରଖାନା ଜରୁରୀକାଳୀନ ବିଭାଗକୁ ଜଣାନ୍ତୁ।"
+                : language === "hi"
+                ? "यदि आपकी स्थिति बिगड़ती है, तो तुरंत 1075 / 108 पर कॉल करें या अस्पताल आपातकालीन डेस्क से संपर्क करें।"
+                : "If your condition worsens, call 1075 / 108 or alert hospital emergency triage immediately."}
             </div>
           </div>
         </div>

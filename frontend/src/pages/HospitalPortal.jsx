@@ -418,12 +418,12 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
             onClick={onNavigateHome}
             className="text-[12px] font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer"
           >
-            ← Home
+            {language === "or" ? "← ମୁଖ୍ୟ ପୃଷ୍ଠା" : language === "hi" ? "← मुख्य पृष्ठ" : "← Home"}
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12.5px] font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
             <IconHospital className="w-4 h-4 text-emerald-600 inline" />
-            Hospital & Clinic Admin Portal
+            {language === "or" ? "ଡାକ୍ତରଖାନା ଓ କ୍ଲିନିକ୍ ପ୍ରଶାସକ ପୋର୍ଟାଲ୍" : language === "hi" ? "अस्पताल एवं क्लिनिक व्यवस्थापक पोर्टल" : "Hospital & Clinic Admin Portal"}
           </span>
         </div>
 
@@ -440,7 +440,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
               onClick={handleLogout}
               className="text-[11.5px] font-bold text-rose-600 hover:underline cursor-pointer"
             >
-              Sign Out
+              {language === "or" ? "ଲଗ୍ ଆଉଟ୍" : language === "hi" ? "लॉग आउट" : "Sign Out"}
             </button>
           </div>
         )}

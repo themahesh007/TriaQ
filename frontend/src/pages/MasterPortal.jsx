@@ -262,18 +262,18 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
             onClick={onNavigateHome}
             className="text-[12px] font-bold text-slate-500 hover:text-slate-900 transition flex items-center gap-1 cursor-pointer"
           >
-            ← Home
+            {language === "or" ? "← ମୁଖ୍ୟ ପୃଷ୍ଠା" : language === "hi" ? "← मुख्य पृष्ठ" : "← Home"}
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12px] font-black text-rose-700 uppercase tracking-wider flex items-center gap-1">
-            <span></span> Master System Administration (2FA)
+            <span></span> {language === "or" ? "ମାଷ୍ଟର୍ ସିଷ୍ଟମ୍ ପ୍ରଶାସନ (2FA)" : language === "hi" ? "मास्टर सिस्टम प्रशासन (2FA)" : "Master System Administration (2FA)"}
           </span>
         </div>
 
         {masterSession && (
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-rose-900 text-white uppercase tracking-wider">
-              MASTER ACCESS
+              {language === "or" ? "ମାଷ୍ଟର୍ ଆକ୍ସେସ୍" : language === "hi" ? "मास्टर एक्सेस" : "MASTER ACCESS"}
             </span>
             <span className="text-[12.5px] font-bold text-slate-800">
               {masterSession.master?.name}
@@ -284,14 +284,14 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
               className="text-[11px] font-bold px-2.5 py-1 rounded-lg border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 transition cursor-pointer flex items-center gap-1"
               title="Wipe all patients and triage tickets for a clean slate"
             >
-              <span></span> Reset Data
+              <span></span> {language === "or" ? "ଡାଟା ରିସେଟ୍" : language === "hi" ? "डेटा रीसेट" : "Reset Data"}
             </button>
             <button
               type="button"
               onClick={handleLogout}
               className="text-[11.5px] font-bold text-rose-600 hover:underline cursor-pointer"
             >
-              Logout
+              {language === "or" ? "ଲଗ୍ ଆଉଟ୍" : language === "hi" ? "लॉग आउट" : "Logout"}
             </button>
           </div>
         )}

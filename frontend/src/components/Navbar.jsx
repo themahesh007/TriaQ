@@ -42,8 +42,12 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
         {/* Right Badges & Multilingual Switcher */}
         <div className="flex items-center gap-3 ml-auto">
           <div className="hidden lg:flex flex-col text-right text-[11px] font-medium text-slate-500 border-r border-slate-200 pr-3">
-            <span className="font-bold text-slate-800">Clinical Healthcare Network</span>
-            <span>Healthcare &amp; Outpatient System</span>
+            <span className="font-bold text-slate-800">
+              {language === "hi" ? "क्लिनिकल स्वास्थ्य नेटवर्क" : language === "or" ? "କ୍ଲିନିକାଲ୍ ସ୍ୱାସ୍ଥ୍ୟ ନେଟୱର୍କ" : "Clinical Healthcare Network"}
+            </span>
+            <span>
+              {language === "hi" ? "स्वास्थ्य एवं ओपीडी प्रणाली" : language === "or" ? "ସ୍ୱାସ୍ଥ୍ୟ ଏବଂ ବାହ୍ୟରୋଗୀ ପ୍ରଣାଳୀ" : "Healthcare & Outpatient System"}
+            </span>
           </div>
 
           {/* Multilingual Selector */}
