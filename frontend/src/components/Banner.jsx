@@ -1,14 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { IconIndianFlag } from "./Icons";
 
 export default function Banner({ language = "en" }) {
-  const [fontSizeOffset, setFontSizeOffset] = useState(0);
+  const [textSize, setTextSize] = useState(() => {
+    return localStorage.getItem("triaq_text_size") || "md";
+  });
 
-  const handleFontSize = (delta) => {
-    const next = Math.max(-2, Math.min(2, fontSizeOffset + delta));
-    setFontSizeOffset(next);
-    document.documentElement.style.fontSize = next === 0 ? "100%" : next > 0 ? "108%" : "94%";
-  };
+  useEffect(() => {
+    localStorage.setItem("triaq_text_size", textSize);
+    if (textSize === "sm") {
+      document.documentElement.style.zoom = "0.9";
+      document.body.style.zoom = "0.9";
+      document.documentElement.style.fontSize = "90%";
+    } else if (textSize === "lg") {
+      document.documentElement.style.zoom = "1.1";
+      document.body.style.zoom = "1.1";
+      document.documentElement.style.fontSize = "110%";
+    } else {
+      document.documentElement.style.zoom = "1";
+      document.body.style.zoom = "1";
+      document.documentElement.style.fontSize = "100%";
+    }
+  }, [textSize]);
 
   return (
     <div className="w-full no-print">
@@ -45,34 +58,48 @@ export default function Banner({ language = "en" }) {
               </span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1 border-l border-slate-700 pl-2.5 text-slate-300">
+            <div className="hidden sm:flex items-center gap-1.5 border-l border-slate-700 pl-2.5 text-slate-300">
               <span className="text-[10px] text-slate-400 uppercase font-semibold">
                 {language === "hi" ? "अक्षर आकार:" : language === "or" ? "ଅକ୍ଷର ଆକାର:" : "Text:"}
               </span>
-              <button
-                type="button"
-                onClick={() => handleFontSize(-1)}
-                className="px-1.5 py-0.2 rounded hover:bg-slate-800 text-[11px] font-bold cursor-pointer"
-                title="Decrease font size"
-              >
-                A-
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFontSize(0)}
-                className="px-1.5 py-0.2 rounded hover:bg-slate-800 text-[11px] font-bold cursor-pointer"
-                title="Normal font size"
-              >
-                A
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFontSize(1)}
-                className="px-1.5 py-0.2 rounded hover:bg-slate-800 text-[11px] font-bold cursor-pointer"
-                title="Increase font size"
-              >
-                A+
-              </button>
+              <div className="inline-flex rounded bg-[#133B5C] p-0.5 border border-blue-900/60 items-center">
+                <button
+                  type="button"
+                  onClick={() => setTextSize("sm")}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                    textSize === "sm"
+                      ? "bg-amber-400 text-slate-950 font-black shadow-xs"
+                      : "text-slate-200 hover:bg-[#002244]"
+                  }`}
+                  title="Decrease font size (A-)"
+                >
+                  A-
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTextSize("md")}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                    textSize === "md"
+                      ? "bg-amber-400 text-slate-950 font-black shadow-xs"
+                      : "text-slate-200 hover:bg-[#002244]"
+                  }`}
+                  title="Normal font size (A)"
+                >
+                  A
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTextSize("lg")}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold transition cursor-pointer ${
+                    textSize === "lg"
+                      ? "bg-amber-400 text-slate-950 font-black shadow-xs"
+                      : "text-slate-200 hover:bg-[#002244]"
+                  }`}
+                  title="Increase font size (A+)"
+                >
+                  A+
+                </button>
+              </div>
             </div>
           </div>
         </div>
