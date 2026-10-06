@@ -3,6 +3,7 @@ import TriageSlipModal from "../components/TriageSlipModal";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import LanguageSelectorModal from "../components/LanguageSelectorModal";
 import { TRANSLATIONS, LANGUAGES, getLocalizedToken, toOdiaDigits, toHindiDigits } from "../utils/translations";
+import odishaLocations, { districts } from "../utils/odishaLocations";
 import {
   saveDraft,
   loadDraft,
@@ -109,9 +110,55 @@ export default function PatientPortal({
   const [age, setAge] = useState(() => localStorage.getItem("triaq_draft_age") || "");
   const [contactPhone, setContactPhone] = useState(() => localStorage.getItem("triaq_draft_phone") || "");
   const [address, setAddress] = useState(() => localStorage.getItem("triaq_draft_address") || "");
+  const [patientState, setPatientState] = useState(() => localStorage.getItem("triaq_draft_state") || "Odisha");
+  const [patientDistrict, setPatientDistrict] = useState(() => localStorage.getItem("triaq_draft_district") || "");
+  const [patientCity, setPatientCity] = useState(() => localStorage.getItem("triaq_draft_city") || "");
   const [conditions, setConditions] = useState(() => localStorage.getItem("triaq_draft_conditions") || "");
   const [medications, setMedications] = useState(() => localStorage.getItem("triaq_draft_meds") || "");
   const [intakeSavedNotice, setIntakeSavedNotice] = useState("");
+
+  // District & City Interactive Location Dropdowns (with manual typing support)
+  const [showPatientDistrictDropdown, setShowPatientDistrictDropdown] = useState(false);
+  const [showPatientCityDropdown, setShowPatientCityDropdown] = useState(false);
+  const patientDistrictBoxRef = useRef(null);
+  const patientCityBoxRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (patientDistrictBoxRef.current && !patientDistrictBoxRef.current.contains(e.target)) {
+        setShowPatientDistrictDropdown(false);
+      }
+      if (patientCityBoxRef.current && !patientCityBoxRef.current.contains(e.target)) {
+        setShowPatientCityDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered districts based on user typing
+  const filteredPatientDistricts = useMemo(() => {
+    const q = patientDistrict.trim().toLowerCase();
+    if (!q) return districts;
+    return districts.filter((d) => d.toLowerCase().includes(q));
+  }, [patientDistrict]);
+
+  // Available cities based on selected district or user typing
+  const availablePatientCities = useMemo(() => {
+    const matchedDistrictKey = districts.find(
+      (d) => d.toLowerCase() === patientDistrict.trim().toLowerCase()
+    );
+    if (matchedDistrictKey) {
+      const cityList = odishaLocations[matchedDistrictKey] || [];
+      const q = patientCity.trim().toLowerCase();
+      if (!q) return cityList;
+      return cityList.filter((c) => c.toLowerCase().includes(q));
+    }
+    const q = patientCity.trim().toLowerCase();
+    const allCities = [...new Set(Object.values(odishaLocations).flat())].sort();
+    if (!q) return allCities.slice(0, 30);
+    return allCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 30);
+  }, [patientDistrict, patientCity]);
 
   // Detect QR check-in parameters & fetch facilities list
   useEffect(() => {
@@ -393,9 +440,12 @@ export default function PatientPortal({
     localStorage.setItem("triaq_draft_age", age);
     localStorage.setItem("triaq_draft_phone", contactPhone);
     localStorage.setItem("triaq_draft_address", address);
+    localStorage.setItem("triaq_draft_district", patientDistrict);
+    localStorage.setItem("triaq_draft_city", patientCity);
+    localStorage.setItem("triaq_draft_state", patientState);
     localStorage.setItem("triaq_draft_conditions", conditions);
     localStorage.setItem("triaq_draft_meds", medications);
-  }, [fullName, age, contactPhone, address, conditions, medications]);
+  }, [fullName, age, contactPhone, address, patientDistrict, patientCity, patientState, conditions, medications]);
 
   // Real-time offline / online listeners & background auto-sync
   useEffect(() => {
@@ -630,7 +680,10 @@ export default function PatientPortal({
             name: fullName.trim(),
             age: age.trim(),
             phone: cleanContact,
-            address: address.trim(),
+            address: [address.trim(), patientCity.trim(), patientDistrict.trim(), patientState.trim()].filter(Boolean).join(", "),
+            district: patientDistrict.trim(),
+            city: patientCity.trim(),
+            state: patientState.trim(),
             conditions: conditions.trim(),
             medications: medications.trim(),
             facility: selectedFacility
@@ -836,13 +889,15 @@ export default function PatientPortal({
           fullName: fullName || "Patient",
           age,
           phone: contactPhone,
-          address,
+          address: [address.trim(), patientCity.trim(), patientDistrict.trim(), patientState.trim()].filter(Boolean).join(", ") || address,
           createdAt: new Date().toISOString()
         });
         setOfflineQueueCount(allQueued.length);
         setCurrentStep("confirmation");
         return;
       }
+
+      const fullAddress = [address.trim(), patientCity.trim(), patientDistrict.trim(), patientState.trim()].filter(Boolean).join(", ") || address.trim();
 
       const res = await fetch(`${API_BASE}/api/triage-notes`, {
         method: "POST",
@@ -852,7 +907,7 @@ export default function PatientPortal({
           fullName: fullName.trim(),
           age: age.trim(),
           phone: cleanIndianPhone(contactPhone) || contactPhone.trim(),
-          address: address.trim(),
+          address: fullAddress,
           symptomText: combinedSymptomText,
           vitals: vitalsObj,
           language,
@@ -2035,6 +2090,170 @@ export default function PatientPortal({
                   placeholder={t.addressPlaceholder || "e.g. Ward 4, Sector 12"}
                   className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600"
                 />
+              </div>
+            </div>
+
+            {/* State, District, City (Location with Interactive Popup Dropdowns & Manual Typing) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* State (Manual Typing, No Dropdown) */}
+              <div>
+                <label className="block text-[12px] font-bold text-slate-700 mb-1">
+                  {language === "or" ? "ରାଜ୍ୟ (State)" : language === "hi" ? "राज्य (State)" : "State"}
+                </label>
+                <input
+                  type="text"
+                  value={patientState}
+                  onChange={(e) => setPatientState(e.target.value)}
+                  placeholder="e.g. Odisha"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+                />
+              </div>
+
+              {/* District (Click Popup Dropdown + Manual Typing) */}
+              <div className="relative" ref={patientDistrictBoxRef}>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[12px] font-bold text-slate-700">
+                    {language === "or" ? "ଜିଲ୍ଲା (District)" : language === "hi" ? "जिला (District)" : "District"}
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {language === "or" ? "ବାଛନ୍ତୁ ବା ଲେଖନ୍ତୁ" : language === "hi" ? "चुनें या लिखें" : "Click or type"}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={patientDistrict}
+                    onChange={(e) => {
+                      setPatientDistrict(e.target.value);
+                      setShowPatientDistrictDropdown(true);
+                    }}
+                    onFocus={() => setShowPatientDistrictDropdown(true)}
+                    onClick={() => setShowPatientDistrictDropdown(true)}
+                    placeholder={language === "or" ? "ଯଥା: ଖୋର୍ଦ୍ଧା" : language === "hi" ? "उदा. खोर्धा" : "e.g. Khordha"}
+                    className="w-full p-2.5 pr-7 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPatientDistrictDropdown((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]"
+                    tabIndex={-1}
+                  >
+                    ▼
+                  </button>
+                </div>
+
+                {/* Pop-up Dropdown for District */}
+                {showPatientDistrictDropdown && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+                    <div className="p-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200 flex items-center justify-between">
+                      <span>{language === "or" ? `ଓଡ଼ିଶାର ଜିଲ୍ଲା (${filteredPatientDistricts.length})` : language === "hi" ? `ओडिशा के जिले (${filteredPatientDistricts.length})` : `Odisha Districts (${filteredPatientDistricts.length})`}</span>
+                      <span className="text-[9px] text-emerald-700 font-semibold">{language === "or" ? "ଚୟନ କରନ୍ତୁ" : language === "hi" ? "चयन करें" : "Click to select"}</span>
+                    </div>
+                    {filteredPatientDistricts.length > 0 ? (
+                      filteredPatientDistricts.map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => {
+                            setPatientDistrict(d);
+                            if (!patientState.trim()) setPatientState("Odisha");
+                            setShowPatientDistrictDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-[12px] font-medium transition cursor-pointer flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-900 ${
+                            patientDistrict.trim().toLowerCase() === d.toLowerCase()
+                              ? "bg-emerald-100/70 text-emerald-950 font-bold"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          <span>{d}</span>
+                          {patientDistrict.trim().toLowerCase() === d.toLowerCase() && (
+                            <span className="text-emerald-700 text-xs font-bold">✓</span>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-[11.5px] text-slate-400">
+                        {language === "or" ? "ମାନୁଆଲ୍ ଟାଇପିଂ ଗ୍ରହଣଯୋଗ୍ୟ" : language === "hi" ? "मैन्युअल टाइपिंग मान्य है" : "Custom entry accepted (manual typing)"}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* City (Click Popup Dropdown + Manual Typing) */}
+              <div className="relative" ref={patientCityBoxRef}>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[12px] font-bold text-slate-700">
+                    {language === "or" ? "ସହର / ସ୍ଥାନ (City / Place)" : language === "hi" ? "शहर / स्थान (City / Place)" : "City / Place"}
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {language === "or" ? "ବାଛନ୍ତୁ ବା ଲେଖନ୍ତୁ" : language === "hi" ? "चुनें या लिखें" : "Click or type"}
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={patientCity}
+                    onChange={(e) => {
+                      setPatientCity(e.target.value);
+                      setShowPatientCityDropdown(true);
+                    }}
+                    onFocus={() => setShowPatientCityDropdown(true)}
+                    onClick={() => setShowPatientCityDropdown(true)}
+                    placeholder={language === "or" ? "ଯଥା: ଭୁବନେଶ୍ୱର" : language === "hi" ? "उदा. भुवनेश्वर" : "e.g. Bhubaneswar"}
+                    className="w-full p-2.5 pr-7 rounded-xl border border-slate-200 text-[13.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-white"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPatientCityDropdown((prev) => !prev)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]"
+                    tabIndex={-1}
+                  >
+                    ▼
+                  </button>
+                </div>
+
+                {/* Pop-up Dropdown for City */}
+                {showPatientCityDropdown && (
+                  <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+                    <div className="p-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200 flex items-center justify-between">
+                      <span>
+                        {patientDistrict 
+                          ? `${patientDistrict} (${availablePatientCities.length})` 
+                          : `Odisha Places (${availablePatientCities.length})`}
+                      </span>
+                      <span className="text-[9px] text-emerald-700 font-semibold">{language === "or" ? "ଚୟନ କରନ୍ତୁ" : language === "hi" ? "चयन करें" : "Click to select"}</span>
+                    </div>
+                    {availablePatientCities.length > 0 ? (
+                      availablePatientCities.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          onClick={() => {
+                            setPatientCity(c);
+                            setShowPatientCityDropdown(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-[12px] font-medium transition cursor-pointer flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-900 ${
+                            patientCity.trim().toLowerCase() === c.toLowerCase()
+                              ? "bg-emerald-100/70 text-emerald-950 font-bold"
+                              : "text-slate-700"
+                          }`}
+                        >
+                          <span>{c}</span>
+                          {patientCity.trim().toLowerCase() === c.toLowerCase() && (
+                            <span className="text-emerald-700 text-xs font-bold">✓</span>
+                          )}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-center text-[11.5px] text-slate-400">
+                        {language === "or" ? "ମାନୁଆଲ୍ ଟାଇପିଂ ଗ୍ରହଣଯୋଗ୍ୟ" : language === "hi" ? "मैन्युअल टाइपिंग मान्य है" : "Custom entry accepted (manual typing)"}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
