@@ -1,5 +1,5 @@
 import React from "react";
-import { TRANSLATIONS, LANGUAGES } from "../utils/translations";
+import { TRANSLATIONS } from "../utils/translations";
 import {
   IconHospital,
   IconDoctor,
@@ -80,38 +80,6 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
             {t.homeHeroSubtitle ||
               "An institutional e-Governance platform for standardized outpatient intake, non-diagnostic algorithmic clinical triage, and sequential OPD token generation for Primary Health Centers (PHCs), Community Health Centers (CHCs), and empanelled medical clinics."}
           </p>
-
-          {/* Multilingual Selector Ribbon */}
-          <div className="pt-2 flex flex-wrap items-center gap-2 text-[12px]">
-            <span className="font-bold text-slate-700">
-              {language === "hi" ? "भाषा का चयन करें:" : language === "or" ? "ଭାଷା ଚୟନ କରନ୍ତୁ:" : "Select Language:"}
-            </span>
-            <div className="inline-flex rounded-md border border-slate-300 bg-slate-50 p-0.5">
-              {LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  type="button"
-                  onClick={() => onSelectLanguage && onSelectLanguage(lang.code)}
-                  className={`px-3 py-1 text-[12px] font-bold rounded transition cursor-pointer ${
-                    language === lang.code
-                      ? "bg-[#003366] text-white shadow-xs"
-                      : "text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {lang.nativeName}
-                </button>
-              ))}
-            </div>
-            {onOpenLanguageModal && (
-              <button
-                type="button"
-                onClick={onOpenLanguageModal}
-                className="text-[11.5px] font-bold text-[#003366] underline hover:text-[#0B2545] cursor-pointer ml-1"
-              >
-                {language === "hi" ? "(अन्य विकल्प)" : language === "or" ? "(ଅନ୍ୟାନ୍ୟ ବିକଳ୍ପ)" : "(More Options)"}
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
