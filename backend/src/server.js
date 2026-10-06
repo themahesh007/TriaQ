@@ -182,10 +182,11 @@ app.post("/api/patients/login", async (req, res) => {
 
     // B. Email + Password flow
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+      return res.status(400).json({ error: "Email/Phone and password are required." });
     }
 
-    const patient = await storage.findPatientByEmail(email);
+    const cleanInput = (email || req.body.identifier || req.body.phone || "").trim();
+    const patient = await storage.findPatientByAnyIdentifier(cleanInput);
     if (!patient || !patient.passwordHash) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
@@ -582,22 +583,35 @@ app.post("/api/staff/register", async (req, res) => {
       cleanedPhone = cleanIndianPhone(phone);
     }
 
-    const existing = await storage.findStaffByEmail(email);
-    if (existing) {
+    const cleanEmail = email.trim().toLowerCase();
+    let existing = await storage.findStaffByEmail(cleanEmail);
+    if (existing && existing.status !== "REJECTED") {
       return res.status(400).json({ error: "A staff account with this email already exists. Please login." });
     }
 
     const passwordHash = await hashPassword(password);
-    const staff = await storage.createStaff({
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      passwordHash,
-      role: normalizedRole,
-      facility: (facility && facility.trim()) || "District Health Facility",
-      phone: cleanedPhone,
-      status: "PENDING",
-      requiresPasswordChange: false
-    });
+    let staff;
+    if (existing && existing.status === "REJECTED") {
+      existing.name = name.trim();
+      existing.passwordHash = passwordHash;
+      existing.role = normalizedRole;
+      existing.facility = (facility && facility.trim()) || "District Health Facility";
+      existing.phone = cleanedPhone;
+      existing.status = "PENDING";
+      existing.isActive = true;
+      staff = await storage.updateStaff(existing.id, existing);
+    } else {
+      staff = await storage.createStaff({
+        name: name.trim(),
+        email: cleanEmail,
+        passwordHash,
+        role: normalizedRole,
+        facility: (facility && facility.trim()) || "District Health Facility",
+        phone: cleanedPhone,
+        status: "PENDING",
+        requiresPasswordChange: false
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -626,11 +640,17 @@ app.post("/api/staff/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+      return res.status(400).json({ error: "Email/Contact Number and password are required." });
     }
 
-    const staff = await storage.findStaffByEmail(email);
+    const cleanInput = (email || req.body.identifier || req.body.phone || "").trim();
+    const staff = await storage.findStaffByAnyIdentifier(cleanInput);
     if (!staff) {
+      return res.status(401).json({ error: "Invalid staff credentials." });
+    }
+
+    const isMatch = await comparePassword(password, staff.passwordHash);
+    if (!isMatch) {
       return res.status(401).json({ error: "Invalid staff credentials." });
     }
 
@@ -644,11 +664,6 @@ app.post("/api/staff/login", async (req, res) => {
       return res.status(403).json({
         error: "Your account request was rejected or disabled by the Hospital Administration."
       });
-    }
-
-    const isMatch = await comparePassword(password, staff.passwordHash);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid staff credentials." });
     }
 
     const token = createToken({
@@ -1019,39 +1034,68 @@ app.post("/api/hospital/register", async (req, res) => {
     }
 
     const cleanEmail = adminEmail.trim().toLowerCase();
-    const existingStaff = await storage.findStaffByEmail(cleanEmail);
-    const existingFac = await storage.findFacilityByEmail(cleanEmail);
-    if (existingStaff || existingFac) {
-      return res.status(400).json({ error: "An account or facility with this administrator email already exists." });
+    let existingStaff = await storage.findStaffByEmail(cleanEmail);
+    let existingFac = await storage.findFacilityByEmail(cleanEmail);
+
+    const isExistingActive = (existingStaff && existingStaff.status !== "REJECTED") || (existingFac && existingFac.status !== "REJECTED");
+    if (isExistingActive) {
+      return res.status(400).json({ error: "An account or facility with this administrator email already exists. Please login." });
     }
 
     const adminPasswordHash = await hashPassword(adminPassword);
     const cleanedPhone = cleanIndianPhone(phone);
 
-    const facility = await storage.createFacility({
-      name: name.trim(),
-      type: type || "HOSPITAL",
-      licenseNumber: licenseNumber.trim().toUpperCase(),
-      phone: cleanedPhone,
-      address: `${city.trim()}, ${district.trim()}, ${state.trim()}`,
-      state: state.trim(),
-      district: district.trim(),
-      city: city.trim(),
-      adminEmail: cleanEmail,
-      adminPasswordHash,
-      status: "PENDING"
-    });
+    let facility;
+    if (existingFac) {
+      facility = existingFac;
+      facility.name = name.trim();
+      facility.type = type || "HOSPITAL";
+      facility.licenseNumber = licenseNumber.trim().toUpperCase();
+      facility.phone = cleanedPhone;
+      facility.address = `${city.trim()}, ${district.trim()}, ${state.trim()}`;
+      facility.state = state.trim();
+      facility.district = district.trim();
+      facility.city = city.trim();
+      facility.adminEmail = cleanEmail;
+      facility.adminPasswordHash = adminPasswordHash;
+      facility.status = "PENDING";
+      await storage.updateFacilityStatus(facility.id, "PENDING");
+    } else {
+      facility = await storage.createFacility({
+        name: name.trim(),
+        type: type || "HOSPITAL",
+        licenseNumber: licenseNumber.trim().toUpperCase(),
+        phone: cleanedPhone,
+        address: `${city.trim()}, ${district.trim()}, ${state.trim()}`,
+        state: state.trim(),
+        district: district.trim(),
+        city: city.trim(),
+        adminEmail: cleanEmail,
+        adminPasswordHash,
+        status: "PENDING"
+      });
+    }
 
-    // Also register the Admin staff record linked to this facility with PENDING status
-    await storage.createStaff({
-      name: `${facility.name} Admin`,
-      email: cleanEmail,
-      passwordHash: adminPasswordHash,
-      role: "ADMIN",
-      facility: facility.name,
-      phone: cleanedPhone,
-      status: "PENDING"
-    });
+    // Also register or update the Admin staff record linked to this facility with PENDING status
+    if (existingStaff) {
+      existingStaff.name = `${facility.name} Admin`;
+      existingStaff.passwordHash = adminPasswordHash;
+      existingStaff.facility = facility.name;
+      existingStaff.phone = cleanedPhone;
+      existingStaff.status = "PENDING";
+      existingStaff.isActive = true;
+      await storage.updateStaff(existingStaff.id, existingStaff);
+    } else {
+      await storage.createStaff({
+        name: `${facility.name} Admin`,
+        email: cleanEmail,
+        passwordHash: adminPasswordHash,
+        role: "ADMIN",
+        facility: facility.name,
+        phone: cleanedPhone,
+        status: "PENDING"
+      });
+    }
 
     return res.status(201).json({
       success: true,
@@ -1098,9 +1142,29 @@ app.patch("/api/master/facilities/:id/status", requireRole(["MASTER"]), async (r
 
     // Sync status with associated administrator staff
     if (facility.adminEmail) {
-      const staff = await storage.findStaffByEmail(facility.adminEmail);
+      let staff = await storage.findStaffByEmail(facility.adminEmail);
       if (staff) {
         await storage.updateStaffStatus(staff.id, status);
+        // Ensure facility and staff share the same password hash
+        if (staff.passwordHash && !facility.adminPasswordHash) {
+          facility.adminPasswordHash = staff.passwordHash;
+          await storage.updateFacilityStatus(facility.id, status);
+        } else if (facility.adminPasswordHash && !staff.passwordHash) {
+          staff.passwordHash = facility.adminPasswordHash;
+          await storage.updateStaff(staff.id, { passwordHash: facility.adminPasswordHash });
+        }
+      } else if (facility.adminPasswordHash) {
+        // Automatically provision administrator staff record linked to approved facility
+        await storage.createStaff({
+          name: `${facility.name} Admin`,
+          email: facility.adminEmail,
+          passwordHash: facility.adminPasswordHash,
+          role: "ADMIN",
+          facility: facility.name,
+          phone: facility.phone,
+          status: status,
+          isActive: status === "APPROVED"
+        });
       }
     }
 
@@ -1186,100 +1250,89 @@ app.post("/api/hospital/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required." });
+      return res.status(400).json({ error: "Email/ID and password are required." });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanInput = (email || req.body.identifier || req.body.username || "").trim();
+    const cleanEmail = cleanInput.toLowerCase();
 
-    // 1. Check if facility admin credentials directly
-    const facility = await storage.findFacilityByEmail(cleanEmail);
+    // 1. Search facility by any identifier (email, phone, license number, code, name, id)
+    let facility = await storage.findFacilityByAnyIdentifier(cleanInput);
+    let staff = await storage.findStaffByEmail(cleanEmail);
+    if (!staff && facility && facility.adminEmail) {
+      staff = await storage.findStaffByEmail(facility.adminEmail);
+    }
+    if (!facility && staff && staff.facility) {
+      facility = await storage.findFacilityByName(staff.facility);
+    }
+
+    // If neither exists
+    if (!facility && !staff) {
+      return res.status(401).json({ error: "Invalid hospital administrator credentials." });
+    }
+
+    // 2. Validate password against facility adminPasswordHash OR staff passwordHash
+    let passwordMatches = false;
     if (facility && facility.adminPasswordHash) {
-      const match = await comparePassword(password, facility.adminPasswordHash);
-      if (match) {
-        if (facility.status === "PENDING") {
-          return res.status(403).json({
-            error: "Your Hospital / Clinic registration is pending Master verification and approval. Please wait for Master clearance."
-          });
-        }
-        if (facility.status === "REJECTED") {
-          return res.status(403).json({
-            error: "Your Hospital registration request was rejected by the Master Administrator."
-          });
-        }
-
-        const token = createToken({
-          id: facility.id,
-          name: `${facility.name} Admin`,
-          email: facility.adminEmail,
-          role: "HOSPITAL_ADMIN",
-          facility: facility.name,
-          facilityId: facility.id
-        });
-        return res.json({
-          success: true,
-          token,
-          facility: {
-            id: facility.id,
-            name: facility.name,
-            type: facility.type,
-            phone: facility.phone,
-            address: facility.address,
-            state: facility.state,
-            district: facility.district,
-            city: facility.city,
-            code: facility.code,
-            adminEmail: facility.adminEmail,
-            status: facility.status
-          }
-        });
+      passwordMatches = await comparePassword(password, facility.adminPasswordHash);
+    }
+    if (!passwordMatches && staff && staff.passwordHash) {
+      passwordMatches = await comparePassword(password, staff.passwordHash);
+      // Auto-heal: If staff password matched but facility was missing hash, sync it!
+      if (passwordMatches && facility && !facility.adminPasswordHash) {
+        facility.adminPasswordHash = staff.passwordHash;
+        await storage.updateFacilityStatus(facility.id, facility.status);
+      }
+    }
+    if (!passwordMatches && facility && facility.adminPasswordHash && staff && !staff.passwordHash) {
+      // Auto-heal: If facility password matched but staff was missing hash, sync it!
+      passwordMatches = await comparePassword(password, facility.adminPasswordHash);
+      if (passwordMatches) {
+        staff.passwordHash = facility.adminPasswordHash;
+        await storage.updateStaff(staff.id, { passwordHash: facility.adminPasswordHash });
       }
     }
 
-    // 2. Check if a staff account with role ADMIN or DOCTOR for this facility
-    const staff = await storage.findStaffByEmail(cleanEmail);
-    if (staff && staff.isActive) {
-      if (staff.status === "PENDING") {
-        return res.status(403).json({
-          error: "Your administrator account is pending Master verification and approval."
-        });
-      }
-      if (staff.status === "REJECTED") {
-        return res.status(403).json({
-          error: "Your administrator account was rejected."
-        });
-      }
-
-      const match = await comparePassword(password, staff.passwordHash);
-      if (match) {
-        const allFacs = await storage.getAllFacilities();
-        const matchingFac = allFacs.find(
-          (f) => f.name.toLowerCase() === staff.facility.toLowerCase()
-        ) || {
-          id: "fac-" + staff.facility.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-          name: staff.facility,
-          type: "HOSPITAL",
-          code: staff.facility.toUpperCase().slice(0, 8),
-          status: "APPROVED"
-        };
-
-        const token = createToken({
-          id: staff.id,
-          name: staff.name,
-          email: staff.email,
-          role: "HOSPITAL_ADMIN",
-          facility: staff.facility,
-          facilityId: matchingFac.id
-        });
-
-        return res.json({
-          success: true,
-          token,
-          facility: matchingFac
-        });
-      }
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "Invalid hospital administrator credentials." });
     }
 
-    return res.status(401).json({ error: "Invalid hospital administrator credentials." });
+    // 3. Check Master Approval Status
+    const currentStatus = facility?.status || staff?.status || "PENDING";
+    if (currentStatus === "PENDING") {
+      return res.status(403).json({
+        error: "Your Hospital / Clinic registration is pending Master verification and approval. Please wait for Master clearance."
+      });
+    }
+    if (currentStatus === "REJECTED" || (staff && staff.isActive === false && staff.status === "REJECTED")) {
+      return res.status(403).json({
+        error: "Your Hospital registration request was rejected by the Master Administrator."
+      });
+    }
+
+    const facId = facility?.id || staff?.id || "fac-admin";
+    const facName = facility?.name || staff?.facility || "Hospital";
+
+    const token = createToken({
+      id: facId,
+      name: `${facName} Admin`,
+      email: facility?.adminEmail || staff?.email || cleanEmail,
+      role: "HOSPITAL_ADMIN",
+      facility: facName,
+      facilityId: facId
+    });
+
+    return res.json({
+      success: true,
+      token,
+      facility: facility || {
+        id: facId,
+        name: facName,
+        type: "HOSPITAL",
+        adminEmail: staff?.email || cleanEmail,
+        status: "APPROVED"
+      }
+    });
   } catch (err) {
     console.error("Hospital login error:", err);
     return res.status(500).json({ error: "Hospital authentication failed." });

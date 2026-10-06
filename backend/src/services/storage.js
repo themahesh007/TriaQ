@@ -214,13 +214,96 @@ const storage = {
   async findPatientByEmail(email) {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();
-    return memoryStore.patients.find((p) => p.email && p.email.toLowerCase() === cleanEmail) || null;
+    let patient = memoryStore.patients.find((p) => p.email && p.email.toLowerCase() === cleanEmail);
+    if (patient) return patient;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_patients WHERE LOWER(email) = $1 LIMIT 1", [cleanEmail]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          patient = {
+            ...(r.raw_data || {}),
+            id: r.id,
+            tokenId: r.token_id,
+            email: r.email ? r.email.toLowerCase().trim() : null,
+            passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
+            phone: r.phone,
+            encryptedName: r.encrypted_name,
+            encryptedAge: r.encrypted_age,
+            encryptedAddress: r.encrypted_address,
+            encryptedMedications: r.encrypted_medications,
+            encryptedConditions: r.encrypted_conditions,
+            consentGiven: r.consent_given,
+            consentTimestamp: r.consent_timestamp,
+            facility: r.facility,
+            isActive: r.is_active,
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString()
+          };
+          memoryStore.patients.push(patient);
+          persistStore();
+          return patient;
+        }
+      } catch (err) {
+        console.error("Cloud findPatientByEmail error:", err.message);
+      }
+    }
+    return null;
   },
 
   async findPatientByPhone(phone) {
     if (!phone) return null;
     const cleanPhone = String(phone).replace(/\D/g, "");
-    return memoryStore.patients.find((p) => p.phone && String(p.phone).replace(/\D/g, "") === cleanPhone) || null;
+    let patient = memoryStore.patients.find((p) => p.phone && String(p.phone).replace(/\D/g, "") === cleanPhone);
+    if (patient) return patient;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_patients WHERE phone LIKE $1 LIMIT 1", [`%${cleanPhone.slice(-10)}%`]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          patient = {
+            ...(r.raw_data || {}),
+            id: r.id,
+            tokenId: r.token_id,
+            email: r.email ? r.email.toLowerCase().trim() : null,
+            passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
+            phone: r.phone,
+            encryptedName: r.encrypted_name,
+            encryptedAge: r.encrypted_age,
+            encryptedAddress: r.encrypted_address,
+            encryptedMedications: r.encrypted_medications,
+            encryptedConditions: r.encrypted_conditions,
+            consentGiven: r.consent_given,
+            consentTimestamp: r.consent_timestamp,
+            facility: r.facility,
+            isActive: r.is_active,
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+            updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString()
+          };
+          memoryStore.patients.push(patient);
+          persistStore();
+          return patient;
+        }
+      } catch (err) {
+        console.error("Cloud findPatientByPhone error:", err.message);
+      }
+    }
+    return null;
+  },
+
+  async findPatientByAnyIdentifier(identifier) {
+    if (!identifier) return null;
+    const clean = String(identifier).trim();
+    if (clean.includes("@")) {
+      return await this.findPatientByEmail(clean);
+    }
+    const cleanDigits = clean.replace(/\D/g, "");
+    if (cleanDigits.length >= 10) {
+      return await this.findPatientByPhone(cleanDigits);
+    }
+    return (await this.findPatientByEmail(clean)) || (await this.findPatientById(clean));
   },
 
   async updatePatientProfile(id, profile) {
@@ -267,7 +350,90 @@ const storage = {
   async findStaffByEmail(email) {
     if (!email) return null;
     const cleanEmail = email.trim().toLowerCase();
-    return memoryStore.staff.find((s) => s.email && s.email.toLowerCase() === cleanEmail) || null;
+    let staff = memoryStore.staff.find((s) => s.email && s.email.toLowerCase() === cleanEmail);
+    if (staff) return staff;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_staff WHERE LOWER(email) = $1 LIMIT 1", [cleanEmail]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          staff = {
+            ...(r.raw_data || {}),
+            id: r.id,
+            email: r.email ? r.email.toLowerCase().trim() : "",
+            passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
+            name: r.name,
+            role: r.role,
+            facility: r.facility,
+            phone: r.phone,
+            isActive: r.is_active !== false,
+            status: r.status || "APPROVED",
+            requiresPasswordChange: r.requires_password_change || false,
+            twoFactorSecret: r.two_factor_secret || null,
+            backupCodes: r.backup_codes || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          memoryStore.staff.push(staff);
+          persistStore();
+          return staff;
+        }
+      } catch (err) {
+        console.error("Cloud findStaffByEmail error:", err.message);
+      }
+    }
+    return null;
+  },
+
+  async findStaffByPhone(phone) {
+    if (!phone) return null;
+    const cleanPhone = String(phone).replace(/\D/g, "");
+    let staff = memoryStore.staff.find((s) => s.phone && String(s.phone).replace(/\D/g, "") === cleanPhone);
+    if (staff) return staff;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_staff WHERE phone LIKE $1 LIMIT 1", [`%${cleanPhone.slice(-10)}%`]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          staff = {
+            ...(r.raw_data || {}),
+            id: r.id,
+            email: r.email ? r.email.toLowerCase().trim() : "",
+            passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
+            name: r.name,
+            role: r.role,
+            facility: r.facility,
+            phone: r.phone,
+            isActive: r.is_active !== false,
+            status: r.status || "APPROVED",
+            requiresPasswordChange: r.requires_password_change || false,
+            twoFactorSecret: r.two_factor_secret || null,
+            backupCodes: r.backup_codes || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          memoryStore.staff.push(staff);
+          persistStore();
+          return staff;
+        }
+      } catch (err) {
+        console.error("Cloud findStaffByPhone error:", err.message);
+      }
+    }
+    return null;
+  },
+
+  async findStaffByAnyIdentifier(identifier) {
+    if (!identifier) return null;
+    const clean = String(identifier).trim();
+    if (clean.includes("@")) {
+      return await this.findStaffByEmail(clean);
+    }
+    const cleanDigits = clean.replace(/\D/g, "");
+    if (cleanDigits.length >= 10) {
+      return await this.findStaffByPhone(cleanDigits);
+    }
+    return (await this.findStaffByEmail(clean)) || (await this.findStaffById(clean));
   },
 
   async findStaffById(id) {
@@ -328,7 +494,10 @@ const storage = {
   },
 
   async updateStaffStatus(id, status) {
-    const staff = memoryStore.staff.find((s) => s.id === id);
+    let staff = memoryStore.staff.find((s) => s.id === id);
+    if (!staff) {
+      staff = await this.findStaffById(id);
+    }
     if (!staff) return null;
     staff.status = status;
     if (status === "REJECTED") {
@@ -760,19 +929,187 @@ const storage = {
   },
 
   async findFacilityById(id) {
-    return (memoryStore.facilities || []).find((f) => f.id === id) || null;
+    if (!id) return null;
+    let fac = (memoryStore.facilities || []).find((f) => f.id === id);
+    if (fac) return fac;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_facilities WHERE id = $1 LIMIT 1", [id]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          fac = {
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            address: r.address,
+            state: r.state || "",
+            district: r.district || "",
+            city: r.city || "",
+            type: r.type || "HOSPITAL",
+            code: r.code || r.id,
+            adminEmail: r.admin_email ? r.admin_email.toLowerCase().trim() : null,
+            adminPasswordHash: r.admin_password_hash || null,
+            status: r.status || "APPROVED",
+            licenseNumber: r.license_number || "",
+            rooms: r.rooms || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          if (!memoryStore.facilities) memoryStore.facilities = [];
+          memoryStore.facilities.push(fac);
+          persistStore();
+          return fac;
+        }
+      } catch (err) {
+        console.error("Cloud findFacilityById error:", err.message);
+      }
+    }
+    return null;
   },
 
   async findFacilityByName(name) {
     if (!name) return null;
     const clean = name.trim().toLowerCase();
-    return (memoryStore.facilities || []).find((f) => f.name.toLowerCase() === clean) || null;
+    let fac = (memoryStore.facilities || []).find((f) => f.name && f.name.toLowerCase() === clean);
+    if (fac) return fac;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_facilities WHERE LOWER(name) = $1 LIMIT 1", [clean]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          fac = {
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            address: r.address,
+            state: r.state || "",
+            district: r.district || "",
+            city: r.city || "",
+            type: r.type || "HOSPITAL",
+            code: r.code || r.id,
+            adminEmail: r.admin_email ? r.admin_email.toLowerCase().trim() : null,
+            adminPasswordHash: r.admin_password_hash || null,
+            status: r.status || "APPROVED",
+            licenseNumber: r.license_number || "",
+            rooms: r.rooms || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          if (!memoryStore.facilities) memoryStore.facilities = [];
+          memoryStore.facilities.push(fac);
+          persistStore();
+          return fac;
+        }
+      } catch (err) {
+        console.error("Cloud findFacilityByName error:", err.message);
+      }
+    }
+    return null;
   },
 
   async findFacilityByEmail(email) {
     if (!email) return null;
     const clean = email.trim().toLowerCase();
-    return (memoryStore.facilities || []).find((f) => f.adminEmail && f.adminEmail.toLowerCase() === clean) || null;
+    let fac = (memoryStore.facilities || []).find((f) => f.adminEmail && f.adminEmail.toLowerCase() === clean);
+    if (fac) return fac;
+    const p = db.getPool();
+    if (p) {
+      try {
+        const res = await p.query("SELECT * FROM triaq_facilities WHERE LOWER(admin_email) = $1 LIMIT 1", [clean]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          fac = {
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            address: r.address,
+            state: r.state || "",
+            district: r.district || "",
+            city: r.city || "",
+            type: r.type || "HOSPITAL",
+            code: r.code || r.id,
+            adminEmail: r.admin_email ? r.admin_email.toLowerCase().trim() : null,
+            adminPasswordHash: r.admin_password_hash || null,
+            status: r.status || "APPROVED",
+            licenseNumber: r.license_number || "",
+            rooms: r.rooms || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          if (!memoryStore.facilities) memoryStore.facilities = [];
+          memoryStore.facilities.push(fac);
+          persistStore();
+          return fac;
+        }
+      } catch (err) {
+        console.error("Cloud findFacilityByEmail error:", err.message);
+      }
+    }
+    return null;
+  },
+
+  async findFacilityByAnyIdentifier(identifier) {
+    if (!identifier) return null;
+    const raw = String(identifier).trim();
+    const cleanLower = raw.toLowerCase();
+    const cleanUpper = raw.toUpperCase();
+    const cleanDigits = raw.replace(/\D/g, "");
+
+    // 1. Check memory store
+    let fac = (memoryStore.facilities || []).find((f) => {
+      if (f.adminEmail && f.adminEmail.toLowerCase() === cleanLower) return true;
+      if (f.id && f.id.toLowerCase() === cleanLower) return true;
+      if (f.licenseNumber && f.licenseNumber.toUpperCase() === cleanUpper) return true;
+      if (f.code && f.code.toUpperCase() === cleanUpper) return true;
+      if (cleanDigits.length >= 10 && f.phone && String(f.phone).replace(/\D/g, "").endsWith(cleanDigits.slice(-10))) return true;
+      if (f.name && f.name.toLowerCase() === cleanLower) return true;
+      return false;
+    });
+    if (fac) return fac;
+
+    // 2. Check cloud database
+    const p = db.getPool();
+    if (p) {
+      try {
+        const phonePattern = cleanDigits.length >= 10 ? `%${cleanDigits.slice(-10)}%` : "%EMPTY%";
+        const res = await p.query(`
+          SELECT * FROM triaq_facilities 
+          WHERE LOWER(admin_email) = $1 
+             OR id = $2 
+             OR UPPER(license_number) = $3 
+             OR UPPER(code) = $3 
+             OR phone LIKE $4 
+             OR LOWER(name) = $1
+          LIMIT 1
+        `, [cleanLower, raw, cleanUpper, phonePattern]);
+        if (res.rows.length > 0) {
+          const r = res.rows[0];
+          fac = {
+            id: r.id,
+            name: r.name,
+            phone: r.phone,
+            address: r.address,
+            state: r.state || "",
+            district: r.district || "",
+            city: r.city || "",
+            type: r.type || "HOSPITAL",
+            code: r.code || r.id,
+            adminEmail: r.admin_email ? r.admin_email.toLowerCase().trim() : null,
+            adminPasswordHash: r.admin_password_hash || null,
+            status: r.status || "APPROVED",
+            licenseNumber: r.license_number || "",
+            rooms: r.rooms || [],
+            createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
+          };
+          if (!memoryStore.facilities) memoryStore.facilities = [];
+          memoryStore.facilities.push(fac);
+          persistStore();
+          return fac;
+        }
+      } catch (err) {
+        console.error("Cloud findFacilityByAnyIdentifier error:", err.message);
+      }
+    }
+    return null;
   },
 
   async createFacility(data) {
@@ -845,7 +1182,10 @@ const storage = {
   },
 
   async updateFacilityStatus(id, status) {
-    const fac = (memoryStore.facilities || []).find((f) => f.id === id);
+    let fac = (memoryStore.facilities || []).find((f) => f.id === id);
+    if (!fac) {
+      fac = await this.findFacilityById(id);
+    }
     if (!fac) return null;
     fac.status = status;
     persistStore();

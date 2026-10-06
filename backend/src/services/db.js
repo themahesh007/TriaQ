@@ -182,10 +182,11 @@ async function loadAllFromCloud() {
       const facilitiesRes = await client.query("SELECT * FROM triaq_facilities");
 
       const mapPatient = (r) => ({
+        ...(r.raw_data || {}),
         id: r.id,
         tokenId: r.token_id,
-        email: r.email,
-        passwordHash: r.password_hash,
+        email: r.email ? r.email.toLowerCase().trim() : null,
+        passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
         phone: r.phone,
         encryptedName: r.encrypted_name,
         encryptedAge: r.encrypted_age,
@@ -197,25 +198,24 @@ async function loadAllFromCloud() {
         facility: r.facility,
         isActive: r.is_active,
         createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-        updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString(),
-        ...(r.raw_data || {})
+        updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString()
       });
 
       const mapStaff = (r) => ({
+        ...(r.raw_data || {}),
         id: r.id,
-        email: r.email,
-        passwordHash: r.password_hash,
+        email: r.email ? r.email.toLowerCase().trim() : "",
+        passwordHash: r.password_hash || (r.raw_data && r.raw_data.passwordHash) || null,
         name: r.name,
         role: r.role,
         facility: r.facility,
         phone: r.phone,
-        isActive: r.is_active,
+        isActive: r.is_active !== false,
         status: r.status || "APPROVED",
         requiresPasswordChange: r.requires_password_change,
         twoFactorSecret: r.two_factor_secret,
         backupCodes: r.backup_codes,
-        createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-        ...(r.raw_data || {})
+        createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString()
       });
 
       const mapNote = (r) => ({
@@ -266,7 +266,8 @@ async function loadAllFromCloud() {
         city: r.city || "",
         type: r.type || "HOSPITAL",
         code: r.code || r.id,
-        adminEmail: r.admin_email,
+        adminEmail: r.admin_email ? r.admin_email.toLowerCase().trim() : null,
+        adminPasswordHash: r.admin_password_hash || null,
         status: r.status || "APPROVED",
         licenseNumber: r.license_number || "",
         rooms: r.rooms || null,
@@ -305,19 +306,19 @@ async function savePatientToCloud(patient) {
       ON CONFLICT (id) DO UPDATE SET
         token_id = EXCLUDED.token_id,
         email = EXCLUDED.email,
-        password_hash = EXCLUDED.password_hash,
+        password_hash = COALESCE(EXCLUDED.password_hash, triaq_patients.password_hash),
         phone = EXCLUDED.phone,
         encrypted_name = EXCLUDED.encrypted_name,
         encrypted_age = EXCLUDED.encrypted_age,
         encrypted_address = EXCLUDED.encrypted_address,
         encrypted_medications = EXCLUDED.encrypted_medications,
-        encrypted_conditions = EXCLUDED.encrypted_conditions,
+        encryptedConditions = EXCLUDED.encrypted_conditions,
         consent_given = EXCLUDED.consent_given,
         consent_timestamp = EXCLUDED.consent_timestamp,
         facility = EXCLUDED.facility,
         is_active = EXCLUDED.is_active,
         raw_data = EXCLUDED.raw_data,
-        updated_at = EXCLUDED.updated_at
+        updated_at = EXCLUDED.updated_at;
     `, [
       patient.id,
       patient.tokenId,
@@ -349,14 +350,50 @@ async function saveStaffToCloud(staff) {
   const p = getPool();
   if (!p || !staff) return;
   try {
+    const cleanEmail = staff.email ? staff.email.trim().toLowerCase() : "";
+    if (cleanEmail) {
+      // Check if staff already exists with this email under any id
+      const existing = await p.query("SELECT id FROM triaq_staff WHERE LOWER(email) = LOWER($1) LIMIT 1", [cleanEmail]);
+      if (existing.rows.length > 0 && existing.rows[0].id !== staff.id) {
+        await p.query(`
+          UPDATE triaq_staff SET
+            password_hash = COALESCE($1, password_hash),
+            name = $2,
+            role = $3,
+            facility = $4,
+            phone = $5,
+            is_active = $6,
+            status = $7,
+            requires_password_change = $8,
+            two_factor_secret = COALESCE($9, two_factor_secret),
+            backup_codes = COALESCE($10, backup_codes),
+            raw_data = $11
+          WHERE LOWER(email) = LOWER($12)
+        `, [
+          staff.passwordHash || null,
+          staff.name,
+          staff.role,
+          staff.facility || "District Health Facility",
+          staff.phone || null,
+          staff.isActive !== false,
+          staff.status || "APPROVED",
+          staff.requiresPasswordChange || false,
+          staff.twoFactorSecret || null,
+          staff.backupCodes && staff.backupCodes.length > 0 ? staff.backupCodes : null,
+          JSON.stringify(staff),
+          cleanEmail
+        ]);
+        return;
+      }
+    }
+
     await p.query(`
       INSERT INTO triaq_staff (
         id, email, password_hash, name, role, facility, phone,
         is_active, status, requires_password_change, two_factor_secret, backup_codes, raw_data, created_at
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      ON CONFLICT (id) DO UPDATE SET
-        email = EXCLUDED.email,
-        password_hash = EXCLUDED.password_hash,
+      ON CONFLICT (email) DO UPDATE SET
+        password_hash = COALESCE(EXCLUDED.password_hash, triaq_staff.password_hash),
         name = EXCLUDED.name,
         role = EXCLUDED.role,
         facility = EXCLUDED.facility,
@@ -364,13 +401,13 @@ async function saveStaffToCloud(staff) {
         is_active = EXCLUDED.is_active,
         status = EXCLUDED.status,
         requires_password_change = EXCLUDED.requires_password_change,
-        two_factor_secret = EXCLUDED.two_factor_secret,
-        backup_codes = EXCLUDED.backup_codes,
+        two_factor_secret = COALESCE(EXCLUDED.two_factor_secret, triaq_staff.two_factor_secret),
+        backup_codes = COALESCE(EXCLUDED.backup_codes, triaq_staff.backup_codes),
         raw_data = EXCLUDED.raw_data
     `, [
       staff.id,
-      staff.email,
-      staff.passwordHash,
+      cleanEmail || staff.email,
+      staff.passwordHash || null,
       staff.name,
       staff.role,
       staff.facility || "District Health Facility",
@@ -496,7 +533,7 @@ async function saveFacilityToCloud(facility) {
         type = EXCLUDED.type,
         code = EXCLUDED.code,
         admin_email = EXCLUDED.admin_email,
-        admin_password_hash = EXCLUDED.admin_password_hash,
+        admin_password_hash = COALESCE(EXCLUDED.admin_password_hash, triaq_facilities.admin_password_hash),
         status = EXCLUDED.status,
         license_number = EXCLUDED.license_number,
         rooms = EXCLUDED.rooms;
