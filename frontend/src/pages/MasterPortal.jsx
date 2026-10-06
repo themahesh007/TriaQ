@@ -141,30 +141,6 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
     }
   };
 
-  // 1-Click Master Login Helper
-  const handleQuickMasterLogin = async () => {
-    setEmail("triaqproject@gmail.com");
-    setPassword("TriaQ@2026");
-    setTotpCode("123456");
-    setLoginError("");
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/master/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "triaqproject@gmail.com", password: "TriaQ@2026", totpCode: "123456" })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "2FA verification failed");
-
-      localStorage.setItem("triaq_master_session", JSON.stringify(data));
-      setMasterSession(data);
-    } catch (err) {
-      setLoginError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Suspend Staff
   // Clear All Data (Fresh Start)
@@ -338,44 +314,6 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 <p className="text-[12px] text-slate-600 font-medium">
                   Mandatory 2FA authentication protocol. Restricted to authorized nodal administrators and verification officers only.
                 </p>
-              </div>
-
-              {/* Master Credentials One-Click Helper Card */}
-              <div className="p-3.5 bg-sky-50 border border-sky-200 rounded-md space-y-2 text-[12px]">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sky-950 flex items-center gap-1.5">
-                    <span>•</span> Master Officer Credentials
-                  </span>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-sky-200/80 text-sky-900">
-                    Official
-                  </span>
-                </div>
-                <div className="text-[11.5px] font-mono text-sky-800 bg-white p-2 rounded border border-sky-200 space-y-0.5">
-                  <div><strong>Email:</strong> triaqproject@gmail.com</div>
-                  <div><strong>Password:</strong> TriaQ@2026</div>
-                  <div><strong>2FA TOTP:</strong> 123456</div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail("triaqproject@gmail.com");
-                      setPassword("TriaQ@2026");
-                      setTotpCode("123456");
-                    }}
-                    className="btn-tactile py-1.5 px-2 rounded bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-[11px] font-bold shadow-2xs cursor-pointer text-center"
-                  >
-                    Fill Form
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleQuickMasterLogin}
-                    disabled={loading}
-                    className="btn-tactile py-1.5 px-2 rounded bg-[#003366] hover:bg-[#002855] text-white text-[11px] font-bold shadow-xs cursor-pointer text-center"
-                  >
-                    {loading ? "Signing in..." : "1-Click Sign In"}
-                  </button>
-                </div>
               </div>
 
               {loginError && (
