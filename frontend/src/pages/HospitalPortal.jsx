@@ -15,6 +15,7 @@ import {
   IconPatient,
   IconAlertCircle
 } from "../components/Icons";
+import odishaLocations, { districts } from "../utils/odishaLocations";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
@@ -61,6 +62,49 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
   const [regLicenseNumber, setRegLicenseNumber] = useState("");
   const [regError, setRegError] = useState("");
   const [submittedPendingFacility, setSubmittedPendingFacility] = useState(null);
+
+  // District & City Interactive Location Dropdowns (with manual typing support)
+  const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+  const districtBoxRef = React.useRef(null);
+  const cityBoxRef = React.useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (districtBoxRef.current && !districtBoxRef.current.contains(e.target)) {
+        setShowDistrictDropdown(false);
+      }
+      if (cityBoxRef.current && !cityBoxRef.current.contains(e.target)) {
+        setShowCityDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filtered districts based on user manual input
+  const filteredDistricts = useMemo(() => {
+    const q = regDistrict.trim().toLowerCase();
+    if (!q) return districts;
+    return districts.filter((d) => d.toLowerCase().includes(q));
+  }, [regDistrict]);
+
+  // Available cities based on selected district or user manual input
+  const availableCities = useMemo(() => {
+    const matchedDistrictKey = districts.find(
+      (d) => d.toLowerCase() === regDistrict.trim().toLowerCase()
+    );
+    if (matchedDistrictKey) {
+      const cityList = odishaLocations[matchedDistrictKey] || [];
+      const q = regCity.trim().toLowerCase();
+      if (!q) return cityList;
+      return cityList.filter((c) => c.toLowerCase().includes(q));
+    }
+    const q = regCity.trim().toLowerCase();
+    const allCities = [...new Set(Object.values(odishaLocations).flat())].sort();
+    if (!q) return allCities.slice(0, 30);
+    return allCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 30);
+  }, [regDistrict, regCity]);
 
   // Active Dashboard Tab: "qr" | "approvals" | "staff" | "queue" | "rooms"
   const [activeTab, setActiveTab] = useState("qr");
@@ -759,6 +803,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
 
                 {/* State, District, City (Mandatory) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {/* State (Manual Typing Only, No Dropdown) */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       State <span className="text-rose-500">*</span>
@@ -772,31 +817,142 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                       className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
                     />
                   </div>
-                  <div>
+
+                  {/* District (Click Popup Dropdown + Manual Typing) */}
+                  <div className="relative" ref={districtBoxRef}>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
                       District <span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={regDistrict}
-                      onChange={(e) => setRegDistrict(e.target.value)}
-                      placeholder="e.g. Khordha"
-                      className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={regDistrict}
+                        onChange={(e) => {
+                          setRegDistrict(e.target.value);
+                          setShowDistrictDropdown(true);
+                        }}
+                        onFocus={() => setShowDistrictDropdown(true)}
+                        onClick={() => setShowDistrictDropdown(true)}
+                        placeholder="e.g. Khordha"
+                        className="w-full p-2 pr-7 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDistrictDropdown((prev) => !prev)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]"
+                        tabIndex={-1}
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* Pop-up Dropdown for District */}
+                    {showDistrictDropdown && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+                        <div className="p-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200 flex items-center justify-between">
+                          <span>Odisha Districts ({filteredDistricts.length})</span>
+                          <span className="text-[9px] text-emerald-700 font-semibold">Click or Type</span>
+                        </div>
+                        {filteredDistricts.length > 0 ? (
+                          filteredDistricts.map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => {
+                                setRegDistrict(d);
+                                if (!regState.trim()) setRegState("Odisha");
+                                setShowDistrictDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-[12px] font-medium transition cursor-pointer flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-900 ${
+                                regDistrict.trim().toLowerCase() === d.toLowerCase()
+                                  ? "bg-emerald-100/70 text-emerald-950 font-bold"
+                                  : "text-slate-700"
+                              }`}
+                            >
+                              <span>{d}</span>
+                              {regDistrict.trim().toLowerCase() === d.toLowerCase() && (
+                                <span className="text-emerald-700 text-xs font-bold">✓</span>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-[11.5px] text-slate-400">
+                            Custom entry accepted (manual typing)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div>
+
+                  {/* City (Click Popup Dropdown + Manual Typing) */}
+                  <div className="relative" ref={cityBoxRef}>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      City <span className="text-rose-500">*</span>
+                      City / Place <span className="text-rose-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={regCity}
-                      onChange={(e) => setRegCity(e.target.value)}
-                      placeholder="e.g. Bhubaneswar"
-                      className="w-full p-2 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={regCity}
+                        onChange={(e) => {
+                          setRegCity(e.target.value);
+                          setShowCityDropdown(true);
+                        }}
+                        onFocus={() => setShowCityDropdown(true)}
+                        onClick={() => setShowCityDropdown(true)}
+                        placeholder="e.g. Bhubaneswar"
+                        className="w-full p-2 pr-7 rounded-xl border border-slate-200 text-[12.5px] font-medium text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20 bg-white"
+                        autoComplete="off"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCityDropdown((prev) => !prev)}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer text-[10px]"
+                        tabIndex={-1}
+                      >
+                        ▼
+                      </button>
+                    </div>
+
+                    {/* Pop-up Dropdown for City */}
+                    {showCityDropdown && (
+                      <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-300 rounded-xl shadow-lg z-50 max-h-56 overflow-y-auto divide-y divide-slate-100 animate-fadeIn">
+                        <div className="p-1.5 bg-slate-50 text-[10px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 border-b border-slate-200 flex items-center justify-between">
+                          <span>
+                            {regDistrict ? `${regDistrict} Places (${availableCities.length})` : `Odisha Places (${availableCities.length})`}
+                          </span>
+                          <span className="text-[9px] text-emerald-700 font-semibold">Click or Type</span>
+                        </div>
+                        {availableCities.length > 0 ? (
+                          availableCities.map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                setRegCity(c);
+                                setShowCityDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-[12px] font-medium transition cursor-pointer flex items-center justify-between hover:bg-emerald-50 hover:text-emerald-900 ${
+                                regCity.trim().toLowerCase() === c.toLowerCase()
+                                  ? "bg-emerald-100/70 text-emerald-950 font-bold"
+                                  : "text-slate-700"
+                              }`}
+                            >
+                              <span>{c}</span>
+                              {regCity.trim().toLowerCase() === c.toLowerCase() && (
+                                <span className="text-emerald-700 text-xs font-bold">✓</span>
+                              )}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-3 text-center text-[11.5px] text-slate-400">
+                            Custom entry accepted (manual typing)
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
