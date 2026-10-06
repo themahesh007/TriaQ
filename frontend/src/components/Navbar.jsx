@@ -140,10 +140,10 @@ export default function Navbar({ activePortal, setActivePortal, pendingCount = 0
                   ? "bg-white text-[#003366] border-b-2 border-amber-500 shadow-sm"
                   : "text-slate-100 hover:bg-[#0B2545] hover:text-white"
               }`}
-              title="State / Nodal Central Governance"
+              title="State / Super Admin Governance"
             >
               <IconShield className="w-3.5 h-3.5" />
-              <span>{language === "hi" ? "मुख्य नियंत्रक" : language === "or" ? "ମୁଖ୍ୟ ନିୟନ୍ତ୍ରକ" : "Master"}</span>
+              <span>{language === "hi" ? "सुपर एडमिन" : language === "or" ? "ସୁପର ଆଡମିନ୍" : "Super Admin"}</span>
               {pendingHospitalCount > 0 && (
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold text-slate-950 bg-amber-400 border border-amber-300 animate-pulse shadow-2xs">
                   {pendingHospitalCount}

@@ -486,7 +486,7 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
         </div>
       </div>
 
-      {/* 6. Nodal Master Governance Quick Access */}
+      {/* 6. Super Admin Governance Quick Access */}
       <div className="text-center pt-2">
         <button
           type="button"
@@ -496,10 +496,10 @@ export default function HomePage({ onNavigate, language = "en", onSelectLanguage
           <IconShield className="w-3.5 h-3.5 text-rose-800" />
           <span>
             {language === "hi" 
-              ? "केंद्रीय नोडल व्यवस्थापक पोर्टल (2FA आवश्यक)" 
+              ? "सुपर एडमिन गवर्नेंस कंट्रोल डेस्क (2FA आवश्यक)" 
               : language === "or" 
-              ? "କେନ୍ଦ୍ରୀୟ ନୋଡାଲ୍ ମାଷ୍ଟର ପୋର୍ଟାଲ୍ (2FA ଆବଶ୍ୟକ)" 
-              : "Nodal Master Governance Control Desk (2FA Required)"}
+              ? "ସୁପର ଆଡମିନ୍ ଗଭର୍ଣ୍ଣାନ୍ସ କଣ୍ଟ୍ରୋଲ୍ ଡେସ୍କ (2FA ଆବଶ୍ୟକ)" 
+              : "Super Admin Governance Control Desk (2FA Required)"}
           </span>
         </button>
       </div>

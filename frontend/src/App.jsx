@@ -275,10 +275,10 @@ export default function App() {
                   className="text-left text-amber-400 hover:text-amber-300 hover:underline font-bold transition cursor-pointer"
                 >
                   {language === "hi" 
-                    ? "› मास्टर कंट्रोल डेस्क (2FA आवश्यक)" 
+                    ? "› सुपर एडमिन कंट्रोल डेस्क (2FA आवश्यक)" 
                     : language === "or" 
-                    ? "› ମାଷ୍ଟର କଣ୍ଟ୍ରୋଲ୍ ଡେସ୍କ (2FA ଆବଶ୍ୟକ)" 
-                    : "› Master Control Desk (2FA Required)"}
+                    ? "› ସୁପର ଆଡମିନ୍ କଣ୍ଟ୍ରୋଲ୍ ଡେସ୍କ (2FA ଆବଶ୍ୟକ)" 
+                    : "› Super Admin Control Desk (2FA Required)"}
                 </button>
               </div>
             </div>

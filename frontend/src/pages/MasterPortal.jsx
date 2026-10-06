@@ -242,14 +242,14 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
           </button>
           <span className="text-slate-300">/</span>
           <span className="text-[12px] font-black text-rose-700 uppercase tracking-wider flex items-center gap-1">
-            <span></span> {language === "or" ? "ମାଷ୍ଟର୍ ସିଷ୍ଟମ୍ ପ୍ରଶାସନ (2FA)" : language === "hi" ? "मास्टर सिस्टम प्रशासन (2FA)" : "Master System Administration (2FA)"}
+            <span></span> {language === "or" ? "ସୁପର ଆଡମିନ୍ ପ୍ରଶାସନ (2FA)" : language === "hi" ? "सुपर एडमिन प्रशासन (2FA)" : "Super Admin System Administration (2FA)"}
           </span>
         </div>
 
         {masterSession && (
           <div className="flex items-center gap-3">
             <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-rose-900 text-white uppercase tracking-wider">
-              {language === "or" ? "ମାଷ୍ଟର୍ ଆକ୍ସେସ୍" : language === "hi" ? "मास्टर एक्सेस" : "MASTER ACCESS"}
+              {language === "or" ? "ସୁପର ଆଡମିନ୍" : language === "hi" ? "सुपर एडमिन" : "SUPER ADMIN"}
             </span>
             <span className="text-[12.5px] font-bold text-slate-800">
               {masterSession.master?.name}
@@ -287,7 +287,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 Institutions waiting for approval: <strong className="font-bold text-amber-950">{pendingNotice.facilities.map((f) => f.name).join(", ")}</strong>
               </p>
               <p className="text-[11.5px] text-amber-900/80">
-                Please authorize your Master Session below to review the verification cards and approve or reject them.
+                Please authorize your Super Admin Session below to review the verification cards and approve or reject them.
               </p>
             </div>
           )}
@@ -309,7 +309,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
             <div className="p-6 space-y-5 bg-white">
               <div className="space-y-1 border-b border-slate-200 pb-3">
                 <h2 className="text-xl font-bold text-[#0B2545] tracking-tight">
-                  Nodal Master Administration Console
+                  Nodal Super Admin Console
                 </h2>
                 <p className="text-[12px] text-slate-600 font-medium">
                   Mandatory 2FA authentication protocol. Restricted to authorized nodal administrators and verification officers only.
@@ -339,7 +339,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
 
                 <div>
                   <label className="block text-[12px] font-bold text-slate-700 mb-1">
-                    Master Password
+                    Super Admin Password
                   </label>
                   <div className="relative">
                     <input
@@ -382,7 +382,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                   disabled={loading}
                   className="btn-tactile w-full py-2.5 rounded font-bold text-[14px] text-white bg-[#003366] hover:bg-[#002855] transition cursor-pointer shadow-xs"
                 >
-                  {loading ? "Authenticating..." : "Authorize Master Session →"}
+                  {loading ? "Authenticating..." : "Authorize Super Admin Session →"}
                 </button>
               </form>
             </div>
@@ -398,7 +398,7 @@ export default function MasterPortal({ onNavigateHome, language = "en" }) {
                 <IconAlertCircle className="w-7 h-7 text-amber-800 shrink-0" />
                 <div>
                   <h4 className="font-black text-sm text-amber-900 uppercase tracking-wide">
-                    {pendingFacilities.length} Healthcare Facilit{pendingFacilities.length > 1 ? "ies" : "y"} Awaiting Master Verification
+                    {pendingFacilities.length} Healthcare Facilit{pendingFacilities.length > 1 ? "ies" : "y"} Awaiting Super Admin Verification
                   </h4>
                   <p className="text-[12.5px] text-amber-800 font-semibold mt-0.5">
                     {pendingFacilities.map((f) => f.name).join(" • ")}
