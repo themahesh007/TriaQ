@@ -5,7 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const storage = require("./services/storage");
-const { evaluateRisk } = require("./rules/riskEngine");
+const { evaluateRisk, analyzeSymptomFlags } = require("./rules/riskEngine");
 const { detectMissingInfo } = require("./rules/missingInfoEngine");
 const { getFollowUpQuestions } = require("./rules/followUpEngine");
 const { processReportImage } = require("./services/ocrService");
@@ -1536,16 +1536,19 @@ app.post("/api/triage-notes", async (req, res) => {
     const riskTag = riskResult.riskTag;
     const matchedRiskKeywords = riskResult.matchedRiskKeywords;
 
-    // 2. Missing info detection
+    // 2. Comprehensive Red Flag vs Green Flag Clinical Analysis
+    const flagAnalysis = analyzeSymptomFlags(combinedEvaluationText, vitals, language);
+
+    // 3. Missing info detection
     const missingInfo = detectMissingInfo(combinedEvaluationText, language);
 
-    // 3. Clinical follow-up questions
+    // 4. Clinical follow-up questions
     const followUpQuestions = getFollowUpQuestions(riskTag, language, combinedEvaluationText);
 
-    // 4. Structured non-diagnostic summary
+    // 5. Structured non-diagnostic summary
     const summary = await generateSummary(symptomText, language, additionalAnswers);
 
-    // 5. Store note with receipt number, vitals, and patient demographics
+    // 6. Store note with receipt number, vitals, and patient demographics
     const note = await storage.createTriageNote({
       patientId,
       name: name || fullName || null,
@@ -1558,6 +1561,11 @@ app.post("/api/triage-notes", async (req, res) => {
       vitals: vitals || null,
       riskTag,
       matchedRiskKeywords,
+      flagType: flagAnalysis.flag,
+      redFlags: flagAnalysis.redFlags || [],
+      greenFlags: flagAnalysis.greenFlags || [],
+      amberFlags: flagAnalysis.amberFlags || [],
+      flagRationale: flagAnalysis.summary || flagAnalysis.recommendation,
       missingInfo,
       followUpQuestions,
       extractedReportData,
@@ -1568,6 +1576,30 @@ app.post("/api/triage-notes", async (req, res) => {
   } catch (error) {
     console.error("Error processing triage note:", error);
     return res.status(500).json({ error: "Failed to process triage note" });
+  }
+});
+
+/**
+ * POST /api/symptoms/analyze
+ * Real-time endpoint to analyze patient symptoms and return explicit Red Flag or Green Flag analysis
+ */
+app.post("/api/symptoms/analyze", async (req, res) => {
+  try {
+    const { symptomText, vitals, language = "en", additionalAnswers = [] } = req.body || {};
+    if (!symptomText || typeof symptomText !== "string") {
+      return res.status(400).json({ error: "symptomText is required" });
+    }
+
+    const answersText = Array.isArray(additionalAnswers)
+      ? additionalAnswers.map((a) => `${a.question || ""} ${a.answer || ""}`).join(" ")
+      : "";
+    const combinedEvaluationText = `${symptomText} ${answersText}`.trim();
+
+    const analysis = analyzeSymptomFlags(combinedEvaluationText, vitals, language);
+    return res.json(analysis);
+  } catch (err) {
+    console.error("Error analyzing symptoms:", err);
+    return res.status(500).json({ error: "Failed to analyze symptoms" });
   }
 });
 

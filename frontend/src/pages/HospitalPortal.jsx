@@ -2246,7 +2246,7 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                                   : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                               }`}
                             >
-                              {item.riskTag === "RED" ? "• RED Priority" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "• YELLOW Urgent" : "• GREEN Routine"}
+                              {item.riskTag === "RED" ? "🚩 RED FLAG" : item.riskTag === "YELLOW" || item.riskTag === "AMBER" ? "⚠️ AMBER FLAG" : "🟢 GREEN FLAG"}
                             </span>
                           </td>
 
@@ -2368,9 +2368,16 @@ export default function HospitalPortal({ onNavigateHome, language = "en" }) {
                       : "bg-emerald-50 border-emerald-300 text-emerald-950"
                   }`}>
                     <div>
-                      <span className="text-[11px] font-black uppercase tracking-wider block opacity-80">Triage Priority Assessment</span>
-                      <strong className="text-base font-black">
-                        {selectedPatientModal.riskTag === "RED" ? "• RED Priority (Critical Attention)" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "• YELLOW Urgent" : "• GREEN Routine Priority"}
+                      <span className="text-[11px] font-black uppercase tracking-wider block opacity-80">Symptom Flag Analysis & Triage</span>
+                      <strong className="text-base font-black flex items-center gap-1.5">
+                        <span>{selectedPatientModal.riskTag === "RED" ? "🚩" : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER" ? "⚠️" : "🟢"}</span>
+                        <span>
+                          {selectedPatientModal.riskTag === "RED"
+                            ? "RED FLAG: Urgent Medical Warning Signs"
+                            : selectedPatientModal.riskTag === "YELLOW" || selectedPatientModal.riskTag === "AMBER"
+                            ? "AMBER FLAG: Priority Outpatient Care"
+                            : "GREEN FLAG: Stable & Safe Routine OPD"}
+                        </span>
                       </strong>
                     </div>
                     <span className="text-xs font-bold px-3 py-1 rounded-full bg-white border border-slate-300 font-mono">

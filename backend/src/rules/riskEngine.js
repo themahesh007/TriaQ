@@ -96,15 +96,32 @@ const AMBER_KEYWORDS = [
 ];
 
 /**
+ * Checks if a keyword match is affirmative (not preceded by negation such as 'no', 'without', 'denies')
+ */
+function isAffirmativeMatch(text = "", keyword = "") {
+  const kw = keyword.toLowerCase();
+  const lower = (text || "").toLowerCase();
+  let pos = lower.indexOf(kw);
+  if (pos === -1) return false;
+
+  while (pos !== -1) {
+    const prefix = lower.slice(Math.max(0, pos - 20), pos).trim();
+    const isNeg = /\b(no|without|denies|denied|free of|never had)\b\s*(any\s+)?$/i.test(prefix);
+    if (!isNeg) return true;
+    pos = lower.indexOf(kw, pos + 1);
+  }
+  return false;
+}
+
+/**
  * Deterministic detection of Red Flag keywords
  */
 function detectRedFlag(symptomText = "", language = "en") {
-  const lowerText = (symptomText || "").toLowerCase();
   const langKey = language?.toLowerCase().slice(0, 2);
   const keywords = RED_FLAG_KEYWORDS[langKey] || RED_KEYWORDS;
   
   const matchedKeywords = keywords.filter(keyword => {
-    return lowerText.includes(keyword.toLowerCase());
+    return isAffirmativeMatch(symptomText, keyword);
   });
 
   return {
@@ -118,12 +135,11 @@ function detectRedFlag(symptomText = "", language = "en") {
  * Deterministic detection of Amber / Yellow Flag keywords
  */
 function detectAmberFlag(symptomText = "", language = "en") {
-  const lowerText = (symptomText || "").toLowerCase();
   const langKey = language?.toLowerCase().slice(0, 2);
   const keywords = AMBER_FLAG_KEYWORDS[langKey] || AMBER_KEYWORDS;
   
   const matchedKeywords = keywords.filter(keyword => {
-    return lowerText.includes(keyword.toLowerCase());
+    return isAffirmativeMatch(symptomText, keyword);
   });
 
   return {
@@ -141,9 +157,8 @@ function detectAmberFlag(symptomText = "", language = "en") {
  * @returns {{ riskTag: "RED" | "YELLOW" | "GREEN", matchedRiskKeywords: string[] }}
  */
 function evaluateRisk(rawText = "", vitals = null) {
-  const normalized = (rawText || "").toLowerCase();
-  const matchedRed = RED_KEYWORDS.filter(kw => normalized.includes(kw.toLowerCase()));
-  const matchedAmber = AMBER_KEYWORDS.filter(kw => normalized.includes(kw.toLowerCase()));
+  const matchedRed = RED_KEYWORDS.filter(kw => isAffirmativeMatch(rawText, kw));
+  const matchedAmber = AMBER_KEYWORDS.filter(kw => isAffirmativeMatch(rawText, kw));
 
   // 1. Evaluate vital signs for emergency/critical thresholds
   if (vitals && typeof vitals === "object") {
@@ -186,20 +201,150 @@ function evaluateRisk(rawText = "", vitals = null) {
   if (matchedRed.length > 0) {
     return {
       riskTag: "RED",
-      matchedRiskKeywords: Array.from(new Set(matchedRed))
+      matchedRiskKeywords: Array.from(new Set(matchedRed)),
+      flagType: "RED",
+      redFlags: Array.from(new Set(matchedRed)),
+      greenFlags: [],
+      flagRationale: "Emergency red-flag symptom(s) or critical vitals detected requiring immediate triage."
     };
   }
 
   if (matchedAmber.length > 0) {
     return {
       riskTag: "YELLOW",
-      matchedRiskKeywords: Array.from(new Set(matchedAmber))
+      matchedRiskKeywords: Array.from(new Set(matchedAmber)),
+      flagType: "AMBER",
+      redFlags: [],
+      amberFlags: Array.from(new Set(matchedAmber)),
+      greenFlags: ["Stable airway", "No life-threatening red-flag indicators detected"],
+      flagRationale: "Moderate symptoms detected requiring priority outpatient consultation."
     };
   }
 
+  const greenIndicators = detectGreenFlags(rawText, vitals, "en");
+
   return {
     riskTag: "GREEN",
-    matchedRiskKeywords: []
+    matchedRiskKeywords: [],
+    flagType: "GREEN",
+    redFlags: [],
+    amberFlags: [],
+    greenFlags: greenIndicators.greenFlags,
+    flagRationale: "Stable indicators present with no critical red-flag symptoms. Safe for routine OPD consultation."
+  };
+}
+
+/**
+ * Detect Green Flag indicators (stable, routine, non-emergency signs)
+ */
+function detectGreenFlags(rawText = "", vitals = null, language = "en") {
+  const normalized = (rawText || "").toLowerCase();
+  const greenFlags = [];
+
+  // Check absence of red flags
+  const redCheck = detectRedFlag(rawText, language);
+  if (!redCheck.isRedFlag) {
+    greenFlags.push("No emergency chest or airway distress reported");
+  }
+
+  // Common mild/stable symptom indicators
+  const mildKeywords = [
+    "mild", "cold", "runny nose", "sneezing", "mild headache", "body ache",
+    "slight", "minor", "checkup", "dressing", "refill", "stable",
+    "हल्का", "जुकाम", "सर्दी", "ସାମାନ୍ୟ", "ଥଣ୍ଡା"
+  ];
+  const matchedMild = mildKeywords.filter(k => normalized.includes(k.toLowerCase()));
+  if (matchedMild.length > 0) {
+    greenFlags.push("Routine outpatient severity pattern detected");
+  }
+
+  // Normal vitals verification
+  if (vitals && typeof vitals === "object") {
+    const spo2 = Number(vitals.spo2);
+    const bpSys = Number(vitals.bpSystolic);
+    const bpDia = Number(vitals.bpDiastolic);
+    const pulse = Number(vitals.pulse);
+    const temp = Number(vitals.temp);
+
+    if (!isNaN(spo2) && spo2 >= 95) {
+      greenFlags.push(`Normal blood oxygen saturation (${spo2}%)`);
+    }
+    if (!isNaN(bpSys) && bpSys >= 100 && bpSys <= 135 && !isNaN(bpDia) && bpDia >= 65 && bpDia <= 88) {
+      greenFlags.push(`Blood pressure within normal clinical limits (${bpSys}/${bpDia} mmHg)`);
+    }
+    if (!isNaN(pulse) && pulse >= 60 && pulse <= 100) {
+      greenFlags.push(`Normal resting pulse rate (${pulse} bpm)`);
+    }
+    if (!isNaN(temp) && temp >= 97 && temp <= 99.2) {
+      greenFlags.push(`Normal body temperature (${temp}°F)`);
+    }
+  }
+
+  if (greenFlags.length === 0) {
+    greenFlags.push("Stable vitals & no urgent alarm indicators detected");
+  }
+
+  return {
+    isGreenFlag: true,
+    greenFlags: Array.from(new Set(greenFlags))
+  };
+}
+
+/**
+ * Complete symptom analysis returning explicit Red Flag vs Green Flag determination
+ * @param {string} symptomText
+ * @param {Object} [vitals]
+ * @param {string} [language]
+ * @returns {Object} Full Flag Analysis
+ */
+function analyzeSymptomFlags(symptomText = "", vitals = null, language = "en") {
+  const riskResult = evaluateRisk(symptomText, vitals);
+  const redFlags = riskResult.redFlags || [];
+  const amberFlags = riskResult.amberFlags || [];
+  const greenFlags = riskResult.greenFlags || [];
+
+  if (riskResult.riskTag === "RED") {
+    return {
+      flag: "RED",
+      riskTag: "RED",
+      title: "🚩 RED FLAG: Urgent Warning Signs Detected",
+      summary: "Critical warning signs or abnormal vitals identified. Immediate medical evaluation is required.",
+      recommendation: "Emergency / Casualty attention recommended without delay. Do not wait in standard OPD queue.",
+      redFlags: redFlags.length > 0 ? redFlags : ["Critical red-flag symptom detected"],
+      greenFlags: [],
+      isUrgent: true,
+      action: "PROCEED_TO_EMERGENCY"
+    };
+  }
+
+  if (riskResult.riskTag === "YELLOW") {
+    return {
+      flag: "AMBER",
+      riskTag: "YELLOW",
+      title: "⚠️ AMBER FLAG: Priority Outpatient Care Needed",
+      summary: "Moderate clinical symptoms detected. Patient should be prioritized in OPD queue for timely doctor review.",
+      recommendation: "Proceed with priority OPD token. Inform clinic nurse if symptoms worsen suddenly.",
+      redFlags: [],
+      amberFlags,
+      greenFlags: ["Airway clear", "No immediate life-threatening distress"],
+      isUrgent: false,
+      action: "PROCEED_TO_OPD_PRIORITY"
+    };
+  }
+
+  // GREEN FLAG
+  const greenDetection = detectGreenFlags(symptomText, vitals, language);
+  return {
+    flag: "GREEN",
+    riskTag: "GREEN",
+    title: "🟢 GREEN FLAG: Stable / Routine Outpatient Symptoms",
+    summary: "No urgent alarm symptoms or vital crises detected. Symptoms are stable and safe for standard outpatient queue.",
+    recommendation: "Proceed with standard OPD appointment. Rest, maintain hydration, and consult with the OPD doctor.",
+    redFlags: [],
+    amberFlags: [],
+    greenFlags: greenDetection.greenFlags,
+    isUrgent: false,
+    action: "PROCEED_TO_ROUTINE_OPD"
   };
 }
 
@@ -251,6 +396,8 @@ module.exports = {
   AMBER_KEYWORDS,
   detectRedFlag,
   detectAmberFlag,
+  detectGreenFlags,
   evaluateRisk,
+  analyzeSymptomFlags,
   assignRiskTag
 };

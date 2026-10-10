@@ -459,6 +459,106 @@ export default function PatientPortal({
     });
   };
 
+  // Real-time Symptom Flag Analysis (Red Flag vs Green Flag)
+  const symptomFlagAnalysis = useMemo(() => {
+    const raw = (symptomText || "").trim();
+    if (raw.length < 5) return null;
+
+    const lower = raw.toLowerCase();
+    const vitalsObj = {
+      bpSystolic: bpSystolic ? Number(bpSystolic) : null,
+      bpDiastolic: bpDiastolic ? Number(bpDiastolic) : null,
+      pulse: pulse ? Number(pulse) : null,
+      spo2: spo2 ? Number(spo2) : null,
+      temp: temp ? Number(temp) : null
+    };
+
+    // Red flag keywords (English, Hindi, Romanized, Odia)
+    const redKeywords = [
+      "chest pain", "chest tightness", "chest ache", "chhati",
+      "difficulty breathing", "breathless", "shortness of breath", "can't breathe", "saas",
+      "unconscious", "passed out", "blacked out", "fainting", "fainted", "behosh",
+      "severe bleeding", "bleeding heavily", "blood loss", "khoon",
+      "stroke", "facial drooping", "slurred speech", "one-sided weakness", "lakwa",
+      "suicidal", "want to die", "choking", "worst headache",
+      "seizure", "convulsion", "anaphylaxis",
+      // Hindi
+      "सीने में दर्द", "छाती में दर्द", "सांस नहीं", "सांस फूलना", "बेहोश", "बेहोशी", "गंभीर रक्तस्राव", "खून बह", "लकवा", "असहनीय दर्द",
+      // Odia
+      "ଛାତିରେ ଯନ୍ତ୍ରଣା", "ଶ୍ୱାସ ନେବାରେ କଷ୍ଟ", "ଶ୍ୱାସ ଧରା", "ଅଚେତ", "ରକ୍ତସ୍ରାବ", "ଅସହ୍ୟ ଯନ୍ତ୍ରଣା"
+    ];
+
+    // Amber keywords
+    const amberKeywords = [
+      "fever", "vomiting", "nausea", "persistent cough", "dizziness", "severe pain",
+      "stomach pain", "blood in urine", "blood in stool", "belly pain",
+      "बुखार", "उल्टी", "खांसी", "चक्कर", "पेट दर्द", "सिर दर्द",
+      "ଜ୍ୱର", "ବାନ୍ତି", "କାଶ", "ପେଟ ଯନ୍ତ୍ରଣା"
+    ];
+
+    const matchedRed = redKeywords.filter((k) => lower.includes(k.toLowerCase()));
+    const matchedAmber = amberKeywords.filter((k) => lower.includes(k.toLowerCase()));
+
+    // Vitals checks
+    const { spo2: s, bpSystolic: sys, bpDiastolic: dia, pulse: p, temp: t } = vitalsObj;
+    if (s && s < 90) matchedRed.push(`Critical SpO2: ${s}% (<90%)`);
+    else if (s && s >= 90 && s <= 93) matchedAmber.push(`Low SpO2: ${s}% (90-93%)`);
+
+    if ((sys && sys >= 180) || (dia && dia >= 110)) matchedRed.push(`BP Crisis: ${sys || "-"}/${dia || "-"} mmHg`);
+    else if (sys && sys < 85) matchedRed.push(`Severe Low BP: ${sys} mmHg (<85)`);
+    else if ((sys && sys >= 140) || (dia && dia >= 90)) matchedAmber.push(`Elevated BP: ${sys || "-"}/${dia || "-"} mmHg`);
+
+    if (p && (p > 130 || p < 45)) matchedRed.push(`Critical Pulse: ${p} bpm`);
+    else if (p && p > 105) matchedAmber.push(`High Pulse: ${p} bpm`);
+
+    if (t && t >= 103) matchedAmber.push(`High Fever: ${t}°F (≥103°F)`);
+
+    if (matchedRed.length > 0) {
+      return {
+        flag: "RED",
+        title: language === "or" ? "🚩 ରେଡ୍ ଫ୍ଲାଗ୍: ଜରୁରୀକାଳୀନ ସତର୍କତା ଚିହ୍ନଟ" : language === "hi" ? "🚩 रेड फ्लैग: आपातकालीन चेतावनी लक्षण पाए गए" : "🚩 RED FLAG: Urgent Warning Signs Detected",
+        summary: language === "or" ? "ତୀବ୍ର ବିପଦ ସଙ୍କେତ ଚିହ୍ନଟ ହୋଇଛି । ତୁରନ୍ତ ଡାକ୍ତରୀ ସେବା ଆବଶ୍ୟକ ।" : language === "hi" ? "गंभीर चेतावनी लक्षण पहचाने गए हैं। तत्काल डॉक्टर की निगरानी जरूरी है।" : "Potential life-threatening or urgent indicators detected. Immediate clinical triage required.",
+        recommendation: language === "or" ? "ସାଧାରଣ ଓପିଡି ଲାଇନ୍‌ରେ ଅପେକ୍ଷା ନକରି ଜରୁରୀକାଳୀନ ବିଭାଗ (Casualty) କୁ ଯାଆନ୍ତୁ ।" : language === "hi" ? "सामान्य ओपीडी कतार में प्रतीक्षा न करें, सीधे आपातकालीन / कैजुअल्टी वार्ड जाएं।" : "Do not wait in standard OPD queue. Proceed directly to Emergency / Casualty desk.",
+        redFlags: Array.from(new Set(matchedRed)),
+        greenFlags: [],
+        amberFlags: [],
+        action: "EMERGENCY"
+      };
+    }
+
+    if (matchedAmber.length > 0) {
+      return {
+        flag: "AMBER",
+        title: language === "or" ? "⚠️ ଏମ୍ବର୍ ଫ୍ଲାଗ୍: ପ୍ରାଥମିକତା ଓପିଡି ଧ୍ୟାନ ଆବଶ୍ୟକ" : language === "hi" ? "⚠️ एम्बर फ्लैग: प्राथमिकता ओपीडी ध्यान आवश्यक" : "⚠️ AMBER FLAG: Priority Outpatient Attention Recommended",
+        summary: language === "or" ? "ମଧ୍ୟମ ଧରଣର ଲକ୍ଷଣ ଚିହ୍ନଟ ହୋଇଛି । ଡାକ୍ତରଙ୍କ ଶୀଘ୍ର ପରାମର୍ଶ ଆବଶ୍ୟକ ।" : language === "hi" ? "मध्यम लक्षण पाए गए हैं। जल्द डॉक्टर समीक्षा आवश्यक है।" : "Moderate clinical symptoms detected. Prioritized for prompt OPD review.",
+        recommendation: language === "or" ? "ପ୍ରାଥମିକତା ଟୋକନ୍ ସହ ଆଗକୁ ବଢ଼ନ୍ତୁ ।" : language === "hi" ? "प्राथमिकता टोकन के साथ आगे बढ़ें।" : "Proceed with priority OPD token. Notify triage nurse upon arrival.",
+        redFlags: [],
+        amberFlags: Array.from(new Set(matchedAmber)),
+        greenFlags: ["Airway & breathing clear", "No critical emergency flags detected"],
+        action: "OPD_PRIORITY"
+      };
+    }
+
+    // Green Flag Indicators
+    const greenIndicators = ["No emergency chest or airway distress reported"];
+    if (s && s >= 95) greenIndicators.push(`Normal blood oxygen (${s}%)`);
+    if (sys && sys >= 100 && sys <= 135) greenIndicators.push(`Blood pressure in normal range (${sys}/${dia || "-"} mmHg)`);
+    if (p && p >= 60 && p <= 100) greenIndicators.push(`Normal pulse (${p} bpm)`);
+    if (t && t <= 99.5) greenIndicators.push(`Normal body temperature (${t}°F)`);
+    greenIndicators.push("Symptoms appropriate for routine outpatient queue");
+
+    return {
+      flag: "GREEN",
+      title: language === "or" ? "🟢 ଗ୍ରୀନ୍ ଫ୍ଲାଗ୍: ସ୍ଥିର ଏବଂ ନିରାପଦ ଓପିଡି ଲକ୍ଷଣ" : language === "hi" ? "🟢 ग्रीन फ्लैग: स्थिर एवं सुरक्षित ओपीडी लक्षण" : "🟢 GREEN FLAG: Stable & Safe for Routine OPD",
+      summary: language === "or" ? "କୌଣସି ଜରୁରୀକାଳୀନ ବିପଦ ସଙ୍କେତ ଚିହ୍ନଟ ହୋଇନାହିଁ । ସାଧାରଣ ଓପିଡି ପାଇଁ ନିରାପଦ ।" : language === "hi" ? "कोई आपातकालीन चेतावनी लक्षण नहीं मिला। सामान्य ओपीडी के लिए सुरक्षित।" : "No urgent alarm symptoms or vital crises detected. Symptoms are stable for standard OPD.",
+      recommendation: language === "or" ? "ଆପଣଙ୍କର ସାଧାରଣ ଓପିଡି ଟୋକନ୍ ପାଆନ୍ତୁ ଏବଂ ନିୟମିତ ଡାକ୍ତରୀ ପରାମର୍ଶ କରନ୍ତୁ ।" : language === "hi" ? "अपना सामान्य ओपीडी टोकन प्राप्त करें और डॉक्टर से परामर्श लें।" : "Proceed with standard OPD appointment. A doctor will review your case during consultation.",
+      redFlags: [],
+      amberFlags: [],
+      greenFlags: Array.from(new Set(greenIndicators)),
+      action: "OPD_ROUTINE"
+    };
+  }, [symptomText, bpSystolic, bpDiastolic, pulse, spo2, temp, language]);
+
   // Auto-save demographic drafts
   useEffect(() => {
     localStorage.setItem("triaq_draft_name", fullName);
@@ -1568,19 +1668,42 @@ export default function PatientPortal({
                       <span className="text-[11.5px] font-black uppercase text-slate-600 tracking-wider">
                         {language === "or" ? "କ୍ଲିନିକାଲ୍ ଲକ୍ଷଣ ଓ ଟ୍ରାଏଜ୍ ମୂଲ୍ୟାଙ୍କନ" : language === "hi" ? "क्लीनिकल लक्षण एवं ट्राइएज मूल्यांकन" : "Reported Symptoms & Urgency Tier"}
                       </span>
-                      <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${
-                        lookupResult.riskTag === "RED"
+                      <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                        lookupResult.riskTag === "RED" || lookupResult.flagType === "RED"
                           ? "bg-rose-100 text-rose-800 border border-rose-300"
-                          : lookupResult.riskTag === "YELLOW" || lookupResult.riskTag === "AMBER"
+                          : lookupResult.riskTag === "YELLOW" || lookupResult.riskTag === "AMBER" || lookupResult.flagType === "AMBER"
                           ? "bg-amber-100 text-amber-900 border border-amber-300"
                           : "bg-emerald-100 text-emerald-800 border border-emerald-300"
                       }`}>
-                        {lookupResult.riskTag || "GREEN"} {language === "hi" ? "प्राथमिकता" : language === "or" ? "ପ୍ରାଥମିକତା" : "Priority"}
+                        <span>{lookupResult.riskTag === "RED" || lookupResult.flagType === "RED" ? "🚩 RED FLAG" : lookupResult.riskTag === "YELLOW" || lookupResult.flagType === "AMBER" ? "⚠️ AMBER FLAG" : "🟢 GREEN FLAG"}</span>
+                        <span>•</span>
+                        <span>{lookupResult.riskTag === "RED" ? "Urgent" : lookupResult.riskTag === "YELLOW" ? "Priority" : "Stable"}</span>
                       </span>
                     </div>
                     <p className="text-[13px] text-slate-800 leading-relaxed font-medium">
                       {lookupResult.rawSymptomText || lookupResult.summary || "Symptoms logged in triage intake."}
                     </p>
+
+                    {/* Detected Flag Details */}
+                    {(lookupResult.redFlags?.length > 0 || lookupResult.greenFlags?.length > 0 || lookupResult.flagRationale) && (
+                      <div className="pt-1.5 space-y-1">
+                        <span className="text-[10.5px] font-bold text-slate-500 uppercase tracking-wide block">
+                          {lookupResult.riskTag === "RED" ? "🚩 Flag Triggers:" : "🟢 Clinical Status:"}
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                          {(lookupResult.redFlags?.length > 0
+                            ? lookupResult.redFlags
+                            : lookupResult.greenFlags?.length > 0
+                            ? lookupResult.greenFlags
+                            : [lookupResult.flagRationale || "Clinical symptoms evaluated"]
+                          ).map((tag, idx) => (
+                            <span key={idx} className="text-[10.5px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200">
+                              {lookupResult.riskTag === "RED" ? "🚩 " : "✓ "}{tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Vitals summary if present */}
                     {lookupResult.vitals && Object.keys(lookupResult.vitals).length > 0 && (
@@ -3283,6 +3406,108 @@ export default function PatientPortal({
                 </div>
               )}
 
+              {/* REAL-TIME CLINICAL SYMPTOM FLAG ANALYSIS (RED FLAG / GREEN FLAG) */}
+              {symptomFlagAnalysis ? (
+                <div className={`p-4 rounded-xl border-2 transition-all shadow-sm ${
+                  symptomFlagAnalysis.flag === "RED"
+                    ? "bg-rose-50/95 border-rose-500 text-rose-950 ring-2 ring-rose-200"
+                    : symptomFlagAnalysis.flag === "AMBER"
+                    ? "bg-amber-50/95 border-amber-500 text-amber-950 ring-2 ring-amber-200"
+                    : "bg-emerald-50/95 border-emerald-500 text-emerald-950 ring-2 ring-emerald-200"
+                }`}>
+                  {/* Top Flag Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-current/15">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl shrink-0">
+                        {symptomFlagAnalysis.flag === "RED" ? "🚩" : symptomFlagAnalysis.flag === "AMBER" ? "⚠️" : "🟢"}
+                      </span>
+                      <span className="text-[13.5px] font-black tracking-tight">
+                        {symptomFlagAnalysis.title}
+                      </span>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider shadow-xs ${
+                      symptomFlagAnalysis.flag === "RED"
+                        ? "bg-rose-700 text-white"
+                        : symptomFlagAnalysis.flag === "AMBER"
+                        ? "bg-amber-700 text-white"
+                        : "bg-emerald-700 text-white"
+                    }`}>
+                      {symptomFlagAnalysis.flag === "RED" ? "RED FLAG • URGENT" : symptomFlagAnalysis.flag === "AMBER" ? "AMBER FLAG • PRIORITY" : "GREEN FLAG • STABLE"}
+                    </span>
+                  </div>
+
+                  {/* Summary & Rationale */}
+                  <p className="text-[12.5px] font-semibold mt-2.5 leading-relaxed">
+                    {symptomFlagAnalysis.summary}
+                  </p>
+
+                  {/* Detected Indicator Chips */}
+                  <div className="mt-2.5 space-y-1.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider opacity-85 block">
+                      {symptomFlagAnalysis.flag === "RED"
+                        ? "🚨 Clinical Warning Signs Detected:"
+                        : symptomFlagAnalysis.flag === "AMBER"
+                        ? "⚠️ Priority OPD Indicators:"
+                        : "✓ Reassuring Green-Flag Indicators:"}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(symptomFlagAnalysis.flag === "RED"
+                        ? symptomFlagAnalysis.redFlags
+                        : symptomFlagAnalysis.flag === "AMBER"
+                        ? symptomFlagAnalysis.amberFlags
+                        : symptomFlagAnalysis.greenFlags
+                      ).map((item, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-md text-[11.5px] font-bold flex items-center gap-1.5 shadow-2xs ${
+                            symptomFlagAnalysis.flag === "RED"
+                              ? "bg-rose-200/90 text-rose-950 border border-rose-300"
+                              : symptomFlagAnalysis.flag === "AMBER"
+                              ? "bg-amber-200/90 text-amber-950 border border-amber-300"
+                              : "bg-emerald-200/90 text-emerald-950 border border-emerald-300"
+                          }`}
+                        >
+                          <span>{symptomFlagAnalysis.flag === "RED" ? "🚩" : symptomFlagAnalysis.flag === "AMBER" ? "⚠️" : "🟢"}</span>
+                          <span>{item}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Action / Recommendation Footer */}
+                  <div className="mt-3 pt-2.5 border-t border-current/15 flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-[12px] font-medium leading-normal flex-1">
+                      <span className="font-black">Recommended Action: </span>{symptomFlagAnalysis.recommendation}
+                    </p>
+                    {symptomFlagAnalysis.flag === "RED" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEmergencyDesc(symptomText);
+                          setEmergencyType("Other / Describe it yourself");
+                          setEmergencyCustomType(symptomText.slice(0, 60));
+                          setCurrentStep("emergency_intake");
+                        }}
+                        className="btn-tactile px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg text-[11.5px] font-black transition cursor-pointer shadow-xs flex items-center gap-1.5 shrink-0"
+                      >
+                        <span>⚡ Switch to Emergency Fast-Track →</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-[11.5px] font-medium flex items-center gap-2">
+                  <span className="text-base">💡</span>
+                  <span>
+                    {language === "or"
+                      ? "ଲକ୍ଷଣ ଲେଖିବା ମାତ୍ରେ ସ୍ୱୟଂଚାଳିତ ରେଡ୍ ଫ୍ଲାଗ୍ (Red Flag) କିମ୍ବା ଗ୍ରୀନ୍ ଫ୍ଲାଗ୍ (Green Flag) ସୁରକ୍ଷା ବିଶ୍ଳେଷଣ ପ୍ରଦର୍ଶିତ ହେବ।"
+                      : language === "hi"
+                      ? "लक्षण लिखते ही स्वचालित रेड फ्लैग (Red Flag) अथवा ग्रीन फ्लैग (Green Flag) सुरक्षा विश्लेषण दिखाई देगा।"
+                      : "Type your symptoms above to view real-time Red Flag (Urgent) or Green Flag (Stable) clinical safety analysis."}
+                  </span>
+                </div>
+              )}
+
             </div>
 
             {/* Patient Vitals Tracker Card */}
@@ -3692,6 +3917,79 @@ export default function PatientPortal({
               <span className="px-3 py-1 rounded-full text-[11.5px] font-bold bg-white text-slate-600 border border-slate-200">
                 {t.awaitingReview || "Awaiting Review"}
               </span>
+            </div>
+          </div>
+
+          {/* Official Symptom Flag Analysis Summary Card */}
+          <div className={`p-4 rounded-xl border-2 text-left space-y-2.5 max-w-md mx-auto shadow-xs ${
+            receiptData.riskTag === "RED" || receiptData.flagType === "RED"
+              ? "bg-rose-50/95 border-rose-500 text-rose-950 ring-2 ring-rose-200"
+              : receiptData.riskTag === "YELLOW" || receiptData.riskTag === "AMBER" || receiptData.flagType === "AMBER"
+              ? "bg-amber-50/95 border-amber-500 text-amber-950 ring-2 ring-amber-200"
+              : "bg-emerald-50/95 border-emerald-500 text-emerald-950 ring-2 ring-emerald-200"
+          }`}>
+            <div className="flex items-center justify-between pb-2 border-b border-current/15">
+              <div className="flex items-center gap-1.5 font-black text-sm">
+                <span className="text-lg">
+                  {receiptData.riskTag === "RED" || receiptData.flagType === "RED" ? "🚩" : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER" ? "⚠️" : "🟢"}
+                </span>
+                <span>
+                  {receiptData.riskTag === "RED" || receiptData.flagType === "RED"
+                    ? "Symptom Analysis: RED FLAG"
+                    : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER"
+                    ? "Symptom Analysis: AMBER FLAG"
+                    : "Symptom Analysis: GREEN FLAG"}
+                </span>
+              </div>
+              <span className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider text-white ${
+                receiptData.riskTag === "RED" || receiptData.flagType === "RED"
+                  ? "bg-rose-700"
+                  : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER"
+                  ? "bg-amber-700"
+                  : "bg-emerald-700"
+              }`}>
+                {receiptData.riskTag === "RED" || receiptData.flagType === "RED" ? "CRITICAL RISK" : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER" ? "PRIORITY REVIEW" : "STABLE & SAFE"}
+              </span>
+            </div>
+
+            <p className="text-[12px] font-semibold leading-relaxed">
+              {receiptData.flagRationale || (
+                receiptData.riskTag === "RED" || receiptData.flagType === "RED"
+                  ? "Emergency warning signs detected in symptoms or vitals. Prioritized for immediate attention."
+                  : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER"
+                  ? "Moderate symptoms detected. Scheduled for priority clinical review."
+                  : "No urgent red flags or emergency triggers detected. Symptoms are stable and safe for routine OPD queue."
+              )}
+            </p>
+
+            <div className="space-y-1 pt-1">
+              <span className="text-[11px] font-black uppercase tracking-wider opacity-80 block">
+                {receiptData.riskTag === "RED" || receiptData.flagType === "RED" ? "🚨 Red-Flag Indicators:" : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER" ? "⚠️ Priority Indicators:" : "✓ Green-Flag Safe Indicators:"}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {(receiptData.redFlags?.length > 0
+                  ? receiptData.redFlags
+                  : receiptData.greenFlags?.length > 0
+                  ? receiptData.greenFlags
+                  : receiptData.matchedRiskKeywords?.length > 0
+                  ? receiptData.matchedRiskKeywords
+                  : [receiptData.riskTag === "RED" ? "Critical symptoms reported" : "Airway and vitals stable"]
+                ).map((item, idx) => (
+                  <span
+                    key={idx}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold flex items-center gap-1 shadow-2xs ${
+                      receiptData.riskTag === "RED" || receiptData.flagType === "RED"
+                        ? "bg-rose-200 text-rose-900 border border-rose-300"
+                        : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER"
+                        ? "bg-amber-200 text-amber-900 border border-amber-300"
+                        : "bg-emerald-200 text-emerald-900 border border-emerald-300"
+                    }`}
+                  >
+                    <span>{receiptData.riskTag === "RED" || receiptData.flagType === "RED" ? "🚩" : receiptData.riskTag === "YELLOW" || receiptData.flagType === "AMBER" ? "⚠️" : "🟢"}</span>
+                    <span>{item}</span>
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
 
