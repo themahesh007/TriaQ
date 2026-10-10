@@ -75,9 +75,28 @@ export default function PatientPortal({
     }
   });
 
-  const [currentStep, setCurrentStep] = useState("auth"); // auth | intake | symptoms | confirmation | status
+  const [currentStep, setCurrentStep] = useState("auth"); // auth | mode_select | intake | symptoms | confirmation | status | emergency_intake | emergency_case
   const [authTab, setAuthTab] = useState("password"); // password | otp
   const [isSignup, setIsSignup] = useState(false);
+
+  // Emergency / Casualty Workflow States
+  const [emergencyCase, setEmergencyCase] = useState(null);
+  const [emergencyType, setEmergencyType] = useState("Road Accident");
+  const [emergencyCustomType, setEmergencyCustomType] = useState("");
+  const [emergencyDesc, setEmergencyDesc] = useState("");
+  const [emergencyPatientName, setEmergencyPatientName] = useState("");
+  const [emergencyReporterPhone, setEmergencyReporterPhone] = useState("");
+  const [emergencyLocation, setEmergencyLocation] = useState("");
+  const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [emergencyError, setEmergencyError] = useState("");
+  const [emergencyNewUpdate, setEmergencyNewUpdate] = useState("");
+  const [emergencyUpdateLoading, setEmergencyUpdateLoading] = useState(false);
+  const [emergencyCopiedNotice, setEmergencyCopiedNotice] = useState("");
+  const [showEmergencyLookupModal, setShowEmergencyLookupModal] = useState(false);
+  const [emergencyLookupId, setEmergencyLookupId] = useState("");
+  const [emergencyLookupPin, setEmergencyLookupPin] = useState("");
+  const [emergencyLookupLoading, setEmergencyLookupLoading] = useState(false);
+  const [emergencyLookupError, setEmergencyLookupError] = useState("");
 
   // Top-level Portal Mode: "book" (OPD Token Booking) | "status" (SHOW STATUS Lookup)
   const [portalMode, setPortalMode] = useState("book");
@@ -160,7 +179,7 @@ export default function PatientPortal({
     return allCities.filter((c) => c.toLowerCase().includes(q)).slice(0, 30);
   }, [patientDistrict, patientCity]);
 
-  // Detect QR check-in parameters & fetch facilities list
+  // Detect QR check-in & Emergency Case parameters, and fetch facilities list
   useEffect(() => {
     try {
       const fullUrl = window.location.href;
@@ -174,6 +193,12 @@ export default function PatientPortal({
         setSelectedFacility(decoded);
         if (facilityParam) setSelectedFacilityId(facilityParam);
         setIsQrCheckIn(true);
+      }
+
+      const emCaseParam = searchParams.get("caseId");
+      const emPinParam = searchParams.get("pin");
+      if (emCaseParam && emPinParam) {
+        verifyAndOpenEmergencyCase(emCaseParam, emPinParam);
       }
     } catch (e) {
       console.error("QR Param parsing error:", e);
@@ -516,10 +541,10 @@ export default function PatientPortal({
       if (receiptData) {
         deleteDraft("patient_symptom_draft");
         setCurrentStep("confirmation");
-      } else {
-        setCurrentStep("intake");
+      } else if (currentStep === "auth") {
+        setCurrentStep("mode_select");
       }
-    } else {
+    } else if (currentStep !== "emergency_case" && currentStep !== "emergency_intake") {
       setCurrentStep("auth");
     }
   }, [patientSession]);
@@ -538,6 +563,119 @@ export default function PatientPortal({
   const isValidIndianPhone = (raw) => {
     const digits = cleanIndianPhone(raw);
     return /^[6-9]\d{9}$/.test(digits);
+  };
+
+  // --- EMERGENCY WORKFLOW HANDLERS ---
+  const handleCreateEmergencyCase = async (e) => {
+    if (e) e.preventDefault();
+    setEmergencyLoading(true);
+    setEmergencyError("");
+
+    const resolvedType = emergencyType === "OTHER" 
+      ? (emergencyCustomType.trim() || "Emergency Incident")
+      : emergencyType;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/emergency/cases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: resolvedType,
+          description: emergencyDesc.trim(),
+          patientName: emergencyPatientName.trim() || "Unknown Patient",
+          reporterPhone: emergencyReporterPhone.trim() || contactPhone || null,
+          location: emergencyLocation.trim() || "Location not specified"
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create emergency case.");
+      }
+      setEmergencyCase(data.case);
+      setCurrentStep("emergency_case");
+    } catch (err) {
+      setEmergencyError(err.message);
+    } finally {
+      setEmergencyLoading(false);
+    }
+  };
+
+  const handleAddEmergencyUpdate = async (updateText) => {
+    const text = (updateText || emergencyNewUpdate).trim();
+    if (!text || !emergencyCase) return;
+    setEmergencyUpdateLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/emergency/cases/${emergencyCase.caseId}/updates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pin: emergencyCase.pin,
+          updateText: text
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Failed to add update.");
+      }
+      setEmergencyCase(data.case);
+      setEmergencyNewUpdate("");
+    } catch (err) {
+      alert("Error adding update: " + err.message);
+    } finally {
+      setEmergencyUpdateLoading(false);
+    }
+  };
+
+  const handleRefreshEmergencyCase = async () => {
+    if (!emergencyCase) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/emergency/cases/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId: emergencyCase.caseId,
+          pin: emergencyCase.pin
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.case) {
+        setEmergencyCase(data.case);
+      }
+    } catch {}
+  };
+
+  // Auto-poll emergency case status every 5 seconds when in emergency_case view
+  useEffect(() => {
+    if (currentStep !== "emergency_case" || !emergencyCase) return;
+    const interval = setInterval(() => {
+      handleRefreshEmergencyCase();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [currentStep, emergencyCase?.caseId, emergencyCase?.pin]);
+
+  const verifyAndOpenEmergencyCase = async (caseId, pin) => {
+    setEmergencyLookupLoading(true);
+    setEmergencyLookupError("");
+    try {
+      const targetId = (caseId || emergencyLookupId).trim();
+      const targetPin = (pin || emergencyLookupPin).trim();
+      const res = await fetch(`${API_BASE}/api/emergency/cases/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caseId: targetId, pin: targetPin })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || data.error || "Failed to retrieve case details.");
+      }
+      setEmergencyCase(data.case);
+      setShowEmergencyLookupModal(false);
+      setCurrentStep("emergency_case");
+    } catch (err) {
+      setEmergencyLookupError(err.message);
+    } finally {
+      setEmergencyLookupLoading(false);
+    }
   };
 
   // --- AUTH HANDLERS ---
@@ -594,7 +732,7 @@ export default function PatientPortal({
       localStorage.setItem("triaq_patient_session", JSON.stringify(data));
       setPatientSession(data);
       if (!contactPhone) setContactPhone(cleanNumber);
-      setCurrentStep("intake");
+      setCurrentStep("mode_select");
     } catch (err) {
       setAuthError(err.message);
     } finally {
@@ -633,7 +771,7 @@ export default function PatientPortal({
       } else if (cleanPhone) {
         setContactPhone(cleanPhone);
       }
-      setCurrentStep("intake");
+      setCurrentStep("mode_select");
     } catch (err) {
       setAuthError(err.message);
     } finally {
@@ -646,6 +784,7 @@ export default function PatientPortal({
     setPatientSession(null);
     setReceiptData(null);
     setStatusData(null);
+    setEmergencyCase(null);
     setCurrentStep("auth");
   };
 
@@ -1904,6 +2043,691 @@ export default function PatientPortal({
       )}
 
       {/* ========================================================================= */}
+      {/* STEP 1.5: MIDDLE PAGE AFTER LOGIN (GENERAL OPD vs EMERGENCY / CASUALTY)   */}
+      {/* ========================================================================= */}
+      {currentStep === "mode_select" && (
+        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+          {/* Header Card */}
+          <div className="govt-panel border border-slate-300 rounded-md overflow-hidden shadow-xs bg-white">
+            <div className="bg-[#003366] text-white px-5 py-3 flex items-center justify-between border-b border-[#0B2545]">
+              <div className="flex items-center gap-2.5">
+                <IconHospital className="w-5 h-5 text-amber-300" />
+                <div>
+                  <h3 className="font-bold text-sm tracking-wide text-white uppercase">
+                    Select Healthcare Service / ସେବା ଚୟନ
+                  </h3>
+                  <p className="text-[11px] text-amber-300">
+                    Patient or Relative Self-Report Service Selection
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-800 text-white border border-emerald-600">
+                Active Session
+              </span>
+            </div>
+
+            <div className="p-6 text-center space-y-2 border-b border-slate-100">
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                What care does the patient need right now?
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto font-medium">
+                Choose between regular clinic OPD consultation or the instant emergency casualty intake. Usable by patient, relative, or accompanying bystander.
+              </p>
+            </div>
+
+            {/* The 2 Cards */}
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50">
+              {/* CARD 1: GENERAL OPD */}
+              <div 
+                onClick={() => setCurrentStep("intake")}
+                className="bg-white rounded-xl border-2 border-slate-200 hover:border-[#003366] p-6 transition-all hover:shadow-lg cursor-pointer flex flex-col justify-between space-y-5 group relative"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="p-3 rounded-xl bg-blue-50 text-[#003366] group-hover:bg-[#003366] group-hover:text-white transition">
+                      <IconStethoscope className="w-7 h-7" />
+                    </span>
+                    <span className="text-[10.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-blue-100 text-[#003366] border border-blue-200">
+                      Standard Care
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-black text-slate-900 group-hover:text-[#003366] transition">
+                      General OPD
+                    </h3>
+                    <p className="text-xs font-bold text-slate-500 mt-0.5">
+                      ସାଧାରଣ ଓପିଡି • Outpatient Consultation &amp; Queue
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                    For regular illnesses, chronic conditions, fever, consultations, and doctor appointments. Generates your official sequential hospital OPD token.
+                  </p>
+
+                  <ul className="text-[11.5px] text-slate-600 space-y-1.5 pt-2 border-t border-slate-100 font-medium">
+                    <li className="flex items-center gap-1.5 text-emerald-800">
+                      <span>✓</span> <span>Doctor Consultation &amp; Sequential Queue Token</span>
+                    </li>
+                    <li className="flex items-center gap-1.5 text-emerald-800">
+                      <span>✓</span> <span>Vitals &amp; Symptoms Clinical Intake</span>
+                    </li>
+                    <li className="flex items-center gap-1.5 text-emerald-800">
+                      <span>✓</span> <span>Doctor Prescription &amp; PDF Slip</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep("intake")}
+                  className="btn-tactile w-full py-3.5 px-4 rounded-xl bg-[#003366] hover:bg-[#002244] text-white font-black text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-xs group-hover:shadow-md"
+                >
+                  <span>Proceed to General OPD →</span>
+                </button>
+              </div>
+
+              {/* CARD 2: EMERGENCY / CASUALTY (RED & PROMINENT) */}
+              <div 
+                onClick={() => setCurrentStep("emergency_intake")}
+                className="bg-white rounded-xl border-3 border-rose-500 hover:border-rose-600 p-6 transition-all shadow-md hover:shadow-xl cursor-pointer flex flex-col justify-between space-y-5 group relative ring-4 ring-rose-500/10"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="p-3 rounded-xl bg-rose-100 text-rose-700 group-hover:bg-rose-600 group-hover:text-white transition animate-pulse">
+                      <IconAlertCircle className="w-7 h-7" />
+                    </span>
+                    <span className="text-[10.5px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-600 text-white shadow-xs animate-pulse">
+                      🚨 HIGH PRIORITY / URGENT
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-xl font-black text-rose-900 group-hover:text-rose-700 transition flex items-center gap-2">
+                      <span>Emergency / Casualty</span>
+                    </h3>
+                    <p className="text-xs font-black text-rose-700 mt-0.5">
+                      ଜରୁରୀକାଳୀନ ବିଭାଗ • Universal Transit Case ID
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-slate-700 leading-relaxed font-semibold">
+                    For road accidents, severe trauma, unconscious patients, cardiac arrest, burns, or acute poisoning. Creates a hospital-independent case ID that <strong>any hospital</strong> can open immediately.
+                  </p>
+
+                  <ul className="text-[11.5px] text-rose-950 space-y-1.5 pt-2 border-t border-rose-100 font-bold">
+                    <li className="flex items-center gap-1.5">
+                      <span className="text-rose-600">⚡</span> <span>Unique Hospital-Independent ID (e.g. EM-882190)</span>
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <span className="text-rose-600">⚡</span> <span>Protected with 4-Digit Secure PIN &amp; QR Code</span>
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <span className="text-rose-600">⚡</span> <span>Live timestamped updates while en-route in ambulance</span>
+                    </li>
+                    <li className="flex items-center gap-1.5">
+                      <span className="text-rose-600">⚡</span> <span>Any hospital can view details prior to arrival</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep("emergency_intake")}
+                  className="btn-tactile w-full py-3.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-md group-hover:shadow-lg"
+                >
+                  <span className="text-base">🚨</span>
+                  <span>Open Emergency / Casualty Desk →</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Lookup Footer for Existing Emergency Case */}
+            <div className="p-4 bg-slate-100 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <span className="text-slate-600 font-medium">
+                Already have an ongoing emergency case in transit?
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowEmergencyLookupModal(true)}
+                className="font-bold text-[#003366] hover:text-rose-700 hover:underline cursor-pointer flex items-center gap-1"
+              >
+                <span>Track or Update Emergency Case (Enter ID &amp; PIN) →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* EMERGENCY INTAKE PAGE (MINIMAL TYPING, PRESET BUTTONS, WORKS FOR UNCONSCIOUS) */}
+      {/* ========================================================================= */}
+      {currentStep === "emergency_intake" && (
+        <div className="max-w-2xl mx-auto govt-panel border-2 border-rose-500 rounded-md overflow-hidden shadow-lg animate-fade-in bg-white">
+          <div className="bg-rose-700 text-white px-5 py-3.5 flex items-center justify-between border-b border-rose-800">
+            <div className="flex items-center gap-2.5">
+              <IconAlertCircle className="w-6 h-6 text-white shrink-0 animate-pulse" />
+              <div>
+                <h3 className="font-black text-sm sm:text-base tracking-wide uppercase">
+                  Emergency / Casualty Incident Intake
+                </h3>
+                <p className="text-[11px] text-rose-200">
+                  Instant Universal Dispatch • Works for Unconscious / Unnamed Patients
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentStep("mode_select")}
+              className="text-xs font-bold text-white bg-rose-800/80 hover:bg-rose-900 px-3 py-1.5 rounded-lg border border-rose-600 transition cursor-pointer"
+            >
+              ← Back
+            </button>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {emergencyError && (
+              <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-bold flex items-center gap-2">
+                <IconAlertCircle className="w-4 h-4 text-rose-700 shrink-0" />
+                <span>{emergencyError}</span>
+              </div>
+            )}
+
+            {/* Presets Grid */}
+            <div className="space-y-2">
+              <label className="block text-xs font-black uppercase text-slate-800 tracking-wider">
+                Select Incident Type <span className="text-rose-600">*</span> (Tap one)
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {[
+                  { id: "Road Accident", label: "Road Accident", icon: "🚗", desc: "Collision, hit & run, bike crash" },
+                  { id: "Fire Accident", label: "Fire Accident", icon: "🔥", desc: "Thermal burns, smoke inhalation" },
+                  { id: "Chemical Accident", label: "Chemical Accident", icon: "☣️", desc: "Toxic chemical / gas exposure" },
+                  { id: "Electric Shock", label: "Electric Shock", icon: "⚡", desc: "High voltage / electrocution" },
+                  { id: "Severe Chest Pain", label: "Severe Chest Pain", icon: "💔", desc: "Possible heart attack / cardiac arrest" },
+                  { id: "OTHER", label: "Other / Custom", icon: "📝", desc: "Describe it yourself" }
+                ].map((item) => {
+                  const isSelected = emergencyType === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setEmergencyType(item.id)}
+                      className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? "bg-rose-50 border-rose-600 text-rose-950 shadow-xs ring-2 ring-rose-500/20"
+                          : "bg-white border-slate-200 hover:border-rose-300 text-slate-800 hover:bg-rose-50/30"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-2xl">{item.icon}</span>
+                        {isSelected && <span className="text-rose-600 font-black text-sm">✓</span>}
+                      </div>
+                      <div className="mt-2">
+                        <span className="block font-black text-xs sm:text-[13px] leading-tight">
+                          {item.label}
+                        </span>
+                        <span className="block text-[10px] text-slate-500 mt-0.5 line-clamp-1">
+                          {item.desc}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Custom incident title if "OTHER" chosen */}
+            {emergencyType === "OTHER" && (
+              <div className="animate-fade-in">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Specify Incident Type <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={emergencyCustomType}
+                  onChange={(e) => setEmergencyCustomType(e.target.value)}
+                  placeholder="e.g. Drowning, Snakebite, Fall from height..."
+                  className="w-full p-2.5 rounded-xl border border-rose-300 focus:border-rose-600 outline-none text-xs font-bold bg-white"
+                />
+              </div>
+            )}
+
+            {/* Free-text description box */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Incident Description / Condition Details (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={emergencyDesc}
+                onChange={(e) => setEmergencyDesc(e.target.value)}
+                placeholder="e.g. Bike hit truck, bleeding from head, rider was not wearing helmet..."
+                className="w-full p-2.5 rounded-xl border border-slate-200 focus:border-rose-600 outline-none text-xs text-slate-800 bg-white"
+              />
+            </div>
+
+            {/* Optional Fields (Works for Unconscious / Unidentified) */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider block">
+                Patient &amp; Dispatch Information (Optional • Minimal Typing)
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Patient Name</span>
+                    <span className="text-[10px] text-slate-400 font-normal">Can be "Unknown"</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={emergencyPatientName}
+                    onChange={(e) => setEmergencyPatientName(e.target.value)}
+                    placeholder="Unknown / Unidentified Male/Female"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 focus:border-rose-600 outline-none text-xs text-slate-800 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Reporter Contact Phone (Relative/Caller)
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={emergencyReporterPhone}
+                    onChange={(e) => setEmergencyReporterPhone(e.target.value.replace(/\D/g, ""))}
+                    placeholder={contactPhone || "9876543210"}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 focus:border-rose-600 outline-none text-xs text-slate-800 bg-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Approximate Incident / Pickup Location
+                </label>
+                <input
+                  type="text"
+                  value={emergencyLocation}
+                  onChange={(e) => setEmergencyLocation(e.target.value)}
+                  placeholder="e.g. NH-16 near Rasulgarh Square, Bhubaneswar"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 focus:border-rose-600 outline-none text-xs text-slate-800 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Create Case Button */}
+            <button
+              type="button"
+              disabled={emergencyLoading}
+              onClick={handleCreateEmergencyCase}
+              className="btn-tactile w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-sm uppercase tracking-wide transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {emergencyLoading ? (
+                <span>Generating Emergency Case &amp; PIN...</span>
+              ) : (
+                <>
+                  <span className="text-lg">🚨</span>
+                  <span>Create Emergency Case Instantly →</span>
+                </>
+              )}
+            </button>
+            <p className="text-[11px] text-center text-slate-500 font-medium">
+              A universal Case ID, PIN, and QR code will be generated immediately for all hospitals.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* EMERGENCY CASE PAGE (ID, PIN, QR CODE & EN-ROUTE LIVE UPDATES)            */}
+      {/* ========================================================================= */}
+      {currentStep === "emergency_case" && emergencyCase && (
+        <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+          {/* Success Banner */}
+          <div className="govt-panel border-2 border-rose-500 rounded-md overflow-hidden shadow-lg bg-white">
+            <div className="bg-rose-700 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-2xl">🚨</span>
+                <div>
+                  <h3 className="font-black text-base text-white tracking-wide">
+                    Emergency Case Active
+                  </h3>
+                  <p className="text-[11px] text-rose-200">
+                    Hospital-Independent Casualty Record • Usable by Any Receiving Facility
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRefreshEmergencyCase}
+                  className="text-xs font-bold text-white bg-rose-800 hover:bg-rose-900 px-3 py-1.5 rounded-lg border border-rose-600 transition cursor-pointer flex items-center gap-1"
+                >
+                  <IconRefresh className="w-3.5 h-3.5" />
+                  <span>Refresh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep("mode_select")}
+                  className="text-xs font-bold text-white bg-rose-800 hover:bg-rose-900 px-3 py-1.5 rounded-lg border border-rose-600 transition cursor-pointer"
+                >
+                  ← Services
+                </button>
+              </div>
+            </div>
+
+            {/* Case ID, PIN & QR Box */}
+            <div className="p-6 bg-rose-50/40 border-b border-rose-100 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+              <div className="md:col-span-7 space-y-4">
+                {/* Status Badge */}
+                <div>
+                  {emergencyCase.status === "received" ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-black border border-emerald-300">
+                      <span>✓</span> PATIENT RECEIVED AT: {emergencyCase.claimedByHospital || "Hospital"}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-100 text-rose-900 text-xs font-black border border-rose-300 animate-pulse">
+                      <span className="w-2 h-2 rounded-full bg-rose-600 animate-ping" />
+                      🚑 EN ROUTE (PATIENT IN TRANSIT)
+                    </span>
+                  )}
+                </div>
+
+                {/* Case ID */}
+                <div>
+                  <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider block">
+                    Universal Case ID (Share with Hospital / Ambulance)
+                  </span>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-2xl sm:text-3xl font-black font-mono text-slate-900 bg-white px-4 py-1.5 rounded-xl border-2 border-slate-300 shadow-xs">
+                      {emergencyCase.caseId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(emergencyCase.caseId);
+                        setEmergencyCopiedNotice("Case ID copied!");
+                        setTimeout(() => setEmergencyCopiedNotice(""), 2500);
+                      }}
+                      className="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 cursor-pointer shadow-xs"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+
+                {/* Access PIN */}
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-950 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-[10.5px] font-black uppercase text-amber-900 tracking-wider block">
+                      🔒 Emergency Access PIN
+                    </span>
+                    <span className="text-2xl font-black font-mono text-amber-950 tracking-widest">
+                      {emergencyCase.pin}
+                    </span>
+                    <p className="text-[10px] text-amber-800 font-semibold mt-0.5">
+                      Required by hospital casualty staff to open case details.
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-200 text-amber-900 uppercase">
+                    Privacy Guard
+                  </span>
+                </div>
+
+                {/* Basic Info */}
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Type:</span>
+                    <span className="font-black text-rose-900">{emergencyCase.type}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Patient:</span>
+                    <span className="font-bold text-slate-900">{emergencyCase.patientName || "Unknown"}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[10px] text-slate-400 block font-bold uppercase">Location:</span>
+                    <span className="font-medium text-slate-800">{emergencyCase.location || "Not specified"}</span>
+                  </div>
+                </div>
+
+                {emergencyCopiedNotice && (
+                  <span className="text-xs font-bold text-emerald-700 block animate-fade-in">
+                    ✓ {emergencyCopiedNotice}
+                  </span>
+                )}
+              </div>
+
+              {/* QR Code Container */}
+              <div className="md:col-span-5 bg-white p-4 rounded-xl border-2 border-slate-200 shadow-sm text-center space-y-2">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 block">
+                  Scan at Casualty Desk
+                </span>
+                <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg inline-block">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
+                      `${window.location.origin}${window.location.pathname}#emergency-case?caseId=${emergencyCase.caseId}&pin=${emergencyCase.pin}`
+                    )}`}
+                    alt="Emergency QR Code"
+                    className="w-44 h-44 mx-auto rounded"
+                  />
+                </div>
+                <p className="text-[10.5px] text-slate-500 font-medium">
+                  Direct link carries Case ID &amp; PIN for receiving staff.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const link = `${window.location.origin}${window.location.pathname}#emergency-case?caseId=${emergencyCase.caseId}&pin=${emergencyCase.pin}`;
+                    navigator.clipboard?.writeText(link);
+                    setEmergencyCopiedNotice("Direct link copied!");
+                    setTimeout(() => setEmergencyCopiedNotice(""), 2500);
+                  }}
+                  className="text-xs font-bold text-slate-700 hover:text-slate-900 underline cursor-pointer"
+                >
+                  Copy Direct Case Link
+                </button>
+              </div>
+            </div>
+
+            {/* LIVE UPDATES SECTION WHILE IN TRANSIT (PART 4) */}
+            <div className="p-6 space-y-5 bg-white">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    <span>Live In-Transit Updates / Injury Notes</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Relative or ambulance crew can add timestamped notes visible to receiving hospital immediately.
+                  </p>
+                </div>
+                <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                  {emergencyCase.updates ? emergencyCase.updates.length : 0} note(s)
+                </span>
+              </div>
+
+              {/* Quick-add chips */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-black uppercase text-slate-600 tracking-wider block">
+                  Quick-Add Injury / Condition Chip (One-Tap):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    "head injury",
+                    "leg injury",
+                    "now unconscious",
+                    "heavy bleeding",
+                    "breathing difficulty",
+                    "severe chest pain",
+                    "vomiting blood",
+                    "suspected fracture"
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      disabled={emergencyUpdateLoading}
+                      onClick={() => handleAddEmergencyUpdate(chip)}
+                      className="px-3 py-1.5 rounded-full text-xs font-black bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-600 hover:text-white transition cursor-pointer disabled:opacity-50"
+                    >
+                      + {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Free-text input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={emergencyNewUpdate}
+                  onChange={(e) => setEmergencyNewUpdate(e.target.value)}
+                  placeholder="Type note (e.g. Oxygen administered, BP dropping, reaching in 5 mins)..."
+                  className="flex-1 p-2.5 rounded-xl border border-slate-300 focus:border-rose-600 outline-none text-xs text-slate-800 bg-white"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddEmergencyUpdate();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={emergencyUpdateLoading || !emergencyNewUpdate.trim()}
+                  onClick={() => handleAddEmergencyUpdate()}
+                  className="btn-tactile px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition cursor-pointer disabled:opacity-50 shadow-xs"
+                >
+                  {emergencyUpdateLoading ? "Adding..." : "Post Note"}
+                </button>
+              </div>
+
+              {/* Timeline of updates (Newest first) */}
+              <div className="space-y-2.5 pt-2">
+                <span className="text-[11px] font-black uppercase text-slate-500 tracking-wider block">
+                  Timeline of Updates (Newest First):
+                </span>
+                {(!emergencyCase.updates || emergencyCase.updates.length === 0) ? (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                    No updates logged yet. Tap a quick chip above or type a note.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {emergencyCase.updates.map((upd, idx) => (
+                      <div
+                        key={upd.id || idx}
+                        className="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex items-start justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-xs text-slate-900 block">
+                            • {upd.text}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            {new Date(upd.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })} • {new Date(upd.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {idx === 0 && (
+                          <span className="text-[9.5px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                            Latest
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EMERGENCY LOOKUP MODAL (OPEN EXISTING CASE WITH ID + PIN) */}
+      {showEmergencyLookupModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 border border-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🚨</span>
+                <h3 className="font-black text-sm text-slate-900 uppercase">
+                  Lookup Emergency Case
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmergencyLookupModal(false);
+                  setEmergencyLookupError("");
+                }}
+                className="text-slate-400 hover:text-slate-700 text-lg cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 font-medium">
+              Enter the Case ID and 4-digit Access PIN to track or add live notes to the case.
+            </p>
+
+            {emergencyLookupError && (
+              <div className="p-3 rounded-lg bg-rose-50 border border-rose-300 text-rose-800 text-xs font-bold">
+                {emergencyLookupError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-700 mb-1">
+                  Case ID (e.g. EM-882190)
+                </label>
+                <input
+                  type="text"
+                  value={emergencyLookupId}
+                  onChange={(e) => setEmergencyLookupId(e.target.value.toUpperCase())}
+                  placeholder="EM-XXXXXX"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono font-black uppercase outline-none focus:border-rose-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black uppercase text-slate-700 mb-1">
+                  Access PIN (4 Digits)
+                </label>
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={emergencyLookupPin}
+                  onChange={(e) => setEmergencyLookupPin(e.target.value)}
+                  placeholder="••••"
+                  className="w-full p-2.5 rounded-xl border border-slate-300 text-xs font-mono font-black outline-none focus:border-rose-600"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmergencyLookupId("EM-882190");
+                  setEmergencyLookupPin("1234");
+                }}
+                className="text-[11px] font-bold text-rose-700 hover:underline cursor-pointer"
+              >
+                Fill Sample Seed Case
+              </button>
+              <button
+                type="button"
+                disabled={emergencyLookupLoading || !emergencyLookupId || !emergencyLookupPin}
+                onClick={() => verifyAndOpenEmergencyCase()}
+                className="btn-tactile px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition cursor-pointer disabled:opacity-50 shadow-xs"
+              >
+                {emergencyLookupLoading ? "Verifying..." : "Open Case →"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
       {/* STEP 2: INTAKE DEMOGRAPHICS (OFFLINE-SAFE DRAFT)                         */}
       {/* ========================================================================= */}
       {currentStep === "intake" && (
@@ -1917,6 +2741,13 @@ export default function PatientPortal({
               <span className="text-slate-200 hidden sm:inline">
                 {language === "or" ? "ସରକାରୀ ଓପିଡି ଡେସ୍କ" : language === "hi" ? "आधिकारिक ओपीडी डेस्क" : "Official OPD Desk"}
               </span>
+              <button
+                type="button"
+                onClick={() => setCurrentStep("mode_select")}
+                className="text-[10.5px] font-bold text-amber-300 hover:text-white bg-[#0B2545] hover:bg-blue-900 px-2.5 py-1 rounded transition cursor-pointer border border-blue-400/30"
+              >
+                ← Change Service (OPD / Emergency)
+              </button>
             </div>
             <div className="flex items-center gap-2">
               <div className="inline-flex rounded border border-blue-900/50 bg-[#133B5C] p-0.5">

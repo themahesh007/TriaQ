@@ -57,7 +57,7 @@ export default function App() {
   const getInitialPortal = () => {
     const rawHash = window.location.hash.replace("#", "").toLowerCase();
     const hash = rawHash.split("?")[0];
-    if (["intake", "patient-intake", "patient", "patient-portal"].includes(hash)) return "patient-portal";
+    if (["intake", "patient-intake", "patient", "patient-portal", "emergency", "emergency-case", "casualty"].includes(hash)) return "patient-portal";
     if (["hospital", "hospital-portal", "clinic"].includes(hash)) return "hospital-portal";
     if (["staff", "staff-portal", "dashboard"].includes(hash)) return "staff-portal";
     if (["master", "master-portal", "admin"].includes(hash)) return "master-portal";

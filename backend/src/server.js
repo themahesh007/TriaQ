@@ -1986,6 +1986,165 @@ app.get("/api/referrals/:id/pdf", async (req, res) => {
   }
 });
 
+// ==========================================
+// EMERGENCY / CASUALTY WORKFLOW ENDPOINTS
+// ==========================================
+
+/**
+ * POST /api/emergency/cases
+ * Instant creation of a hospital-independent emergency case
+ */
+app.post("/api/emergency/cases", async (req, res) => {
+  try {
+    const { type, description, patientName, reporterPhone, location } = req.body;
+    if (!type && !description) {
+      return res.status(400).json({ error: "Please select an emergency type or describe the incident." });
+    }
+
+    const newCase = await storage.createEmergencyCase({
+      type: type || "Emergency Incident",
+      description: description || "",
+      patientName: patientName || "Unknown",
+      reporterPhone: reporterPhone || null,
+      location: location || ""
+    });
+
+    return res.status(201).json({
+      success: true,
+      caseId: newCase.caseId,
+      pin: newCase.pin,
+      case: newCase
+    });
+  } catch (error) {
+    console.error("Error creating emergency case:", error);
+    return res.status(500).json({ error: "Failed to create emergency case." });
+  }
+});
+
+/**
+ * GET /api/emergency/cases
+ * Hospital dashboard list of incoming emergency cases (newest first, no PIN leakage)
+ */
+app.get("/api/emergency/cases", async (req, res) => {
+  try {
+    const list = await storage.getAllEmergencyCases();
+    return res.json(list);
+  } catch (error) {
+    console.error("Error fetching emergency cases:", error);
+    return res.status(500).json({ error: "Failed to load emergency cases." });
+  }
+});
+
+/**
+ * POST /api/emergency/cases/verify
+ * Hospital or relative lookup with Case ID + PIN verification
+ */
+app.post("/api/emergency/cases/verify", async (req, res) => {
+  try {
+    const { caseId, pin } = req.body;
+    if (!caseId || !pin) {
+      return res.status(400).json({ error: "Case ID and Access PIN are required." });
+    }
+
+    const result = await storage.getEmergencyCase(caseId, pin);
+    if (!result) {
+      return res.status(404).json({ error: "Emergency case not found. Please verify the Case ID." });
+    }
+    if (result.error === "INVALID_PIN") {
+      return res.status(403).json({ error: "INVALID_PIN", message: "Incorrect PIN. Case details are strictly protected." });
+    }
+
+    return res.json({ success: true, case: result });
+  } catch (error) {
+    console.error("Error verifying emergency case:", error);
+    return res.status(500).json({ error: "Failed to retrieve emergency case." });
+  }
+});
+
+/**
+ * GET /api/emergency/cases/:caseId
+ * Direct fetch with PIN passed in query param or header
+ */
+app.get("/api/emergency/cases/:caseId", async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const pin = req.query.pin || req.headers["x-case-pin"];
+    if (!pin) {
+      return res.status(400).json({ error: "Access PIN required to view emergency case details." });
+    }
+
+    const result = await storage.getEmergencyCase(caseId, pin);
+    if (!result) {
+      return res.status(404).json({ error: "Emergency case not found." });
+    }
+    if (result.error === "INVALID_PIN") {
+      return res.status(403).json({ error: "INVALID_PIN", message: "Incorrect PIN. Case details are protected." });
+    }
+
+    return res.json({ success: true, case: result });
+  } catch (error) {
+    console.error("Error fetching emergency case:", error);
+    return res.status(500).json({ error: "Failed to fetch emergency case." });
+  }
+});
+
+/**
+ * POST /api/emergency/cases/:caseId/updates
+ * Add en-route live timestamped note / injury update
+ */
+app.post("/api/emergency/cases/:caseId/updates", async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const { pin, updateText } = req.body;
+    if (!updateText || !updateText.trim()) {
+      return res.status(400).json({ error: "Update text cannot be empty." });
+    }
+
+    const result = await storage.addEmergencyCaseUpdate(caseId, pin, updateText);
+    if (!result) {
+      return res.status(404).json({ error: "Emergency case not found." });
+    }
+    if (result.error === "INVALID_PIN") {
+      return res.status(403).json({ error: "INVALID_PIN", message: "Incorrect PIN. Cannot update case." });
+    }
+    if (result.error) {
+      return res.status(400).json({ error: result.message || "Failed to add update." });
+    }
+
+    return res.json({ success: true, case: result });
+  } catch (error) {
+    console.error("Error adding emergency case update:", error);
+    return res.status(500).json({ error: "Failed to add update." });
+  }
+});
+
+/**
+ * POST /api/emergency/cases/:caseId/claim
+ * Receiving hospital claims the patient on arrival
+ */
+app.post("/api/emergency/cases/:caseId/claim", async (req, res) => {
+  try {
+    const { caseId } = req.params;
+    const { pin, hospitalName } = req.body;
+
+    const result = await storage.claimEmergencyCase(caseId, pin, hospitalName);
+    if (!result) {
+      return res.status(404).json({ error: "Emergency case not found." });
+    }
+    if (result.error === "INVALID_PIN") {
+      return res.status(403).json({ error: "INVALID_PIN", message: "Incorrect PIN. Cannot claim case." });
+    }
+    if (result.error) {
+      return res.status(400).json({ error: result.message || "Failed to claim case." });
+    }
+
+    return res.json({ success: true, case: result });
+  } catch (error) {
+    console.error("Error claiming emergency case:", error);
+    return res.status(500).json({ error: "Failed to claim emergency case." });
+  }
+});
+
 // Start listening if executed directly
 if (require.main === module) {
   app.listen(PORT, () => {

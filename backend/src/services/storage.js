@@ -41,6 +41,28 @@ const initialStaff = [
   }
 ];
 
+const initialEmergencyCases = [
+  {
+    id: "emc-seed-bike-accident",
+    caseId: "EM-882190",
+    type: "Road Accident",
+    description: "Bike collision near Rasulgarh square, rider helmet broke",
+    patientName: "Unknown Male (approx 28 yrs)",
+    reporterPhone: "9876543210",
+    location: "NH-16 near Rasulgarh Square, Bhubaneswar",
+    status: "en_route", // 'en_route' | 'received' | 'closed'
+    claimedByHospital: null,
+    pin: "1234",
+    updates: [
+      { id: "upd-3", text: "Patient semiconscious, oxygen administered", createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString() },
+      { id: "upd-2", text: "Head injury, bleeding controlled with pressure bandage", createdAt: new Date(Date.now() - 8 * 60 * 1000).toISOString() },
+      { id: "upd-1", text: "Leg injury and deep laceration", createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString() }
+    ],
+    createdAt: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 60 * 1000).toISOString()
+  }
+];
+
 // In-memory store with local disk synchronization
 let memoryStore = {
   patients: [],
@@ -48,7 +70,8 @@ let memoryStore = {
   triageNotes: [],
   auditLogs: [],
   facilities: [],
-  referrals: []
+  referrals: [],
+  emergencyCases: [...initialEmergencyCases]
 };
 
 // Load saved data if exists
@@ -61,6 +84,12 @@ if (fs.existsSync(STORE_FILE)) {
     memoryStore.triageNotes = parsed.triageNotes || [];
     memoryStore.auditLogs = parsed.auditLogs || [];
     if (parsed.facilities) memoryStore.facilities = parsed.facilities;
+    if (parsed.referrals) memoryStore.referrals = parsed.referrals;
+    if (parsed.emergencyCases && parsed.emergencyCases.length > 0) {
+      memoryStore.emergencyCases = parsed.emergencyCases;
+    } else {
+      memoryStore.emergencyCases = [...initialEmergencyCases];
+    }
   } catch (e) {
     console.warn("Notice: Could not parse local store, initialized fresh memory store.");
   }
@@ -113,7 +142,15 @@ async function initCloudSync() {
       if (Array.isArray(cloudReferrals) && cloudReferrals.length > 0) {
         memoryStore.referrals = cloudReferrals;
       }
-      console.log(`[Supabase Cloud] Hydrated ${memoryStore.patients.length} patients, ${memoryStore.staff.length} staff, and ${memoryStore.triageNotes.length} triage notes from cloud database!`);
+      const cloudEmergency = await db.loadEmergencyCasesFromCloud();
+      if (Array.isArray(cloudEmergency) && cloudEmergency.length > 0) {
+        memoryStore.emergencyCases = cloudEmergency;
+      } else {
+        for (const em of memoryStore.emergencyCases) {
+          await db.saveEmergencyCaseToCloud(em);
+        }
+      }
+      console.log(`[Supabase Cloud] Hydrated ${memoryStore.patients.length} patients, ${memoryStore.staff.length} staff, ${memoryStore.emergencyCases.length} emergency cases from cloud database!`);
     } else {
       console.log("[Supabase Cloud] Empty cloud database. Seeding initial records to Supabase...");
       for (const s of memoryStore.staff) {
@@ -124,6 +161,9 @@ async function initCloudSync() {
       }
       for (const n of memoryStore.triageNotes) {
         await db.saveTriageNoteToCloud(n);
+      }
+      for (const em of memoryStore.emergencyCases) {
+        await db.saveEmergencyCaseToCloud(em);
       }
       console.log("[Supabase Cloud] Initial records seeded to cloud successfully!");
     }
@@ -1275,6 +1315,187 @@ const storage = {
       return note;
     }
     return null;
+  },
+
+  // --- EMERGENCY CASUALTY CASES ---
+  async createEmergencyCase(data) {
+    if (!Array.isArray(memoryStore.emergencyCases)) {
+      memoryStore.emergencyCases = [...initialEmergencyCases];
+    }
+    // Generate clean 6-char readable uppercase code
+    const chars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    let randomPart = "";
+    for (let i = 0; i < 6; i++) {
+      randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const caseId = `EM-${randomPart}`;
+    const pin = String(Math.floor(1000 + Math.random() * 9000));
+    const nowIso = new Date().toISOString();
+
+    const newCase = {
+      id: `emc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      caseId,
+      type: (data.type && data.type.trim()) || "Emergency Incident",
+      description: (data.description && data.description.trim()) || "",
+      patientName: (data.patientName && data.patientName.trim()) || "Unknown Patient",
+      reporterPhone: (data.reporterPhone && data.reporterPhone.trim()) || null,
+      location: (data.location && data.location.trim()) || "Location not specified",
+      status: "en_route", // 'en_route' | 'received' | 'closed'
+      claimedByHospital: null,
+      pin,
+      updates: [],
+      createdAt: nowIso,
+      updatedAt: nowIso
+    };
+
+    memoryStore.emergencyCases.unshift(newCase);
+    persistStore();
+    db.saveEmergencyCaseToCloud(newCase).catch(() => {});
+    return newCase;
+  },
+
+  async getEmergencyCase(caseId, pin) {
+    if (!caseId) return null;
+    const cleanId = String(caseId).trim().toUpperCase();
+    let emCase = (memoryStore.emergencyCases || []).find(
+      (c) => c.caseId.toUpperCase() === cleanId || c.id === caseId
+    );
+
+    if (!emCase) {
+      // Cloud database lookup fallback
+      const p = db.getPool();
+      if (p) {
+        try {
+          const res = await p.query(
+            "SELECT * FROM triaq_emergency_cases WHERE UPPER(case_id) = $1 OR id = $2 LIMIT 1",
+            [cleanId, caseId]
+          );
+          if (res.rows.length > 0) {
+            const r = res.rows[0];
+            emCase = {
+              id: r.id,
+              caseId: r.case_id,
+              type: r.type,
+              description: r.description,
+              patientName: r.patient_name,
+              reporterPhone: r.reporter_phone,
+              location: r.location,
+              status: r.status,
+              claimedByHospital: r.claimed_by_hospital,
+              pin: r.pin,
+              updates: Array.isArray(r.updates) ? r.updates : (typeof r.updates === "string" ? JSON.parse(r.updates) : []),
+              createdAt: r.created_at,
+              updatedAt: r.updated_at
+            };
+            memoryStore.emergencyCases.unshift(emCase);
+          }
+        } catch (e) {
+          console.error("Cloud emergency lookup error:", e.message);
+        }
+      }
+    }
+
+    if (!emCase) return null;
+
+    // Verify PIN for protected full details
+    if (!pin || String(emCase.pin).trim() !== String(pin).trim()) {
+      return { error: "INVALID_PIN", message: "Incorrect Emergency Access PIN. Case details are protected." };
+    }
+
+    // Return with newest updates first
+    const sortedUpdates = [...(emCase.updates || [])].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    return { ...emCase, updates: sortedUpdates };
+  },
+
+  async addEmergencyCaseUpdate(caseId, pin, updateText) {
+    if (!caseId || !updateText) return { error: "MISSING_DATA", message: "Case ID and update text are required." };
+    const caseResult = await this.getEmergencyCase(caseId, pin);
+    if (!caseResult || caseResult.error) return caseResult;
+
+    const emCase = (memoryStore.emergencyCases || []).find(
+      (c) => c.caseId.toUpperCase() === String(caseId).trim().toUpperCase() || c.id === caseId
+    );
+    if (!emCase) return { error: "NOT_FOUND", message: "Case not found." };
+
+    const newUpdate = {
+      id: `upd-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`,
+      text: updateText.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    if (!Array.isArray(emCase.updates)) emCase.updates = [];
+    emCase.updates.unshift(newUpdate);
+    emCase.updatedAt = new Date().toISOString();
+
+    persistStore();
+    db.saveEmergencyCaseToCloud(emCase).catch(() => {});
+
+    const sortedUpdates = [...emCase.updates].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    return { ...emCase, updates: sortedUpdates };
+  },
+
+  async claimEmergencyCase(caseId, pin, hospitalName) {
+    if (!caseId) return { error: "MISSING_DATA", message: "Case ID is required." };
+    const caseResult = await this.getEmergencyCase(caseId, pin);
+    if (!caseResult || caseResult.error) return caseResult;
+
+    const emCase = (memoryStore.emergencyCases || []).find(
+      (c) => c.caseId.toUpperCase() === String(caseId).trim().toUpperCase() || c.id === caseId
+    );
+    if (!emCase) return { error: "NOT_FOUND", message: "Case not found." };
+
+    const targetHosp = hospitalName || "Receiving Hospital Casualty Department";
+    emCase.status = "received";
+    emCase.claimedByHospital = targetHosp;
+    emCase.updatedAt = new Date().toISOString();
+
+    const autoReceiptUpdate = {
+      id: `upd-${Date.now().toString(36)}`,
+      text: `Patient received at ${targetHosp}`,
+      createdAt: new Date().toISOString()
+    };
+    emCase.updates.unshift(autoReceiptUpdate);
+
+    persistStore();
+    db.saveEmergencyCaseToCloud(emCase).catch(() => {});
+
+    const sortedUpdates = [...emCase.updates].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    return { ...emCase, updates: sortedUpdates };
+  },
+
+  async getAllEmergencyCases() {
+    if (!Array.isArray(memoryStore.emergencyCases)) {
+      memoryStore.emergencyCases = [...initialEmergencyCases];
+    }
+    // Return newest first summary list for hospital emergency board
+    return memoryStore.emergencyCases
+      .slice()
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map((c) => {
+        const sorted = (c.updates || []).slice().sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt));
+        return {
+          id: c.id,
+          caseId: c.caseId,
+          type: c.type,
+          description: c.description,
+          patientName: c.patientName,
+          location: c.location,
+          status: c.status,
+          claimedByHospital: c.claimedByHospital,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+          updateCount: (c.updates || []).length,
+          latestUpdate: sorted[0] ? sorted[0].text : null,
+          latestUpdateAt: sorted[0] ? sorted[0].createdAt : c.createdAt
+        };
+      });
   },
 
   async clearAllData() {

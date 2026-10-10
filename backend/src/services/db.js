@@ -153,6 +153,22 @@ async function initDatabaseSchema() {
           date_str TEXT NOT NULL,
           last_token_number INTEGER DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS triaq_emergency_cases (
+          id TEXT PRIMARY KEY,
+          case_id TEXT UNIQUE NOT NULL,
+          type TEXT NOT NULL,
+          description TEXT,
+          patient_name TEXT,
+          reporter_phone TEXT,
+          location TEXT,
+          status TEXT DEFAULT 'en_route',
+          claimed_by_hospital TEXT,
+          pin TEXT NOT NULL,
+          updates JSONB DEFAULT '[]'::jsonb,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
       `);
       console.log("[Supabase Database] Connected & cloud tables verified! 🚀");
       return true;
@@ -698,6 +714,77 @@ async function loadReferralsFromCloud() {
   }
 }
 
+/**
+ * Save or update an emergency case in Supabase
+ */
+async function saveEmergencyCaseToCloud(emCase) {
+  const p = getPool();
+  if (!p || !emCase) return;
+  try {
+    await p.query(`
+      INSERT INTO triaq_emergency_cases (
+        id, case_id, type, description, patient_name, reporter_phone, location, status, claimed_by_hospital, pin, updates, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      ON CONFLICT (id) DO UPDATE SET
+        type = EXCLUDED.type,
+        description = EXCLUDED.description,
+        patient_name = EXCLUDED.patient_name,
+        reporter_phone = EXCLUDED.reporter_phone,
+        location = EXCLUDED.location,
+        status = EXCLUDED.status,
+        claimed_by_hospital = EXCLUDED.claimed_by_hospital,
+        pin = EXCLUDED.pin,
+        updates = EXCLUDED.updates,
+        updated_at = EXCLUDED.updated_at;
+    `, [
+      emCase.id,
+      emCase.caseId,
+      emCase.type,
+      emCase.description || null,
+      emCase.patientName || null,
+      emCase.reporterPhone || null,
+      emCase.location || null,
+      emCase.status || "en_route",
+      emCase.claimedByHospital || null,
+      emCase.pin,
+      JSON.stringify(emCase.updates || []),
+      emCase.createdAt || new Date().toISOString(),
+      emCase.updatedAt || new Date().toISOString()
+    ]);
+  } catch (err) {
+    console.error("[Supabase Database] Save emergency case error:", err.message);
+  }
+}
+
+/**
+ * Load emergency cases from Supabase PostgreSQL
+ */
+async function loadEmergencyCasesFromCloud() {
+  const p = getPool();
+  if (!p) return [];
+  try {
+    const res = await p.query("SELECT * FROM triaq_emergency_cases ORDER BY created_at DESC");
+    return res.rows.map((r) => ({
+      id: r.id,
+      caseId: r.case_id,
+      type: r.type,
+      description: r.description,
+      patientName: r.patient_name,
+      reporterPhone: r.reporter_phone,
+      location: r.location,
+      status: r.status,
+      claimedByHospital: r.claimed_by_hospital,
+      pin: r.pin,
+      updates: Array.isArray(r.updates) ? r.updates : (typeof r.updates === "string" ? JSON.parse(r.updates) : []),
+      createdAt: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+      updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : new Date().toISOString()
+    }));
+  } catch (err) {
+    console.error("[Supabase Database] Load emergency cases error:", err.message);
+    return [];
+  }
+}
+
 module.exports = {
   getPool,
   initDatabaseSchema,
@@ -712,5 +799,7 @@ module.exports = {
   getNextSequentialTokenNumber,
   getIstOpdDateStr,
   saveReferralToCloud,
-  loadReferralsFromCloud
+  loadReferralsFromCloud,
+  saveEmergencyCaseToCloud,
+  loadEmergencyCasesFromCloud
 };
