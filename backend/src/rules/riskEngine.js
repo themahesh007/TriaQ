@@ -229,19 +229,19 @@ function evaluateRisk(rawText = "", vitals = null) {
     }
   }
 
-  // 2. Duration & Chronicity Evaluation (e.g. "headache from last 21 days")
+  // 2. Duration & Chronicity Evaluation (e.g. "headache for 21 days", "headache from last 21 days")
   const duration = extractDuration(rawText);
   if (duration && duration.days >= 7) {
     if (/\b(headache|head pain|sir dard|sirdard|ମୁଣ୍ଡବିନ୍ଧା)\b/i.test(lower)) {
-      matchedAmber.push(`Prolonged / Chronic Headache (${duration.raw} duration)`);
+      matchedRed.push(`Prolonged / Chronic Headache (${duration.raw} duration)`);
     } else if (/\b(fever|temp|temperature|bukhar|ଜ୍ୱର)\b/i.test(lower)) {
-      matchedAmber.push(`Persistent / Prolonged Fever (${duration.raw} duration)`);
+      matchedRed.push(`Persistent / Prolonged Fever (${duration.raw} duration)`);
     } else if (/\b(cough|khansi|କାଶ)\b/i.test(lower)) {
-      matchedAmber.push(`Chronic Persistent Cough (${duration.raw} duration)`);
+      matchedRed.push(`Chronic Persistent Cough (${duration.raw} duration)`);
     } else if (/\b(pain|ache|dard|ଯନ୍ତ୍ରଣା)\b/i.test(lower)) {
-      matchedAmber.push(`Chronic Persistent Pain (${duration.raw} duration)`);
+      matchedRed.push(`Chronic Persistent Pain (${duration.raw} duration)`);
     } else {
-      matchedAmber.push(`Prolonged Symptom Duration (${duration.raw})`);
+      matchedRed.push(`Prolonged Symptom Duration (${duration.raw})`);
     }
   }
 
@@ -257,7 +257,7 @@ function evaluateRisk(rawText = "", vitals = null) {
     if (!isNaN(spo2) && spo2 > 0 && spo2 < 90) {
       matchedRed.push(`Critical SpO2: ${spo2}% (<90%)`);
     } else if (!isNaN(spo2) && spo2 >= 90 && spo2 <= 93) {
-      matchedAmber.push(`Low SpO2: ${spo2}% (90-93%)`);
+      matchedRed.push(`Low SpO2 Warning: ${spo2}% (90-93%)`);
     }
 
     // Critical BP crisis: Systolic >= 180 or Diastolic >= 110
@@ -266,43 +266,33 @@ function evaluateRisk(rawText = "", vitals = null) {
     } else if (!isNaN(bpSys) && bpSys > 0 && bpSys < 85) {
       matchedRed.push(`Severe Hypotension: ${bpSys} mmHg (<85)`);
     } else if ((!isNaN(bpSys) && bpSys >= 140) || (!isNaN(bpDia) && bpDia >= 90)) {
-      matchedAmber.push(`Elevated BP: ${bpSys || "-"}/${bpDia || "-"} mmHg`);
+      matchedRed.push(`Elevated BP Warning: ${bpSys || "-"}/${bpDia || "-"} mmHg`);
     }
 
     // Critical Heart Rate: Pulse > 130 or < 45
     if ((!isNaN(pulse) && pulse > 130) || (!isNaN(pulse) && pulse > 0 && pulse < 45)) {
       matchedRed.push(`Critical Pulse: ${pulse} bpm`);
     } else if (!isNaN(pulse) && pulse > 105) {
-      matchedAmber.push(`High Pulse: ${pulse} bpm`);
+      matchedRed.push(`High Pulse Warning: ${pulse} bpm`);
     }
 
     // High fever: >= 103°F or >= 39.5°C
     if (!isNaN(temp) && temp >= 103) {
-      matchedAmber.push(`High Fever: ${temp}°F (≥103°F)`);
+      matchedRed.push(`High Fever: ${temp}°F (≥103°F)`);
     }
   }
 
-  // Determine final risk tag
-  if (matchedRed.length > 0) {
+  // Determine final risk tag (2-Tier System: RED FLAG vs GREEN FLAG)
+  const allRedTriggers = Array.from(new Set([...matchedRed, ...matchedAmber]));
+
+  if (allRedTriggers.length > 0) {
     return {
       riskTag: "RED",
-      matchedRiskKeywords: Array.from(new Set(matchedRed)),
+      matchedRiskKeywords: allRedTriggers,
       flagType: "RED",
-      redFlags: Array.from(new Set(matchedRed)),
+      redFlags: allRedTriggers,
       greenFlags: [],
-      flagRationale: "Emergency red-flag symptom(s) or critical vitals detected requiring immediate triage."
-    };
-  }
-
-  if (matchedAmber.length > 0) {
-    return {
-      riskTag: "YELLOW",
-      matchedRiskKeywords: Array.from(new Set(matchedAmber)),
-      flagType: "AMBER",
-      redFlags: [],
-      amberFlags: Array.from(new Set(matchedAmber)),
-      greenFlags: ["Airway clear", "No immediate life-threatening distress"],
-      flagRationale: "Moderate symptoms or chronic prolonged duration detected requiring priority outpatient consultation."
+      flagRationale: "Emergency red-flag symptom(s), severe pain, or prolonged chronic duration detected requiring urgent triage."
     };
   }
 
@@ -341,7 +331,7 @@ function detectGreenFlags(rawText = "", vitals = null, language = "en") {
   }
 
   if (!redCheck.isRedFlag) {
-    greenFlags.push("No emergency chest or airway distress reported");
+    greenFlags.push("No emergency chest, neurological, or airway distress reported");
   }
 
   // Common mild/stable symptom indicators
@@ -388,7 +378,7 @@ function detectGreenFlags(rawText = "", vitals = null, language = "en") {
 }
 
 /**
- * Complete symptom analysis returning explicit Red Flag vs Green Flag determination
+ * Complete symptom analysis returning explicit Red Flag vs Green Flag determination (2-Tier System)
  * @param {string} symptomText
  * @param {Object} [vitals]
  * @param {string} [language]
@@ -397,35 +387,18 @@ function detectGreenFlags(rawText = "", vitals = null, language = "en") {
 function analyzeSymptomFlags(symptomText = "", vitals = null, language = "en") {
   const riskResult = evaluateRisk(symptomText, vitals);
   const redFlags = riskResult.redFlags || [];
-  const amberFlags = riskResult.amberFlags || [];
-  const greenFlags = riskResult.greenFlags || [];
 
   if (riskResult.riskTag === "RED") {
     return {
       flag: "RED",
       riskTag: "RED",
       title: "🚩 RED FLAG: Urgent Warning Signs Detected",
-      summary: "Critical warning signs or abnormal vitals identified. Immediate medical evaluation is required.",
+      summary: "Critical warning signs, severe symptoms, or prolonged chronic duration detected. Immediate clinical review required.",
       recommendation: "Emergency / Casualty attention recommended without delay. Do not wait in standard OPD queue.",
       redFlags: redFlags.length > 0 ? redFlags : ["Critical red-flag symptom detected"],
       greenFlags: [],
       isUrgent: true,
       action: "PROCEED_TO_EMERGENCY"
-    };
-  }
-
-  if (riskResult.riskTag === "YELLOW") {
-    return {
-      flag: "AMBER",
-      riskTag: "YELLOW",
-      title: "⚠️ AMBER FLAG: Priority Outpatient Care Needed",
-      summary: "Moderate clinical symptoms detected. Patient should be prioritized in OPD queue for timely doctor review.",
-      recommendation: "Proceed with priority OPD token. Inform clinic nurse if symptoms worsen suddenly.",
-      redFlags: [],
-      amberFlags,
-      greenFlags: ["Airway clear", "No immediate life-threatening distress"],
-      isUrgent: false,
-      action: "PROCEED_TO_OPD_PRIORITY"
     };
   }
 

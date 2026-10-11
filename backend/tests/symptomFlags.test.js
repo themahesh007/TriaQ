@@ -57,14 +57,13 @@ async function runSymptomFlagTests() {
   assert.ok(severeHeadache.redFlags.some(f => f.toLowerCase().includes("headache")), "Red flags must cite severe headache");
   console.log("   Passed! Flag:", severeHeadache.flag, "| Red flags:", severeHeadache.redFlags);
 
-  // 7. User Bug Fix: "I have headache from last 21 days" -> MUST BE AMBER (NEVER GREEN)
+  // 7. User Requirement: "I have headache from last 21 days" -> MUST BE RED FLAG (2-tier RED vs GREEN)
   console.log("-> Test 7: Chronic / Prolonged Duration Detection ('I have headache from last 21 days')");
   const chronicHeadache = analyzeSymptomFlags("I have headache from last 21 days");
-  assert.strictEqual(chronicHeadache.flag, "AMBER", "21-day headache must trigger AMBER flag, never GREEN");
-  assert.strictEqual(chronicHeadache.redFlags.length, 0, "Must not be acute emergency red flag");
-  assert.ok(chronicHeadache.amberFlags.length > 0, "Must include amber flags for prolonged duration");
-  assert.ok(chronicHeadache.amberFlags.some(f => f.includes("21 days") || f.toLowerCase().includes("prolonged")), "Must mention 21 days or prolonged duration");
-  console.log("   Passed! Flag:", chronicHeadache.flag, "| Amber flags:", chronicHeadache.amberFlags);
+  assert.strictEqual(chronicHeadache.flag, "RED", "21-day headache must trigger RED flag, never GREEN");
+  assert.ok(chronicHeadache.redFlags.length > 0, "Must have red flags list for prolonged duration");
+  assert.ok(chronicHeadache.redFlags.some(f => f.includes("21 days") || f.toLowerCase().includes("prolonged")), "Must mention 21 days or prolonged duration");
+  console.log("   Passed! Flag:", chronicHeadache.flag, "| Red flags:", chronicHeadache.redFlags);
 
   console.log("\nALL SYMPTOM RED/GREEN FLAG TESTS PASSED! 🚩🟢\n");
 }
