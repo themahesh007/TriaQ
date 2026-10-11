@@ -462,7 +462,7 @@ export default function PatientPortal({
     });
   };
 
-  // Real-time Symptom Flag Analysis (Red Flag vs Green Flag)
+  // Real-time Symptom Flag Analysis (Red Flag vs Green Flag vs Amber Flag)
   const symptomFlagAnalysis = useMemo(() => {
     const raw = (symptomText || "").trim();
     if (raw.length < 5) return null;
@@ -476,31 +476,117 @@ export default function PatientPortal({
       temp: temp ? Number(temp) : null
     };
 
+    // Helper: Negation checking (e.g. "no chest pain")
+    const isAffirmative = (text, kw) => {
+      const l = text.toLowerCase();
+      const k = kw.toLowerCase();
+      let pos = l.indexOf(k);
+      if (pos === -1) return false;
+      while (pos !== -1) {
+        const prefix = l.slice(Math.max(0, pos - 20), pos).trim();
+        const isNeg = /\b(no|without|denies|denied|free of|never had)\b\s*(any\s+)?$/i.test(prefix);
+        if (!isNeg) return true;
+        pos = l.indexOf(k, pos + 1);
+      }
+      return false;
+    };
+
+    // Helper: Extract symptom duration (days, weeks, months) in EN, HI, OR
+    const extractDuration = (text) => {
+      const l = (text || "").toLowerCase();
+      const dayMatch = l.match(/(?:from\s+last|last|past|for|since)?\s*(\d+)\s*(?:days?|dino?|din|ଦିନ)/i);
+      if (dayMatch) {
+        const days = parseInt(dayMatch[1], 10);
+        return { days, raw: `${days} day${days > 1 ? "s" : ""}` };
+      }
+      const weekMatch = l.match(/(?:from\s+last|last|past|for|since)?\s*(\d+)\s*(?:weeks?|hafte|hafto?|hafta|ସପ୍ତାହ)/i);
+      if (weekMatch) {
+        const weeks = parseInt(weekMatch[1], 10);
+        return { days: weeks * 7, raw: `${weeks} week${weeks > 1 ? "s" : ""}` };
+      }
+      const monthMatch = l.match(/(?:from\s+last|last|past|for|since)?\s*(\d+)\s*(?:months?|mahine|mahina|ମାସ)/i);
+      if (monthMatch) {
+        const months = parseInt(monthMatch[1], 10);
+        return { days: months * 30, raw: `${months} month${months > 1 ? "s" : ""}` };
+      }
+      const odiaDigits = { "୦": 0, "୧": 1, "୨": 2, "୩": 3, "୪": 4, "୫": 5, "୬": 6, "୭": 7, "୮": 8, "୯": 9 };
+      const odiaMatch = l.match(/([୦-୯]+)\s*(?:ଦିନ|ସପ୍ତାହ|ମାସ)/);
+      if (odiaMatch) {
+        const num = parseInt(odiaMatch[1].split("").map(c => odiaDigits[c] ?? c).join(""), 10);
+        if (!isNaN(num)) {
+          if (l.includes("ମାସ")) return { days: num * 30, raw: `${num} months` };
+          if (l.includes("ସପ୍ତାହ")) return { days: num * 7, raw: `${num} weeks` };
+          return { days: num, raw: `${num} days` };
+        }
+      }
+      if (/\b(chronic|persistent|prolonged|long time|many days|not going away|several weeks|months)\b/i.test(l) ||
+          /\b(लगातार|कई दिनों से|काफी समय से|ଦୀର୍ଘ ଦିନ|ଅନେକ ଦିନ)\b/i.test(l)) {
+        return { days: 14, raw: "chronic/persistent" };
+      }
+      return null;
+    };
+
     // Red flag keywords (English, Hindi, Romanized, Odia)
     const redKeywords = [
-      "chest pain", "chest tightness", "chest ache", "chhati",
-      "difficulty breathing", "breathless", "shortness of breath", "can't breathe", "saas",
+      "chest pain", "chest tightness", "chest ache", "chhati", "seene me dard", "severe chest pain",
+      "difficulty breathing", "breathless", "shortness of breath", "can't breathe", "saas", "saas phoolna",
+      "severe headache", "intense headache", "worst headache", "thunderclap headache", "splitting headache", "unbearable headache",
+      "sudden severe headache", "worst headache of life", "tez sir dard", "tez sirdard", "sir me tez dard",
       "unconscious", "passed out", "blacked out", "fainting", "fainted", "behosh",
-      "severe bleeding", "bleeding heavily", "blood loss", "khoon",
+      "severe bleeding", "bleeding heavily", "blood loss", "coughing blood", "vomiting blood", "khoon",
       "stroke", "facial drooping", "slurred speech", "one-sided weakness", "lakwa",
-      "suicidal", "want to die", "choking", "worst headache",
+      "severe abdominal pain", "severe stomach pain", "severe belly pain", "acute abdomen",
+      "suicidal", "want to die", "choking", "can't swallow",
       "seizure", "convulsion", "anaphylaxis",
       // Hindi
       "सीने में दर्द", "छाती में दर्द", "सांस नहीं", "सांस फूलना", "बेहोश", "बेहोशी", "गंभीर रक्तस्राव", "खून बह", "लकवा", "असहनीय दर्द",
+      "तेज सिरदर्द", "गंभीर सिरदर्द", "सिर में तेज दर्द", "अचानक तेज सिरदर्द", "सबसे बुरा सिरदर्द", "पेट में तेज दर्द", "गंभीर पेट दर्द",
       // Odia
-      "ଛାତିରେ ଯନ୍ତ୍ରଣା", "ଶ୍ୱାସ ନେବାରେ କଷ୍ଟ", "ଶ୍ୱାସ ଧରା", "ଅଚେତ", "ରକ୍ତସ୍ରାବ", "ଅସହ୍ୟ ଯନ୍ତ୍ରଣା"
+      "ଛାତିରେ ଯନ୍ତ୍ରଣା", "ଶ୍ୱାସ ନେବାରେ କଷ୍ଟ", "ଶ୍ୱାସ ଧରା", "ଅଚେତ", "ରକ୍ତସ୍ରାବ", "ଅସହ୍ୟ ଯନ୍ତ୍ରଣା",
+      "ତୀବ୍ର ମୁଣ୍ଡବିନ୍ଧା", "ପ୍ରବଳ ମୁଣ୍ଡବିନ୍ଧା", "ଅସହ୍ୟ ମୁଣ୍ଡବିନ୍ଧା", "ପେଟରେ ଅସହ୍ୟ ଯନ୍ତ୍ରଣା"
     ];
 
     // Amber keywords
     const amberKeywords = [
       "fever", "vomiting", "nausea", "persistent cough", "dizziness", "severe pain",
-      "stomach pain", "blood in urine", "blood in stool", "belly pain",
-      "बुखार", "उल्टी", "खांसी", "चक्कर", "पेट दर्द", "सिर दर्द",
-      "ଜ୍ୱର", "ବାନ୍ତି", "କାଶ", "ପେଟ ଯନ୍ତ୍ରଣା"
+      "persistent headache", "chronic headache", "headache for", "headache from", "headache since", "migraine",
+      "stomach pain", "blood in urine", "blood in stool", "belly pain", "abdominal pain",
+      "बुखार", "उल्टी", "खांसी", "चक्कर", "पेट दर्द", "सिर दर्द", "सिरदर्द", "लगातार सिरदर्द", "माइग्रेन",
+      "ଜ୍ୱର", "ବାନ୍ତି", "କାଶ", "ପେଟ ଯନ୍ତ୍ରଣା", "ମୁଣ୍ଡ ବିନ୍ଧା", "ମୁଣ୍ଡବିନ୍ଧା"
     ];
 
-    const matchedRed = redKeywords.filter((k) => lower.includes(k.toLowerCase()));
-    const matchedAmber = amberKeywords.filter((k) => lower.includes(k.toLowerCase()));
+    const matchedRed = redKeywords.filter((k) => isAffirmative(raw, k));
+    const matchedAmber = amberKeywords.filter((k) => isAffirmative(raw, k));
+
+    // 1. Dynamic Severe Pain Modifiers (e.g. "severe headache", "severe abdominal pain")
+    const hasSevereModifier = /\b(severe|intense|unbearable|worst|extreme|splitting|acute|तेज|गंभीर|असहनीय|ଅସହ୍ୟ|ତୀବ୍ର)\b/i.test(lower);
+    if (hasSevereModifier) {
+      if (/\b(headache|head pain|sir dard|sirdard|माथा दर्द|ମୁଣ୍ଡବିନ୍ଧା)\b/i.test(lower)) {
+        matchedRed.push("Severe / Acute Headache");
+      } else if (/\b(stomach|abdomen|abdominal|belly|pet dard|ପେଟ)\b/i.test(lower)) {
+        matchedRed.push("Severe Acute Abdominal Pain");
+      } else if (/\b(chest|chhati|छाती|सीना)\b/i.test(lower)) {
+        matchedRed.push("Severe Acute Chest Pain");
+      } else if (!matchedRed.some(r => r.toLowerCase().includes("pain") || r.toLowerCase().includes("headache"))) {
+        matchedAmber.push("Severe Pain Reported");
+      }
+    }
+
+    // 2. Duration & Chronicity (e.g. "headache from last 21 days")
+    const duration = extractDuration(raw);
+    if (duration && duration.days >= 7) {
+      if (/\b(headache|head pain|sir dard|sirdard|ମୁଣ୍ଡବିନ୍ଧା)\b/i.test(lower)) {
+        matchedAmber.push(`Prolonged / Chronic Headache (${duration.raw} duration)`);
+      } else if (/\b(fever|temp|temperature|bukhar|ଜ୍ୱର)\b/i.test(lower)) {
+        matchedAmber.push(`Persistent / Prolonged Fever (${duration.raw} duration)`);
+      } else if (/\b(cough|khansi|କାଶ)\b/i.test(lower)) {
+        matchedAmber.push(`Chronic Persistent Cough (${duration.raw} duration)`);
+      } else if (/\b(pain|ache|dard|ଯନ୍ତ୍ରଣା)\b/i.test(lower)) {
+        matchedAmber.push(`Chronic Persistent Pain (${duration.raw} duration)`);
+      } else {
+        matchedAmber.push(`Prolonged Symptom Duration (${duration.raw})`);
+      }
+    }
 
     // Vitals checks
     const { spo2: s, bpSystolic: sys, bpDiastolic: dia, pulse: p, temp: t } = vitalsObj;
@@ -516,6 +602,7 @@ export default function PatientPortal({
 
     if (t && t >= 103) matchedAmber.push(`High Fever: ${t}°F (≥103°F)`);
 
+    // Red Flag Evaluation
     if (matchedRed.length > 0) {
       return {
         flag: "RED",
@@ -529,11 +616,19 @@ export default function PatientPortal({
       };
     }
 
+    // If severe symptoms or prolonged duration exist, never return green
+    if (hasSevereModifier || (duration && duration.days >= 5)) {
+      if (matchedAmber.length === 0) {
+        matchedAmber.push(`Prolonged duration (${duration?.raw || "extended"}) requires priority doctor review`);
+      }
+    }
+
+    // Amber Flag Evaluation
     if (matchedAmber.length > 0) {
       return {
         flag: "AMBER",
         title: language === "or" ? "⚠️ ଏମ୍ବର୍ ଫ୍ଲାଗ୍: ପ୍ରାଥମିକତା ଓପିଡି ଧ୍ୟାନ ଆବଶ୍ୟକ" : language === "hi" ? "⚠️ एम्बर फ्लैग: प्राथमिकता ओपीडी ध्यान आवश्यक" : "⚠️ AMBER FLAG: Priority Outpatient Attention Recommended",
-        summary: language === "or" ? "ମଧ୍ୟମ ଧରଣର ଲକ୍ଷଣ ଚିହ୍ନଟ ହୋଇଛି । ଡାକ୍ତରଙ୍କ ଶୀଘ୍ର ପରାମର୍ଶ ଆବଶ୍ୟକ ।" : language === "hi" ? "मध्यम लक्षण पाए गए हैं। जल्द डॉक्टर समीक्षा आवश्यक है।" : "Moderate clinical symptoms detected. Prioritized for prompt OPD review.",
+        summary: language === "or" ? "ମଧ୍ୟମ ଧରଣର ଲକ୍ଷଣ ଚିହ୍ନଟ ହୋଇଛି । ଡାକ୍ତରଙ୍କ ଶୀଘ୍ର ପରାମର୍ଶ ଆବଶ୍ୟକ ।" : language === "hi" ? "मध्यम या दीर्घकालिक लक्षण पाए गए हैं। जल्द डॉक्टर समीक्षा आवश्यक है।" : "Moderate or prolonged clinical symptoms detected. Prioritized for prompt OPD review.",
         recommendation: language === "or" ? "ପ୍ରାଥମିକତା ଟୋକନ୍ ସହ ଆଗକୁ ବଢ଼ନ୍ତୁ ।" : language === "hi" ? "प्राथमिकता टोकन के साथ आगे बढ़ें।" : "Proceed with priority OPD token. Notify triage nurse upon arrival.",
         redFlags: [],
         amberFlags: Array.from(new Set(matchedAmber)),
@@ -542,8 +637,8 @@ export default function PatientPortal({
       };
     }
 
-    // Green Flag Indicators
-    const greenIndicators = ["No emergency chest or airway distress reported"];
+    // Green Flag Indicators (Strict: only when truly mild and short duration)
+    const greenIndicators = ["No emergency chest, neurological, or airway distress reported"];
     if (s && s >= 95) greenIndicators.push(`Normal blood oxygen (${s}%)`);
     if (sys && sys >= 100 && sys <= 135) greenIndicators.push(`Blood pressure in normal range (${sys}/${dia || "-"} mmHg)`);
     if (p && p >= 60 && p <= 100) greenIndicators.push(`Normal pulse (${p} bpm)`);
