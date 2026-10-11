@@ -228,10 +228,13 @@ export default function PatientPortal({
   // Symptoms & Vitals Inputs
   const [symptomText, setSymptomText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const isRecordingRef = useRef(false);
   const recognitionRef = useRef(null);
   const baseTextRef = useRef("");
   const [micError, setMicError] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recordingTimerRef = useRef(null);
   const [reportImageBase64, setReportImageBase64] = useState(null);
   const [reportFileName, setReportFileName] = useState("");
 
@@ -937,71 +940,125 @@ export default function PatientPortal({
     }
   };
 
-  // --- VOICE INPUT (Web Speech API with Multilingual Support) ---
-  const BCP47_LANG_MAP = {
-    en: "en-IN",
-    hi: "hi-IN",
-    or: "or-IN"
+  // --- VOICE INPUT (Web Speech API with Auto-Restart, Silence Resilience & Multi-Language Support) ---
+  const getRecognitionLang = (langCode) => {
+    if (langCode === "hi") return "hi-IN";
+    if (langCode === "en") return "en-IN";
+    // For Odia and unsupported regional codes, fallback to en-IN for universal recognition
+    return "en-IN";
+  };
+
+  const stopSpeechRecognition = () => {
+    isRecordingRef.current = false;
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecording(false);
+    setInterimTranscript("");
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {}
+    }
   };
 
   useEffect(() => {
     return () => {
+      isRecordingRef.current = false;
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current.abort ? recognitionRef.current.abort() : recognitionRef.current.stop();
         } catch {}
       }
     };
   }, []);
 
-  const toggleSpeechRecognition = () => {
+  const toggleSpeechRecognition = async () => {
     setMicError("");
+
+    // If currently recording, stop it
+    if (isRecording || isRecordingRef.current) {
+      stopSpeechRecognition();
+      return;
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setMicError("Speech recognition is not natively supported in your current browser (e.g. Firefox). Please use Google Chrome, Microsoft Edge, or Mobile Safari, or type your symptoms directly.");
+      setMicError(
+        language === "hi"
+          ? "आपके वर्तमान ब्राउज़र में ध्वनि पहचान (Speech Recognition) समर्थित नहीं है। कृपया Google Chrome या Microsoft Edge का उपयोग करें अथवा नीचे दिए गए त्वरित बटन दबाएं।"
+          : language === "or"
+          ? "ଆପଣଙ୍କ ବ୍ରାଉଜରରେ ସ୍ୱର ଚିହ୍ନଟ (Mic) ସୁବିଧା ନାହିଁ। ଦୟାକରି Google Chrome ବ୍ୟବହାର କରନ୍ତୁ କିମ୍ବା ତଳେ ଥିବା ବଟନ୍ ଦବାନ୍ତୁ।"
+          : "Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge, or tap the quick symptom buttons below."
+      );
       return;
     }
 
-    if (isRecording) {
+    // 1. Microphone permission pre-flight check
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (permErr) {
+        console.warn("Microphone permission check failed:", permErr);
+        if (permErr.name === "NotAllowedError" || permErr.name === "PermissionDeniedError") {
+          setMicError(
+            language === "hi"
+              ? "माइक्रोफ़ोन अनुमति अस्वीकृत है। कृपया अपने ब्राउज़र के एड्रेस बार में लॉक/कैमरा आइकन पर क्लिक करें और 'Allow Microphone' चुनें।"
+              : language === "or"
+              ? "ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ବନ୍ଦ ଅଛି। ଦୟାକରି ବ୍ରାଉଜର ସେଟିଂସରୁ ମାଇକ୍ରୋଫୋନ୍ ଅନୁମତି ଦିଅନ୍ତୁ।"
+              : "Microphone permission was blocked. Please tap the lock / camera icon in your browser URL bar and allow microphone permissions."
+          );
+          return;
+        }
+      }
+    }
+
+    // 2. Initialize recognition instance
+    try {
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.stop();
+          recognitionRef.current.abort ? recognitionRef.current.abort() : recognitionRef.current.stop();
         } catch {}
       }
-      setIsRecording(false);
-      setInterimTranscript("");
-      return;
-    }
 
-    try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
-      recognition.lang = BCP47_LANG_MAP[language] || "en-IN";
+      recognition.lang = getRecognitionLang(language);
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
-      // Lock current base text so we never duplicate or repeat words
-      baseTextRef.current = symptomText;
+      isRecordingRef.current = true;
+      baseTextRef.current = symptomText || "";
+      setRecordingSeconds(0);
 
       recognition.onstart = () => {
         setIsRecording(true);
         setMicError("");
         setInterimTranscript("");
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = setInterval(() => {
+          setRecordingSeconds((prev) => prev + 1);
+        }, 1000);
       };
 
       recognition.onresult = (event) => {
         let sessionFinal = "";
         let sessionInterim = "";
 
-        // Calculate session total from 0 to avoid partial chunk repetition
         for (let i = 0; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            sessionFinal += transcript + " ";
+          const res = event.results[i];
+          if (res.isFinal) {
+            sessionFinal += res[0].transcript + " ";
           } else {
-            sessionInterim += transcript;
+            sessionInterim += res[0].transcript;
           }
         }
 
@@ -1015,27 +1072,59 @@ export default function PatientPortal({
 
       recognition.onerror = (event) => {
         console.warn("Speech recognition error:", event.error);
-        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setMicError("Microphone access was denied. Please click the camera/mic icon in your browser URL bar and allow microphone permissions.");
-        } else if (event.error === "network") {
-          setMicError("Speech recognition network service error. Please check your connection or type symptoms directly.");
-        } else if (event.error !== "no-speech") {
-          setMicError(`Voice recognition notification: ${event.error}. You can also type your symptoms directly.`);
+        // "no-speech" is a normal silence timeout: keep recording active unless user stops
+        if (event.error === "no-speech") {
+          return;
         }
-        setIsRecording(false);
-        setInterimTranscript("");
+
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          setMicError("Microphone access was denied. Please allow microphone permissions in your browser settings to speak.");
+          stopSpeechRecognition();
+          return;
+        }
+
+        if (event.error === "network") {
+          // If network failed with a non-en language, try fallback to en-IN
+          if (recognition.lang !== "en-IN") {
+            try {
+              recognition.lang = "en-IN";
+              recognition.start();
+              return;
+            } catch {}
+          }
+          setMicError("Speech recognition network error. Please check your internet connection or tap the quick symptom buttons.");
+          stopSpeechRecognition();
+          return;
+        }
+
+        if (event.error === "aborted") return;
+        setMicError(`Voice notice (${event.error}). You can also type symptoms directly or use quick buttons.`);
       };
 
       recognition.onend = () => {
-        setIsRecording(false);
-        setInterimTranscript("");
+        // Auto-restart if user has not clicked stop
+        if (isRecordingRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {
+            setTimeout(() => {
+              if (isRecordingRef.current) {
+                try {
+                  recognition.start();
+                } catch {}
+              }
+            }, 250);
+          }
+        } else {
+          stopSpeechRecognition();
+        }
       };
 
       recognition.start();
     } catch (err) {
       console.error("Failed to start speech recognition:", err);
-      setMicError("Could not initialize microphone: " + (err.message || "Please check browser mic permissions."));
-      setIsRecording(false);
+      setMicError("Could not start microphone: " + (err.message || "Please check browser mic permissions."));
+      stopSpeechRecognition();
     }
   };
 
@@ -3343,7 +3432,7 @@ export default function PatientPortal({
                   value={symptomText}
                   onChange={(e) => setSymptomText(e.target.value)}
                   placeholder={t.symptomsPlaceholder || "e.g. Mild fever, dry cough and body ache for the past 2 days. No breathing difficulty..."}
-                  className="w-full p-3.5 pr-20 rounded-xl border border-slate-200 text-[13.5px] text-slate-900 font-medium leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/40 focus:bg-white transition"
+                  className="w-full p-3.5 pr-28 rounded-xl border border-slate-200 text-[13.5px] text-slate-900 font-medium leading-relaxed outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 bg-slate-50/40 focus:bg-white transition"
                 />
 
                 <button
@@ -3356,35 +3445,77 @@ export default function PatientPortal({
                   }`}
                   title={isRecording ? (language === "or" ? "ଭଏସ୍ ରେକର୍ଡିଂ ବନ୍ଦ କରିବାକୁ କ୍ଲିକ୍ କରନ୍ତୁ" : language === "hi" ? "आवाज रिकॉर्डिंग बंद करने के लिए क्लिक करें" : "Click to finish voice recording") : (t.voiceRecordBtn || "Speak symptoms via microphone")}
                 >
-                  <IconMicrophone className="w-4 h-4 inline text-rose-600" />
-                  <span>{isRecording ? (language === "or" ? "ବନ୍ଦ" : language === "hi" ? "रोकें" : "Stop") : (language === "or" ? "କହନ୍ତୁ (Mic)" : language === "hi" ? "बोलें (Mic)" : "Mic")}</span>
+                  <IconMicrophone className={`w-4 h-4 inline ${isRecording ? "text-white" : "text-rose-600"}`} />
+                  <span>
+                    {isRecording
+                      ? `Stop (${recordingSeconds}s)`
+                      : (language === "or" ? "କହନ୍ତୁ (Mic)" : language === "hi" ? "बोलें (Mic)" : "Mic / Speak")}
+                  </span>
                 </button>
+              </div>
+
+              {/* Quick 1-Tap Common Symptom Chips */}
+              <div className="pt-0.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mr-1">
+                  {language === "or" ? "ଶୀଘ୍ର ଯୋଗ କରନ୍ତୁ:" : language === "hi" ? "जल्दी जोड़ें:" : "Quick add:"}
+                </span>
+                {[
+                  { en: "Fever & body ache", hi: "बुखार और बदन दर्द", or: "ଜ୍ୱର ଏବଂ ଦେହ ବିନ୍ଧା" },
+                  { en: "Severe chest pain", hi: "सीने में तेज दर्द", or: "ଛାତିରେ ତୀବ୍ର ଯନ୍ତ୍ରଣା" },
+                  { en: "Cold & dry cough", hi: "सर्दी और सूखी खांसी", or: "ଥଣ୍ଡା ଏବଂ ଶୁଖିଲା କାଶ" },
+                  { en: "Breathing difficulty", hi: "सांस लेने में दिक्कत", or: "ଶ୍ୱାସ ନେବାରେ କଷ୍ଟ" },
+                  { en: "Stomach pain & nausea", hi: "पेट दर्द और उल्टी", or: "ପେଟ ଯନ୍ତ୍ରଣା ଏବଂ ବାନ୍ତି" },
+                  { en: "Mild headache", hi: "हल्का सिरदर्द", or: "ସାମାନ୍ୟ ମୁଣ୍ଡବିନ୍ଧା" }
+                ].map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      const label = chip[language] || chip.en;
+                      setSymptomText((prev) => {
+                        const cleanPrev = (prev || "").trim();
+                        return cleanPrev ? `${cleanPrev}, ${label}` : label;
+                      });
+                    }}
+                    className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-emerald-100 hover:text-emerald-900 text-slate-700 border border-slate-200 hover:border-emerald-300 transition cursor-pointer shadow-2xs"
+                  >
+                    + {chip[language] || chip.en}
+                  </button>
+                ))}
               </div>
 
               {/* Interim Real-time Transcript Preview */}
               {interimTranscript && (
-                <div className="p-2.5 rounded-xl bg-slate-100 border border-slate-200 text-[12px] text-slate-700 italic flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
-                  <span>{language === "or" ? "ଅନୁବାଦ ହେଉଛି:" : language === "hi" ? "अनुलेखन हो रहा है:" : "Transcribing:"} "{interimTranscript}..."</span>
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-[12.5px] text-emerald-950 font-medium flex items-center gap-2 shadow-2xs">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+                  <span><strong>{language === "or" ? "ଶୁଣାଗଲା:" : language === "hi" ? "सुना जा रहा है:" : "Hearing:"}</strong> "{interimTranscript}..."</span>
                 </div>
               )}
 
               {/* Live Listening Banner */}
               {isRecording && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-[12px] font-bold flex items-center justify-between gap-2 shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <div className="p-3.5 rounded-xl bg-rose-50 border-2 border-rose-300 text-rose-900 text-[12px] font-bold flex flex-wrap items-center justify-between gap-2 shadow-xs ring-2 ring-rose-200">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex h-3 w-3 shrink-0">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-600"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
                     </span>
-                    <span>{language === "hi" ? "हिन्दी में सुना जा रहा है... अपने लक्षण स्पष्ट रूप से बोलें।" : language === "or" ? "ଓଡ଼ିଆରେ ଶୁଣାଯାଉଛି... ଆପଣଙ୍କ ଲକ୍ଷଣ ସ୍ପଷ୍ଟ ଭାବେ କୁହନ୍ତୁ।" : "Listening in Indian English... Speak your symptoms clearly."}</span>
+                    <div>
+                      <span className="font-black text-rose-950 block text-[13px]">
+                        🎤 {language === "hi" ? `ध्वनि रिकॉर्डिंग सक्रिय है (${recordingSeconds}s)...` : language === "or" ? `ଭଏସ୍ ରେକର୍ଡିଂ ଚାଲୁ ଅଛି (${recordingSeconds}s)...` : `Microphone Active (${recordingSeconds}s)...`}
+                      </span>
+                      <span className="text-[11px] text-rose-700 font-medium">
+                        {language === "hi" ? "स्पष्ट रूप से बोलें — बोलने के बाद 'बोलना समाप्त ✓' दबाएं।" : language === "or" ? "ସ୍ପଷ୍ଟ ଭାବେ କୁହନ୍ତୁ — କହିବା ପରେ 'କୁହା ସରିଲା ✓' ଦବାନ୍ତୁ।" : "Speak symptoms clearly — pauses won't stop the mic. Click 'Done Speaking ✓' when finished."}
+                      </span>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={toggleSpeechRecognition}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-[11px] font-black hover:bg-rose-700 cursor-pointer shrink-0 shadow-2xs"
+                    onClick={stopSpeechRecognition}
+                    className="px-3.5 py-1.5 rounded-lg bg-rose-600 text-white text-[11.5px] font-black hover:bg-rose-700 cursor-pointer shrink-0 shadow-xs flex items-center gap-1"
                   >
-                    {language === "or" ? "କୁହା ସରିଲା ✓" : language === "hi" ? "बोलना समाप्त ✓" : "Done Speaking ✓"}
+                    <span>✓</span>
+                    <span>{language === "or" ? "କୁହା ସରିଲା ✓" : language === "hi" ? "बोलना समाप्त ✓" : "Done Speaking ✓"}</span>
                   </button>
                 </div>
               )}
